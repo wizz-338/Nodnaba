@@ -6,4 +6,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './',
+  build: {
+    rollupOptions: {
+      // check.html is the developer-only Supabase self-test page
+      input: { main: 'index.html', check: 'check.html' },
+    },
+  },
 })

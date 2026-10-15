@@ -454,7 +454,7 @@
 /* ───────── developer check page ───────── */
 
 .visitor--dev {
-  padding-top: calc(84px + env(safe-area-inset-top));
+  padding-top: calc(28px + env(safe-area-inset-top));
 }
 
 .dev-banner {
