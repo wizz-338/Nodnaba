@@ -70,7 +70,7 @@ export default function App() {
         <MainPage ready={booted} />
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
-          <VisitorPage admin={shown.admin} />
+          <VisitorPage admin={shown.admin} check={shown.check} />
         </Suspense>
       )}
       <PageTransition active={warping} />

@@ -22,7 +22,7 @@ export default function Header({ page = 'main' }) {
 
   return (
     <>
-      <header className="header">
+      <header className={`header ${page === 'visitor' ? 'header--bar' : ''}`}>
         <a className="header__brand" href="#/" aria-label="NODNABA home" onClick={() => setOpen(false)}>
           <Logo className="header__logo" glitch={false} />
           <span className="header__name">NODNABA</span>

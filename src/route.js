@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 
 // Hash routes keep GitHub Pages happy (no server rewrites needed).
-// '#/visitor' (and '#/visitor/admin') → visitor; anything else → main, so
-// in-page anchors like '#vision' keep working on the main page.
+// '#/visitor' (plus '#/visitor/admin', '#/visitor/check') → visitor; anything
+// else → main, so in-page anchors like '#vision' keep working there.
 export function parseRoute(hash = location.hash) {
-  if (hash.startsWith('#/visitor')) return { page: 'visitor', admin: hash.startsWith('#/visitor/admin') }
-  return { page: 'main', admin: false }
+  if (hash.startsWith('#/visitor')) {
+    return { page: 'visitor', admin: hash.startsWith('#/visitor/admin'), check: hash.startsWith('#/visitor/check') }
+  }
+  return { page: 'main', admin: false, check: false }
 }
 
 export function useRoute() {
