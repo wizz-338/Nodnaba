@@ -4,7 +4,7 @@ import Decor from './components/Decor'
 import Boot from './components/Boot'
 import Header from './components/Header'
 import Hero from './components/Hero'
-import Manga from './components/Manga'
+import Vision from './components/Vision'
 import Footer from './components/Footer'
 import { startMotion } from './motion'
 
@@ -23,7 +23,7 @@ export default function App() {
       <Header />
       <main>
         <Hero ready={booted} />
-        <Manga />
+        <Vision />
       </main>
       <Footer />
     </>

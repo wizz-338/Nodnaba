@@ -1,14 +1,13 @@
-// Floating ringed orbs and four-point sparkles drifting over the void.
+// Sakura petals drifting down and a few four-point sparkles.
 const SPARKS = [
-  [8, 14, 14, 0], [86, 9, 22, 1.2], [72, 31, 10, 2.1], [14, 46, 18, 0.6],
-  [92, 58, 12, 1.8], [30, 74, 9, 2.6], [64, 86, 20, 0.3], [6, 92, 11, 1.4],
-  [48, 22, 8, 3.1], [80, 76, 9, 2.4],
+  [8, 14, 12, 0], [86, 9, 18, 1.2], [72, 31, 9, 2.1], [14, 46, 14, 0.6],
+  [92, 58, 10, 1.8], [30, 74, 8, 2.6], [64, 86, 16, 0.3],
 ]
 
-const ORBS = [
-  { x: 82, y: 18, s: 54, d: 0.35, tilt: -18 },
-  { x: 6, y: 62, s: 34, d: 0.6, tilt: 12 },
-  { x: 74, y: 88, s: 26, d: 0.9, tilt: -30 },
+// left %, size px, duration s, delay s, sway px
+const PETALS = [
+  [6, 14, 11, 0, 40], [18, 10, 14, -6, -30], [33, 16, 12, -3, 50], [47, 11, 16, -9, -40],
+  [61, 13, 13, -1, 35], [74, 9, 15, -7, -45], [86, 15, 12, -4, 30], [95, 10, 17, -11, -25],
 ]
 
 export function Sparkle({ size = 16, className = '', style }) {
@@ -19,16 +18,6 @@ export function Sparkle({ size = 16, className = '', style }) {
   )
 }
 
-export function Orb({ size = 40, tilt = 0, className = '', style }) {
-  return (
-    <div className={`orb ${className}`} style={{ '--s': `${size}px`, '--tilt': `${tilt}deg`, ...style }} aria-hidden="true">
-      <span className="orb__ring orb__ring--back" />
-      <span className="orb__ball" />
-      <span className="orb__ring orb__ring--front" />
-    </div>
-  )
-}
-
 export default function Decor() {
   return (
     <div className="decor" aria-hidden="true">
@@ -36,14 +25,20 @@ export default function Decor() {
         <Sparkle
           key={i}
           size={s}
-          className={i % 3 === 0 ? 'sparkle--pink' : ''}
+          className={i % 2 === 0 ? 'sparkle--pink' : ''}
           style={{ left: `${x}%`, top: `${y}%`, animationDelay: `${delay}s` }}
         />
       ))}
-      {ORBS.map((o, i) => (
-        <div key={i} className="decor__orb" style={{ left: `${o.x}%`, top: `${o.y}%`, '--d': o.d }}>
-          <Orb size={o.s} tilt={o.tilt} />
-        </div>
+      {PETALS.map(([x, s, dur, delay, sway], i) => (
+        <span
+          key={i}
+          className="petal"
+          style={{ left: `${x}%`, '--s': `${s}px`, '--sway': `${sway}px`, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+        >
+          <svg viewBox="0 0 20 24">
+            <path d="M10 24 C2 18 0 9 4 3 C6 0 8 2 10 5 C12 2 14 0 16 3 C20 9 18 18 10 24Z" />
+          </svg>
+        </span>
       ))}
     </div>
   )

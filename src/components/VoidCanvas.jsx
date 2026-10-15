@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { motion } from '../motion'
 import { vert, frag } from '../shaders'
+import bgUrl from '../assets/banner.webp'
 
 function compile(gl, type, src) {
   const s = gl.createShader(type)
@@ -10,6 +11,11 @@ function compile(gl, type, src) {
   return s
 }
 
+function fallback(canvas) {
+  canvas.classList.add('void--fallback')
+  canvas.style.backgroundImage = `url(${bgUrl})`
+}
+
 export default function VoidCanvas() {
   const ref = useRef(null)
 
@@ -17,7 +23,7 @@ export default function VoidCanvas() {
     const canvas = ref.current
     const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' })
     if (!gl) {
-      canvas.classList.add('void--fallback')
+      fallback(canvas)
       return
     }
 
@@ -30,7 +36,7 @@ export default function VoidCanvas() {
       gl.useProgram(prog)
     } catch (err) {
       console.warn(err)
-      canvas.classList.add('void--fallback')
+      fallback(canvas)
       return
     }
 
@@ -42,10 +48,29 @@ export default function VoidCanvas() {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
 
     const u = {}
-    for (const n of ['u_res', 'u_time', 'u_scroll', 'u_vel', 'u_pointer', 'u_glitch']) u[n] = gl.getUniformLocation(prog, n)
+    for (const n of ['u_tex', 'u_img', 'u_res', 'u_time', 'u_pan', 'u_vel', 'u_pointer', 'u_glitch', 'u_dim', 'u_fade'])
+      u[n] = gl.getUniformLocation(prog, n)
 
-    // Render below native resolution: the scene is soft by nature and this
-    // keeps phones cool.
+    const tex = gl.createTexture()
+    let img = null
+    let loadedAt = 0
+    const image = new Image()
+    image.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, tex)
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+      // NPOT-safe sampling for WebGL1
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.uniform1i(u.u_tex, 0)
+      img = [image.naturalWidth, image.naturalHeight]
+      loadedAt = performance.now()
+    }
+    image.src = bgUrl
+
+    // Render a little below native resolution to keep phones cool.
     let lastW = 0
     let lastH = 0
     const resize = () => {
@@ -55,7 +80,7 @@ export default function VoidCanvas() {
       if (w === lastW && Math.abs(h - lastH) < 120) return
       lastW = w
       lastH = h
-      const scale = Math.min(devicePixelRatio || 1, 2) * 0.5
+      const scale = Math.min(devicePixelRatio || 1, 2) * 0.75
       canvas.width = Math.max(1, Math.floor(w * scale))
       canvas.height = Math.max(1, Math.floor(h * scale))
       gl.viewport(0, 0, canvas.width, canvas.height)
@@ -81,10 +106,19 @@ export default function VoidCanvas() {
       px += (tx - px) * 0.05
       py += (ty - py) * 0.05
       g += (motion.glitch - g) * 0.5
+      if (!img) return
 
+      const vh = innerHeight || 1
+      const max = Math.max(1, document.documentElement.scrollHeight - vh)
+      // dark behind the hero, opening up once you scroll past it
+      const open = Math.min(1, Math.max(0, (motion.scroll / vh - 0.25) / 0.6))
+
+      gl.uniform2f(u.u_img, img[0], img[1])
       gl.uniform2f(u.u_res, canvas.width, canvas.height)
       gl.uniform1f(u.u_time, time)
-      gl.uniform1f(u.u_scroll, motion.scroll / (innerHeight || 1))
+      gl.uniform1f(u.u_pan, motion.scroll / max)
+      gl.uniform1f(u.u_dim, 0.42 + open * 0.5)
+      gl.uniform1f(u.u_fade, Math.min(1, (now - loadedAt) / 1200))
       gl.uniform1f(u.u_vel, motion.vel)
       gl.uniform2f(u.u_pointer, px, py)
       gl.uniform1f(u.u_glitch, g)
