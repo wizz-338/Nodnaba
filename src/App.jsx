@@ -11,6 +11,7 @@ import { startMotion, glitchNow } from './motion'
 import { useRoute } from './route'
 
 const VisitorPage = lazy(() => import('./visitor/VisitorPage'))
+const GamePage = lazy(() => import('./game/GamePage'))
 
 const SWAP_MS = 420
 const END_MS = 900
@@ -36,11 +37,14 @@ export default function App() {
   const [booted, setBooted] = useState(route.page !== 'main')
   const done = useCallback(() => setBooted(true), [])
   const timers = useRef([])
+  // where EXIT in the game goes back to
+  const exitTo = useRef('#/')
 
   useEffect(() => startMotion(), [])
 
   // swap pages behind the pixel curtain
   useEffect(() => {
+    if (route.page !== 'game') exitTo.current = location.hash || '#/'
     if (route.page === shown.page) {
       setShown(route)
       if (location.hash === '#/') scrollTo({ top: 0, behavior: 'smooth' })
@@ -63,14 +67,14 @@ export default function App() {
 
   return (
     <>
-      <div className="fx" aria-hidden="true" />
+      {shown.page !== 'game' && <div className="fx" aria-hidden="true" />}
       {!booted && <Boot onDone={done} />}
-      <Header page={shown.page} />
+      {shown.page !== 'game' && <Header page={shown.page} />}
       {shown.page === 'main' ? (
         <MainPage ready={booted} />
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
-          <VisitorPage admin={shown.admin} />
+          {shown.page === 'game' ? <GamePage exitHref={exitTo.current} /> : <VisitorPage admin={shown.admin} />}
         </Suspense>
       )}
       <PageTransition active={warping} />

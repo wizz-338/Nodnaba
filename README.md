@@ -40,6 +40,24 @@ npm run preview  # 빌드 결과 미리보기
 
 - X: https://x.com/readevism (`src/components/Footer.jsx`의 `X_URL`)
 
+## MANO RUN (미니게임)
+
+메뉴 **GAME → MANO RUN** (`#/game/mano-run`). 마노가 자동으로 달리고, 화면을 터치하거나 스페이스바를 누르면 점프합니다(길게 누르면 더 높이). 최고 점수는 브라우저(localStorage)에 저장됩니다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `src/game/engine.js` | 규칙·물리·장애물 생성 (화면과 분리, 1/120초 고정 틱) |
+| `src/game/render.js` | 픽셀 그래픽, 배경, 효과 |
+| `src/game/GamePage.jsx` | 화면 구성, 터치·키 입력, 점수 저장 |
+| `src/game/mano.png` | 첨부 원본에서 잘라 정렬한 마노 달리기 4프레임 |
+
+난이도를 조절할 때는 `engine.js` 위쪽의 숫자(속도 `V0`/`VMAX`, 점프 `JUMP_V`/`GRAVITY`, 장애물 `TYPES`/`STAGES`)를 바꾸면 됩니다. 바꾼 뒤에는 아래 명령으로 "피할 수 없는 장애물 배치"가 생기지 않는지 확인하세요.
+
+```bash
+npm run test:game          # 봇이 40판 × 240초를 플레이하며 회피 불가능한 상황을 찾음
+npm run test:game -- 200 300 300   # 판 수, 판당 초, 화면 폭(논리 픽셀)
+```
+
 ## 방명록(Supabase) 설정
 
 VISITOR 페이지의 방명록은 Supabase 무료 플랜에 저장됩니다. 아래 설정을 마치기 전까지 방명록 화면에는 "서버가 아직 연결되지 않았어요"라고 표시됩니다.
