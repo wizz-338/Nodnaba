@@ -581,7 +581,7 @@ main,
   overflow: hidden;
 }
 
-/* 集中線 — manga concentration lines over the background */
+/* manga concentration lines over the background */
 .vision__burst {
   position: absolute;
   inset: -30% -60%;
@@ -605,48 +605,6 @@ main,
   -webkit-mask-image: linear-gradient(170deg, transparent 55%, #000 100%);
   mask-image: linear-gradient(170deg, transparent 55%, #000 100%);
   opacity: 0.6;
-}
-
-/* ───────── manga type ───────── */
-
-.sfx,
-.kata {
-  position: absolute;
-  z-index: 2;
-  font-family: 'Dela Gothic One', var(--display);
-  color: var(--white);
-  -webkit-text-stroke: 1.5px #000;
-  paint-order: stroke fill;
-  text-shadow: -3px 0 var(--cyan), 3px 0 var(--hot), 4px 5px 0 #000;
-  pointer-events: none;
-  line-height: 1;
-}
-
-.sfx--a {
-  top: 16%;
-  right: 5%;
-  font-size: clamp(40px, 15vw, 84px);
-  transform: rotate(12deg) skewX(-10deg);
-  animation: jitter 0.18s steps(2) infinite;
-}
-
-.sfx--b {
-  bottom: 14%;
-  right: 4%;
-  font-size: clamp(22px, 7vw, 40px);
-  transform: rotate(-6deg);
-}
-
-.kata {
-  top: 34%;
-  left: 5%;
-  writing-mode: vertical-rl;
-  font-size: clamp(22px, 7vw, 38px);
-  letter-spacing: 0.08em;
-}
-
-@keyframes jitter {
-  50% { translate: 1.5px -1px; }
 }
 
 /* ───────── footer ───────── */
