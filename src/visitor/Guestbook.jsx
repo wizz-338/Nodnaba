@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { MAX_MESSAGE, MAX_NICK, PAGE_SIZE, checkAdmin, deleteEntry, errorText, fetchPage, postEntry } from './guestbookApi'
+import { config, supabase } from '../lib/supabase'
+import { MAX_MESSAGE, MAX_NICK, PAGE_SIZE, checkAdmin, deleteEntry, explain, fetchPage, postEntry } from './guestbookApi'
 
 const COOLDOWN_KEY = 'nodnaba:gb:last'
 const MIN_FILL_MS = 2500 // bots submit instantly
@@ -27,7 +27,7 @@ function readCooldown() {
   }
 }
 
-function Window({ title, children, className = '' }) {
+export function Window({ title, children, className = '' }) {
   return (
     <section className={`pxwin ${className}`}>
       <header className="pxwin__bar">
@@ -73,7 +73,8 @@ function Composer({ onPosted }) {
       setStatus({ type: 'ok', text: '흔적이 기록됐어요.' })
       onPosted()
     } catch (err) {
-      setStatus({ type: 'err', text: errorText(err) })
+      const { text, technical } = explain(err)
+      setStatus({ type: 'err', text, detail: technical ? err.summary : '' })
     } finally {
       setSending(false)
     }
@@ -112,6 +113,7 @@ function Composer({ onPosted }) {
         <div className="composer__foot">
           <p className={`px-status ${status ? `is-${status.type}` : ''}`} role="status" aria-live="polite">
             {status?.text}
+            {status?.detail && <code className="px-detail">{status.detail}</code>}
           </p>
           <button className="px-btn px-btn--primary" type="submit" disabled={sending}>
             {sending ? '전송 중…' : '▶ 등록'}
@@ -175,8 +177,8 @@ export default function Guestbook({ adminRoute }) {
     try {
       const { rows, total } = await fetchPage(p)
       setState({ loading: false, rows, total, error: null })
-    } catch {
-      setState((s) => ({ ...s, loading: false, error: '방명록을 불러오지 못했어요.' }))
+    } catch (err) {
+      setState((s) => ({ ...s, loading: false, error: { text: explain(err).text, detail: err.summary } }))
     }
   }, [])
 
@@ -193,10 +195,22 @@ export default function Guestbook({ adminRoute }) {
   }, [refreshAdmin])
 
   if (!supabase) {
+    const secret = config.problems.includes('key_secret')
     return (
-      <Window title="OFFLINE" className="offline">
-        <p>방명록 서버가 아직 연결되지 않았어요.</p>
-        <p className="offline__hint">관리자: README의 “방명록(Supabase) 설정”을 완료하면 바로 열립니다.</p>
+      <Window title={secret ? 'BLOCKED' : 'OFFLINE'} className="offline">
+        {secret ? (
+          <>
+            <p>보안을 위해 방명록 연결을 막았어요.</p>
+            <p className="offline__hint">
+              SUPABASE_ANON_KEY에 비밀 키(secret / service_role)가 들어 있어요. GitHub Variables의 값을 anon(publishable) 키로 바꾸고, 노출된 비밀 키는 Supabase에서 재발급해 주세요.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>방명록 서버가 아직 연결되지 않았어요.</p>
+            <p className="offline__hint">관리자: README의 “방명록(Supabase) 설정”을 완료하면 바로 열립니다.</p>
+          </>
+        )}
       </Window>
     )
   }
@@ -235,7 +249,9 @@ export default function Guestbook({ adminRoute }) {
 
         {state.error && (
           <p className="px-status is-err log__msg">
-            {state.error} <button className="px-link" onClick={() => load(page)}>다시 시도</button>
+            방명록을 불러오지 못했어요. {state.error.text}{' '}
+            <button className="px-link" onClick={() => load(page)}>다시 시도</button>
+            <code className="px-detail">{state.error.detail}</code>
           </p>
         )}
         {state.loading && !state.rows.length && <p className="log__msg blink">LOADING…</p>}

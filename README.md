@@ -80,6 +80,24 @@ VISITOR 페이지의 방명록은 Supabase 무료 플랜에 저장됩니다. 아
 - IP는 해시로만 저장하며, 해시도 API로는 읽을 수 없습니다.
 - 브라우저에서는 숨은 함정 입력칸(봇 차단), 너무 빠른 제출 차단, 30초 쿨다운을 한 번 더 적용합니다.
 
+### 문제 해결: 방명록이 안 읽히거나 안 써질 때
+1. `https://wizz-338.github.io/Nodnaba/#/visitor/check` 를 엽니다. **SYSTEM CHECK** 창이 설정과 실제 요청 결과를 보여 줍니다. 이 검사는 데이터를 쓰거나 지우지 않습니다.
+   - **API 키 종류**: `publishable` 또는 `anon`이어야 합니다. secret / service_role 키가 들어 있으면 보안을 위해 연결이 차단됩니다.
+   - **키의 프로젝트**: 키가 SUPABASE_URL과 같은 프로젝트의 것인지 확인합니다(legacy anon 키만 표시).
+   - **목록 읽기 / 글쓰기 함수**: 실제 HTTP 상태 코드와 오류 코드가 표시됩니다.
+2. 방명록 화면의 오류 메시지 아래에도 `HTTP 401 · PGRST301 · …` 같은 실제 오류가 작게 표시됩니다.
+
+| 표시되는 오류 | 원인 | 해결 |
+| --- | --- | --- |
+| `HTTP 401` · `Invalid API key` / `PGRST301` | 키가 틀렸거나 다른 프로젝트의 키 | Supabase **Project Settings → API Keys**에서 publishable(또는 legacy anon) 키를 다시 복사해 `SUPABASE_ANON_KEY`에 넣고 재배포 |
+| `HTTP 401` · secret key 관련 메시지 | 비밀 키를 넣음 | publishable/anon 키로 바꾸고, 노출된 secret 키는 **재발급(roll)** |
+| `HTTP 404` · `PGRST205` / `PGRST202` | 테이블 또는 함수가 없음 | SQL Editor에서 `supabase/guestbook.sql`을 다시 실행. 같은 프로젝트(URL의 ref)에서 실행했는지 확인 |
+| `HTTP 406` / `PGRST106`, 또는 모든 요청이 404 | Data API가 꺼져 있거나 `public` 스키마가 노출되지 않음 | **Project Settings → Data API**에서 Data API를 켜고 Exposed schemas에 `public` 포함 |
+| `HTTP 401/403` · `42501 permission denied` | 권한(GRANT) 누락 | `supabase/guestbook.sql` 다시 실행 |
+| `NETWORK` | 주소에 닿지 못함 | `SUPABASE_URL` 오타, 또는 프로젝트가 일시 정지됨(대시보드에서 Restore) |
+
+GitHub Variables를 고친 뒤에는 **Actions → Deploy to GitHub Pages → Run workflow**로 다시 배포해야 반영됩니다.
+
 ### 로컬 개발
 `.env.example`을 `.env.local`로 복사한 뒤 값을 채우고 `npm run dev`를 실행합니다.
 

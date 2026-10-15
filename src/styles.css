@@ -331,6 +331,29 @@ main,
   mix-blend-mode: difference;
 }
 
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+/* VISITOR: an opaque bar so the log never runs under the logo and menu */
+.header--bar {
+  mix-blend-mode: normal;
+}
+
+.header--bar::before {
+  opacity: 1;
+  background: rgba(10, 7, 9, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 3px dotted rgba(247, 238, 236, 0.22);
+}
+
 .header__brand {
   display: flex;
   align-items: center;
