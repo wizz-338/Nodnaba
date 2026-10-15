@@ -452,6 +452,53 @@ main,
 
 .menu__n { color: var(--pink); }
 
+.menu__group {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(24px, 7.4vw, 56px);
+  line-height: 1.05;
+  text-align: left;
+}
+
+.menu__toggle {
+  margin-left: auto;
+  font-size: 20px;
+  color: var(--pink);
+}
+
+/* GAME sub-menu: slides open under its parent */
+.menu__sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.menu__sub > div {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s 0.35s;
+}
+
+.menu__sub--open > div {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+.menu__sub--open {
+  grid-template-rows: 1fr;
+}
+
+.menu__sub a {
+  padding: 4px 0 16px 26px;
+  font-size: clamp(20px, 6vw, 40px);
+}
+
 .menu__foot {
   margin-top: auto;
   color: var(--dim);

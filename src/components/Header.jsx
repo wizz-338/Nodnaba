@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
-import { VISITOR_HASH } from '../route'
+import { MANO_RUN_HASH, VISITOR_HASH } from '../route'
 
 const LINKS = [
   ['01', 'MAIN', '#/', 'main'],
@@ -11,6 +11,7 @@ const LINKS = [
 
 export default function Header({ page = 'main' }) {
   const [open, setOpen] = useState(false)
+  const [gameOpen, setGameOpen] = useState(false)
   const now = useClock()
   const time = now.toLocaleTimeString('en-GB', { hour12: false })
 
@@ -59,6 +60,28 @@ export default function Header({ page = 'main' }) {
               </a>
             </li>
           ))}
+          <li style={{ '--i': LINKS.length }}>
+            <button
+              type="button"
+              className="menu__group"
+              tabIndex={open ? 0 : -1}
+              aria-expanded={gameOpen}
+              aria-controls="menu-game"
+              onClick={() => setGameOpen((v) => !v)}
+            >
+              <span className="menu__n mono">03</span>
+              <span className="glitch" data-text="GAME">GAME</span>
+              <span className="menu__toggle mono" aria-hidden="true">{gameOpen ? '−' : '+'}</span>
+            </button>
+            <div id="menu-game" className={`menu__sub ${gameOpen ? 'menu__sub--open' : ''}`}>
+              <div>
+                <a href={MANO_RUN_HASH} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
+                  <span className="menu__n mono">└</span>
+                  <span className="glitch" data-text="MANO RUN">MANO RUN</span>
+                </a>
+              </div>
+            </div>
+          </li>
         </ul>
       </nav>
     </>
