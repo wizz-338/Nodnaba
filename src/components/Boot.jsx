@@ -27,6 +27,7 @@ export default function Boot({ onDone }) {
   return (
     <div className={`boot ${leaving ? 'boot--out' : ''}`} role="status" aria-live="polite">
       <Logo className="boot__logo" draw />
+      <p className="boot__sign" aria-hidden="true">Nodnaba</p>
       <p className="boot__text mono">
         TUNING SIGNAL <span>{String(Math.max(0, pct)).padStart(3, '0')}%</span>
       </p>
