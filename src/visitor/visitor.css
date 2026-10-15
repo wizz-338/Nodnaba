@@ -450,3 +450,22 @@
   font-size: 11px;
   color: var(--dim);
 }
+
+/* ───────── developer check page ───────── */
+
+.visitor--dev {
+  padding-top: calc(84px + env(safe-area-inset-top));
+}
+
+.dev-banner {
+  margin: 0 0 18px;
+  padding: 8px 10px 7px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--void);
+  background: repeating-linear-gradient(-45deg, #ffd23f 0 10px, #f2b705 10px 20px);
+}
+
+.dev-back {
+  display: inline-block;
+}
