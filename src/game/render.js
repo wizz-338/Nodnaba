@@ -33,10 +33,12 @@ const C = {
 
 export const GROUND_DEPTH = 14 // dirt rows under the ground line inside the canvas
 
-// mano.png: 8 run frames (one stride, from the reference GIF) + 2 crying frames
+// mano.png: 8 run frames (one stride, from the reference GIF) + 2 frames of
+// Mano sitting and crying (from the crying reference), in 50×60 cells
 const RUN_FRAMES = 8
 const AIR_FRAME = 1 // legs tucked
 const CRY = [8, 9]
+const SIT = { x: 6, y: 6, w: 43, h: 54 } // the sitting figure inside its cell
 const RUN_FPS = 16 // at starting speed; scales with speed
 
 // ── tiny pixel helpers ───────────────────────────────────────────────────────
@@ -181,16 +183,16 @@ function tinted(img, color) {
   return c
 }
 
-// Mano tumbling in exact quarter turns: lossless for pixel art (no stray
-// pixels) and reads like a classic pixel-game tumble.
+// Mano tumbling curled up (the crying sit pose) in exact quarter turns:
+// lossless for pixel art and reads like a classic pixel-game tumble.
 function rolls(sheet) {
   const out = []
-  const size = 64
+  const size = 60
   for (let i = 0; i < 4; i++) {
     const [c, g] = canvas(size, size)
     g.translate(size / 2, size / 2)
     g.rotate((i * Math.PI) / 2)
-    g.drawImage(sheet, SPRITE_W * CRY[0], 0, SPRITE_W, SPRITE_H, -SPRITE_W / 2, -SPRITE_H / 2, SPRITE_W, SPRITE_H)
+    g.drawImage(sheet, SPRITE_W * CRY[0] + SIT.x, SIT.y, SIT.w, SIT.h, -SIT.w / 2, -SIT.h / 2, SIT.w, SIT.h)
     out.push(c)
   }
   return out
@@ -219,7 +221,7 @@ export function buildAssets(sheet) {
 // ── effects state (purely visual) ────────────────────────────────────────────
 
 export function createFx() {
-  return { particles: [], trail: [], trailT: 0, runT: 0, frame: 0, squash: 0, t: 0, tearT: 0, quarter: null, quarterT: 0 }
+  return { particles: [], trail: [], trailT: 0, runT: 0, frame: 0, squash: 0, t: 0, tearT: 0, quarter: null, quarterT: 0, sat: false, satT: 0 }
 }
 
 function dust(fx, x, y, n, speed) {
@@ -397,7 +399,7 @@ export function draw(ctx, view, g, fx, assets, dt) {
     const drawRoll = (q, lift) => {
       const roll = assets.rolls[((q % 4) + 4) % 4]
       // sideways frames are shorter: keep the body resting on the ground
-      const half = q % 2 ? SPRITE_W / 2 : SPRITE_H / 2
+      const half = q % 2 ? SIT.w / 2 : SIT.h / 2
       ctx.drawImage(roll, Math.round(cx - roll.width / 2), Math.round(gy - half - roll.height / 2 - lift))
     }
     if (!m.stopped) {
@@ -417,16 +419,22 @@ export function draw(ctx, view, g, fx, assets, dt) {
       }
       drawRoll(fx.quarter, 0)
     } else {
-      {
-        const sob = Math.floor(fx.t * 3.5) % 2
-        const hop = sob ? 0 : 1
-        ctx.drawImage(sheet, CRY[sob] * SPRITE_W, 0, SPRITE_W, SPRITE_H, Math.round(m.x), baseY - hop, SPRITE_W, SPRITE_H)
-        if (fx.tearT <= 0) {
-          fx.tearT = 0.11
-          // tears spring sideways from both eyes
-          tear(fx, m.x + 27, SPRITE_H - 33, -1)
-          tear(fx, m.x + 41, SPRITE_H - 33, 1)
-        }
+      // plop! — sits down, then sobs (엉엉) with tears springing from both eyes
+      if (!fx.sat) {
+        fx.sat = true
+        fx.satT = 0
+        dust(fx, cx - 14, 1, 6, 60)
+        dust(fx, cx + 4, 1, 6, -60)
+      }
+      fx.satT += dt
+      const sob = Math.floor(fx.satT * 4) % 2
+      const plop = fx.satT < 0.1 ? 2 : 0
+      const x = Math.round(cx - SPRITE_W / 2)
+      ctx.drawImage(sheet, CRY[sob] * SPRITE_W, 0, SPRITE_W, SPRITE_H, x, baseY + plop + (sob ? 1 : 0), SPRITE_W, SPRITE_H - plop)
+      if (fx.tearT <= 0) {
+        fx.tearT = 0.1
+        tear(fx, x + SIT.x + 16, SPRITE_H - SIT.y - 26, -1)
+        tear(fx, x + SIT.x + 31, SPRITE_H - SIT.y - 26, 1)
       }
     }
   } else {
