@@ -11,7 +11,6 @@ import { startMotion, glitchNow } from './motion'
 import { useRoute } from './route'
 
 const VisitorPage = lazy(() => import('./visitor/VisitorPage'))
-const CheckPage = lazy(() => import('./visitor/CheckPage'))
 
 const SWAP_MS = 420
 const END_MS = 900
@@ -71,7 +70,7 @@ export default function App() {
         <MainPage ready={booted} />
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
-          {shown.page === 'check' ? <CheckPage /> : <VisitorPage admin={shown.admin} />}
+          <VisitorPage admin={shown.admin} />
         </Suspense>
       )}
       <PageTransition active={warping} />
