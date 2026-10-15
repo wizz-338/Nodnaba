@@ -1,10 +1,9 @@
 import PixelRunner from './PixelRunner'
 import Guestbook from './Guestbook'
-import Diagnostics from './Diagnostics'
 import Logo from '../components/Logo'
 import './visitor.css'
 
-export default function VisitorPage({ admin, check }) {
+export default function VisitorPage({ admin }) {
   return (
     <main className="visitor">
       <div className="visitor__stage">
@@ -18,7 +17,6 @@ export default function VisitorPage({ admin, check }) {
           </h1>
           <p>다녀간 흔적을 남겨 주세요.</p>
         </header>
-        {check && <Diagnostics />}
         <Guestbook adminRoute={admin} />
       </div>
     </main>

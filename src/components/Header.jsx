@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
+import { VISITOR_HASH } from '../route'
 
 const LINKS = [
   ['01', 'MAIN', '#/', 'main'],
-  ['02', 'VISITOR', '#/visitor', 'visitor'],
+  ['02', 'VISITOR', VISITOR_HASH, 'visitor'],
 ]
 
 export default function Header({ page = 'main' }) {
@@ -22,7 +23,7 @@ export default function Header({ page = 'main' }) {
 
   return (
     <>
-      <header className={`header ${page === 'visitor' ? 'header--bar' : ''}`}>
+      <header className={`header ${page !== 'main' ? 'header--bar' : ''}`}>
         <a className="header__brand" href="#/" aria-label="NODNABA home" onClick={() => setOpen(false)}>
           <Logo className="header__logo" glitch={false} />
           <span className="header__name">NODNABA</span>

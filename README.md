@@ -81,7 +81,7 @@ VISITOR 페이지의 방명록은 Supabase 무료 플랜에 저장됩니다. 아
 - 브라우저에서는 숨은 함정 입력칸(봇 차단), 너무 빠른 제출 차단, 30초 쿨다운을 한 번 더 적용합니다.
 
 ### 문제 해결: 방명록이 안 읽히거나 안 써질 때
-1. `https://wizz-338.github.io/Nodnaba/#/visitor/check` 를 엽니다. **SYSTEM CHECK** 창이 설정과 실제 요청 결과를 보여 줍니다. 이 검사는 데이터를 쓰거나 지우지 않습니다.
+1. 개발용 진단 페이지 `https://wizz-338.github.io/Nodnaba/#/visitor/check` 를 엽니다. 방명록과 분리된 별도 화면이고, 사이트 메뉴에는 연결되어 있지 않습니다. 방문자에게 공유하는 주소는 항상 `#/visitor`입니다. **SYSTEM CHECK** 창이 설정과 실제 요청 결과를 보여 주며, 이 검사는 데이터를 쓰거나 지우지 않습니다.
    - **API 키 종류**: `publishable` 또는 `anon`이어야 합니다. secret / service_role 키가 들어 있으면 보안을 위해 연결이 차단됩니다.
    - **키의 프로젝트**: 키가 SUPABASE_URL과 같은 프로젝트의 것인지 확인합니다(legacy anon 키만 표시).
    - **목록 읽기 / 글쓰기 함수**: 실제 HTTP 상태 코드와 오류 코드가 표시됩니다.
