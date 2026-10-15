@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
+import { X_URL } from './Footer'
 
 const LINKS = [
   ['01', 'ORIGIN', '#top'],
-  ['02', 'MANIFESTO', '#manifesto'],
-  ['03', 'FRAGMENTS', '#fragments'],
-  ['04', 'DIVE', '#dive'],
-  ['05', 'SIGNAL', '#signal'],
+  ['02', 'VISION', '#vision'],
+  ['03', 'X ↗', X_URL],
 ]
 
 export default function Header() {
@@ -50,14 +49,18 @@ export default function Header() {
         <ul>
           {LINKS.map(([n, label, href], i) => (
             <li key={href} style={{ '--i': i }}>
-              <a href={href} tabIndex={open ? 0 : -1} onClick={() => setOpen(false)}>
+              <a
+                href={href}
+                tabIndex={open ? 0 : -1}
+                onClick={() => setOpen(false)}
+                {...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              >
                 <span className="menu__n mono">{n}</span>
                 <span className="glitch" data-text={label}>{label}</span>
               </a>
             </li>
           ))}
         </ul>
-        <p className="menu__foot mono">네 개의 선, 미완의 별 — FOUR LINES, AN UNFINISHED STAR</p>
       </nav>
     </>
   )
