@@ -8,14 +8,14 @@
 export const TICK = 1 / 120
 
 // Mano
-export const MANO_X = 22 // left edge of the 47×57 sprite
-export const SPRITE_W = 47
-export const SPRITE_H = 57
+export const MANO_X = 22 // left edge of the 50×60 sprite
+export const SPRITE_W = 50
+export const SPRITE_H = 60
 // Forgiving hitboxes (sprite-relative, y measured up from the feet).
 // The swinging tail and the paws are not solid.
 const MANO_BOXES = [
-  { x0: 13, x1: 41, y0: 29, y1: 53 }, // hood + face
-  { x0: 13, x1: 34, y0: 2, y1: 29 }, // body + legs
+  { x0: 15, x1: 43, y0: 29, y1: 55 }, // hood + face
+  { x0: 15, x1: 35, y0: 2, y1: 29 }, // body + legs
 ]
 
 // Jump: full hold ≈ 80 px apex, 0.61 s in the air. Releasing early cuts it short.
@@ -136,16 +136,20 @@ export function tick(g, input) {
 
   if (g.phase === 'dead') {
     g.deadT += dt
-    // Mano tumbles forward: a little hop, then rolls to a stop
+    // Mano bounces off and rolls forward (대굴대굴), crying, until she stops
     m.vy -= GRAVITY * dt
     m.y += m.vy * dt
     if (m.y <= 0) {
       m.y = 0
-      m.vy = m.vy < -120 ? -m.vy * 0.35 : 0
-      m.vx = Math.max(0, m.vx - 260 * dt)
+      m.vy = m.vy < -120 ? -m.vy * 0.4 : 0
+      m.vx = Math.max(0, m.vx - ROLL_FRICTION * dt)
     }
     m.x += m.vx * dt
-    m.angle += (m.vx / 9) * dt
+    m.angle += (m.vx / 6) * dt
+    if (m.vx === 0 && m.y === 0 && !m.stopped) {
+      m.stopped = true
+      g.stopT = g.deadT
+    }
     return
   }
 
@@ -197,8 +201,9 @@ export function tick(g, input) {
       g.phase = 'dead'
       g.deadT = 0
       g.hit = o
-      m.vx = 150
-      m.vy = 330
+      m.vx = ROLL_SPEED
+      m.vy = 300
+      m.stopped = false
       m.ground = false
       g.events.push('crash')
       break
@@ -221,4 +226,7 @@ export function start(g) {
   g.phase = 'run'
 }
 
-export const DEAD_SETTLE = 0.9 // seconds of tumble before GAME OVER appears
+// Crash: roll ~1.5 s, then sit up and cry; the result panel waits until 2.3 s
+const ROLL_SPEED = 110
+const ROLL_FRICTION = 95
+export const DEAD_SETTLE = 2.3

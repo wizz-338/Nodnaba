@@ -33,6 +33,12 @@ const C = {
 
 export const GROUND_DEPTH = 14 // dirt rows under the ground line inside the canvas
 
+// mano.png: 8 run frames (one stride, from the reference GIF) + 2 crying frames
+const RUN_FRAMES = 8
+const AIR_FRAME = 1 // legs tucked
+const CRY = [8, 9]
+const RUN_FPS = 16 // at starting speed; scales with speed
+
 // ── tiny pixel helpers ───────────────────────────────────────────────────────
 
 function canvas(w, h) {
@@ -175,16 +181,16 @@ function tinted(img, color) {
   return c
 }
 
-// Mano tumbling: pre-rotated copies with nearest-neighbour sampling so the
-// rotation still looks like pixel art.
+// Mano tumbling in exact quarter turns: lossless for pixel art (no stray
+// pixels) and reads like a classic pixel-game tumble.
 function rolls(sheet) {
   const out = []
-  const size = 74
-  for (let i = 0; i < 16; i++) {
+  const size = 64
+  for (let i = 0; i < 4; i++) {
     const [c, g] = canvas(size, size)
     g.translate(size / 2, size / 2)
-    g.rotate((i / 16) * Math.PI * 2)
-    g.drawImage(sheet, SPRITE_W * 1, 0, SPRITE_W, SPRITE_H, -SPRITE_W / 2, -SPRITE_H / 2, SPRITE_W, SPRITE_H)
+    g.rotate((i * Math.PI) / 2)
+    g.drawImage(sheet, SPRITE_W * CRY[0], 0, SPRITE_W, SPRITE_H, -SPRITE_W / 2, -SPRITE_H / 2, SPRITE_W, SPRITE_H)
     out.push(c)
   }
   return out
@@ -213,7 +219,7 @@ export function buildAssets(sheet) {
 // ── effects state (purely visual) ────────────────────────────────────────────
 
 export function createFx() {
-  return { particles: [], trail: [], trailT: 0, runT: 0, frame: 0, squash: 0, clouds: null, t: 0 }
+  return { particles: [], trail: [], trailT: 0, runT: 0, frame: 0, squash: 0, t: 0, tearT: 0, quarter: null, quarterT: 0 }
 }
 
 function dust(fx, x, y, n, speed) {
@@ -241,6 +247,19 @@ function sparks(fx, x, y, n) {
       plus: true,
       size: 1,
     })
+}
+
+function tear(fx, x, y, dir) {
+  fx.particles.push({
+    x,
+    y,
+    vx: dir * (40 + Math.random() * 50),
+    vy: 70 + Math.random() * 60,
+    life: 0.55,
+    color: Math.random() < 0.7 ? '#7acdff' : '#cdf0ff',
+    size: 2,
+    keep: true,
+  })
 }
 
 // ── per-frame drawing ────────────────────────────────────────────────────────
@@ -373,13 +392,48 @@ export function draw(ctx, view, g, fx, assets, dt) {
   const sheet = assets.sheet
   const baseY = gy - SPRITE_H
   if (g.phase === 'dead') {
-    const roll = assets.rolls[(((Math.floor((m.angle / (Math.PI * 2)) * 16) % 16) + 16) % 16)]
-    ctx.drawImage(roll, Math.round(m.x + SPRITE_W / 2 - roll.width / 2), Math.round(gy - SPRITE_H / 2 - roll.height / 2 - m.y + 6))
+    const cx = m.x + SPRITE_W / 2
+    fx.tearT -= dt
+    const drawRoll = (q, lift) => {
+      const roll = assets.rolls[((q % 4) + 4) % 4]
+      // sideways frames are shorter: keep the body resting on the ground
+      const half = q % 2 ? SPRITE_W / 2 : SPRITE_H / 2
+      ctx.drawImage(roll, Math.round(cx - roll.width / 2), Math.round(gy - half - roll.height / 2 - lift))
+    }
+    if (!m.stopped) {
+      // 대굴대굴 — rolling forward in quarter turns, tears flying off
+      fx.quarter = Math.floor(m.angle / (Math.PI / 2))
+      drawRoll(fx.quarter, m.y)
+      if (fx.tearT <= 0) {
+        fx.tearT = 0.07
+        tear(fx, cx + (Math.random() - 0.5) * 20, m.y + 26 + Math.random() * 10, Math.random() < 0.5 ? -1 : 1)
+      }
+    } else if (fx.quarter % 4 !== 0) {
+      // finish the turn until she is upright again
+      fx.quarterT += dt
+      if (fx.quarterT > 0.09) {
+        fx.quarterT = 0
+        fx.quarter++
+      }
+      drawRoll(fx.quarter, 0)
+    } else {
+      {
+        const sob = Math.floor(fx.t * 3.5) % 2
+        const hop = sob ? 0 : 1
+        ctx.drawImage(sheet, CRY[sob] * SPRITE_W, 0, SPRITE_W, SPRITE_H, Math.round(m.x), baseY - hop, SPRITE_W, SPRITE_H)
+        if (fx.tearT <= 0) {
+          fx.tearT = 0.11
+          // tears spring sideways from both eyes
+          tear(fx, m.x + 27, SPRITE_H - 33, -1)
+          tear(fx, m.x + 41, SPRITE_H - 33, 1)
+        }
+      }
+    }
   } else {
     if (g.phase === 'run') {
       // run cycle speeds up with the world
-      fx.runT += dt * (speed / 270)
-      fx.frame = m.ground ? Math.floor(fx.runT * 12) % 4 : 1
+      fx.runT += dt * (speed / 250)
+      fx.frame = m.ground ? Math.floor(fx.runT * RUN_FPS) % RUN_FRAMES : AIR_FRAME
       // short-lived after-images trailing behind
       fx.trailT -= dt
       if (fx.trailT <= 0) {
@@ -390,7 +444,7 @@ export function draw(ctx, view, g, fx, assets, dt) {
       if (m.ground && Math.random() < dt * 9) dust(fx, MANO_X + 12, 1, 1, speed)
     } else {
       fx.runT += dt * 0.5
-      fx.frame = Math.floor(fx.runT * 6) % 4
+      fx.frame = Math.floor(fx.runT * RUN_FPS) % RUN_FRAMES
     }
     const strength = g.phase === 'run' ? 0.12 + Math.min(0.12, Math.max(0, speed - 300) / 1500) : 0
     fx.trail.forEach((t, i) => {
