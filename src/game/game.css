@@ -170,7 +170,10 @@
 
 .mr-overlay--over {
   pointer-events: auto;
-  background: rgba(42, 24, 48, 0.28);
+  /* sit above the ground so crying Mano stays visible underneath */
+  align-content: start;
+  padding-top: max(14px, 7%);
+  background: rgba(42, 24, 48, 0.22);
 }
 
 .mr-big {

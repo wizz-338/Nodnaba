@@ -49,7 +49,7 @@ npm run preview  # 빌드 결과 미리보기
 | `src/game/engine.js` | 규칙·물리·장애물 생성 (화면과 분리, 1/120초 고정 틱) |
 | `src/game/render.js` | 픽셀 그래픽, 배경, 효과 |
 | `src/game/GamePage.jsx` | 화면 구성, 터치·키 입력, 점수 저장 |
-| `src/game/mano.png` | 첨부 원본에서 잘라 정렬한 마노 달리기 4프레임 |
+| `src/game/mano.png` | 마노 스프라이트: 달리기 8프레임(참고 GIF의 한 보폭) + 우는 얼굴 2프레임 |
 
 난이도를 조절할 때는 `engine.js` 위쪽의 숫자(속도 `V0`/`VMAX`, 점프 `JUMP_V`/`GRAVITY`, 장애물 `TYPES`/`STAGES`)를 바꾸면 됩니다. 바꾼 뒤에는 아래 명령으로 "피할 수 없는 장애물 배치"가 생기지 않는지 확인하세요.
 
