@@ -462,18 +462,24 @@ main,
 
 .hero {
   position: relative;
+  /* svh = the height that is visible even with browser/in-app toolbars shown */
   min-height: 100vh;
   min-height: 100svh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  place-items: center;
-  padding: 90px var(--gutter) 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* the scroll cue is part of the flow, so it can never sit on top of the copy */
+  gap: clamp(20px, 4vh, 40px);
+  padding: calc(72px + env(safe-area-inset-top)) var(--gutter) calc(28px + env(safe-area-inset-bottom));
   perspective: 700px;
   overflow: hidden;
 }
 
 .hero__inner {
   width: 100%;
+  min-width: 0;
+  /* centred in whatever height is left above the scroll cue */
+  margin-block: auto;
   display: grid;
   justify-items: center;
   text-align: center;
@@ -493,8 +499,10 @@ main,
 }
 
 .hero__mark {
-  width: min(62vw, 300px);
-  margin: 8px 0 18px;
+  /* same size as before on regular phones; only yields on short screens */
+  width: min(62vw, 300px, 40vh);
+  width: min(62vw, 300px, 40svh);
+  margin: clamp(4px, 1vh, 8px) 0 clamp(10px, 2.2vh, 18px);
   animation: float 7s ease-in-out infinite;
 }
 
@@ -533,7 +541,7 @@ main,
 }
 
 .hero__tag {
-  margin: 22px 0 6px;
+  margin: clamp(14px, 2.8vh, 22px) 0 6px;
   min-height: 1.6em;
   color: var(--white);
 }
@@ -542,6 +550,7 @@ main,
   margin: 0;
   color: var(--dim);
   font-size: 15px;
+  line-height: 1.6;
   letter-spacing: 0.04em;
 }
 
@@ -562,10 +571,7 @@ main,
 .hero--ready .hero__inner > :nth-child(6) { transition-delay: 1.3s; }
 
 .hero__scroll {
-  position: absolute;
-  bottom: calc(24px + env(safe-area-inset-bottom));
-  left: 50%;
-  translate: -50% 0;
+  flex: none;
   display: grid;
   justify-items: center;
   gap: 10px;
