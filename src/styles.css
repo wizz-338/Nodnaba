@@ -680,3 +680,47 @@ main,
   .petal { display: none; }
   .logo--draw path { stroke-dashoffset: 0; }
 }
+
+/* ───────── page transition (pixel dissolve) ───────── */
+
+.warp {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(14, 1fr);
+  pointer-events: none;
+}
+
+.warp span {
+  background: var(--void);
+  transform: scale(0);
+}
+
+.warp span:nth-child(7n) { background: #1a0f15; }
+.warp span:nth-child(11n) { background: var(--hot); }
+.warp span:nth-child(13n) { background: var(--cyan); }
+
+.warp--on {
+  pointer-events: auto;
+}
+
+.warp--on span {
+  animation: pixel-swap 0.9s steps(6) both;
+  animation-delay: calc(var(--d) * 0.22s - 0.06s);
+}
+
+@keyframes pixel-swap {
+  0% { transform: scale(0); }
+  38%, 58% { transform: scale(1.02); }
+  100% { transform: scale(0); }
+}
+
+.route-loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+}
