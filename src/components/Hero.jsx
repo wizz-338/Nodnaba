@@ -43,7 +43,7 @@ export default function Hero({ ready }) {
         </p>
       </div>
 
-      <a className="hero__scroll mono" href="#manifesto">
+      <a className="hero__scroll mono" href="#vision">
         <span>SCROLL TO DISTORT</span>
         <i aria-hidden="true" />
       </a>

@@ -29,11 +29,10 @@ npm run preview  # 빌드 결과 미리보기
 | `src/components/Logo.jsx` | NODNABA 로고(미완의 별)를 그린 SVG path. 사이트 전체에서 재사용합니다. |
 | `src/components/VoidCanvas.jsx`, `src/shaders.js` | WebGL 배경: 도메인 워핑 성운과 휘어지는 체커보드 회랑. 스크롤 속도와 터치에 반응합니다. |
 | `src/motion.js` | 스크롤, 포인터, 글리치 상태를 한 곳에서 관리하고 CSS 변수(`--vel`, `--hero`, `--scroll-n`)로 내보냅니다. |
-| `src/components/*` | 섹션: Boot, Header/Menu, Hero, Manifesto, Fragments, Dive, Signal, Footer |
+| `src/components/Manga.jsx`, `GlitchImage.jsx` | 캐릭터 일러스트를 만화 컷처럼 배치. 사선 컷, 스크린톤, 집중선, 글리치 찢김 효과. 이미지는 `src/assets/`에 있습니다. |
+| `src/components/*` | 그 밖의 섹션: Boot, Header/Menu, Hero, Footer |
 | `src/styles.css` | 전체 스타일. 색상 토큰은 맨 위 `:root`에 있습니다. |
 
-## 다음 단계
+## 링크
 
-- `Footer.jsx`의 SNS 링크를 실제 주소로 바꾸기 (지금은 자리표시자)
-- `Signal.jsx`의 이메일 폼을 실제 서비스(Formspree, Mailchimp 등)에 연결하기. 지금은 화면에만 반응합니다.
-- Fragments 카드에 실제 작업물이나 이미지 넣기
+- X: https://x.com/readevism (`src/components/Footer.jsx`의 `X_URL`)
