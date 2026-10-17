@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
-import { ARTIST_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
+import { ARTIST_HASH, MANO_RUN_HASH, NEWS_HASH, VISITOR_HASH } from '../route'
 
+// menu order: MAIN · NEWS · ARTIST · GAME (MANO RUN) · VISITOR
 const LINKS = [
   ['01', 'MAIN', '#/', 'main'],
-  ['02', 'VISITOR', VISITOR_HASH, 'visitor'],
+  ['02', 'NEWS', NEWS_HASH, 'news'],
   ['03', 'ARTIST', ARTIST_HASH, 'artist'],
 ]
+const LINKS_AFTER_GAME = [['05', 'VISITOR', VISITOR_HASH, 'visitor']]
 
 // GAME opens on hover where a mouse can hover, and on tap/click everywhere
 const canHover = () => typeof matchMedia !== 'undefined' && matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -26,9 +28,23 @@ export default function Header({ page = 'main' }) {
     return () => removeEventListener('keydown', onKey)
   }, [open])
 
+  const item = ([n, label, href, id], i) => (
+    <li key={href} style={{ '--i': i }}>
+      <a
+        href={href}
+        tabIndex={open ? 0 : -1}
+        aria-current={page === id ? 'page' : undefined}
+        onClick={() => setOpen(false)}
+      >
+        <span className="menu__n mono">{n}</span>
+        <span className="glitch" data-text={label}>{label}</span>
+      </a>
+    </li>
+  )
+
   return (
     <>
-      <header className={`header ${page === 'visitor' || page === 'artist' ? 'header--bar' : ''}`}>
+      <header className={`header ${page === 'main' ? '' : 'header--bar'}`}>
         <a className="header__brand" href="#/" aria-label="NODNABA home" onClick={() => setOpen(false)}>
           <Logo className="header__logo" glitch={false} />
           <span className="header__name">NODNABA</span>
@@ -51,19 +67,7 @@ export default function Header({ page = 'main' }) {
 
       <nav id="menu" className={`menu ${open ? 'menu--open' : ''}`} aria-hidden={!open}>
         <ul>
-          {LINKS.map(([n, label, href, id], i) => (
-            <li key={href} style={{ '--i': i }}>
-              <a
-                href={href}
-                tabIndex={open ? 0 : -1}
-                aria-current={page === id ? 'page' : undefined}
-                onClick={() => setOpen(false)}
-              >
-                <span className="menu__n mono">{n}</span>
-                <span className="glitch" data-text={label}>{label}</span>
-              </a>
-            </li>
-          ))}
+          {LINKS.map((link, i) => item(link, i))}
           <li
             style={{ '--i': LINKS.length }}
             onMouseEnter={() => canHover() && setGameOpen(true)}
@@ -90,6 +94,7 @@ export default function Header({ page = 'main' }) {
               </div>
             </div>
           </li>
+          {LINKS_AFTER_GAME.map((link, i) => item(link, LINKS.length + 1 + i))}
         </ul>
       </nav>
     </>

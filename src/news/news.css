@@ -1,0 +1,233 @@
+/* NEWS — a quiet activity log on the same dark ground as ARTIST: title,
+   a strip of running Manos, then one thin-lined card per item. */
+
+.news {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: calc(104px + env(safe-area-inset-top)) var(--gutter) calc(64px + env(safe-area-inset-bottom));
+  overflow-x: clip;
+  background:
+    radial-gradient(90% 40% at 15% 0%, rgba(79, 227, 224, 0.08), transparent 70%),
+    radial-gradient(90% 50% at 90% 10%, rgba(255, 51, 85, 0.12), transparent 70%),
+    var(--void);
+}
+
+/* .news prefix: outranks the shared .glitch rule, which loads after this file */
+.news .news__title {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 8px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(36px, 11vw, 88px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: -2px 0 rgba(79, 227, 224, 0.6), 2px 0 rgba(255, 51, 85, 0.6);
+}
+
+/* ───────── running Manos ─────────
+   Edge to edge, no box: the page background shows through the transparent
+   sprites, and both ends fade so Mano slips in and out of view. */
+
+.news-run {
+  position: relative;
+  height: 84px;
+  margin: 0 calc(var(--gutter) * -1) 28px;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* ground: one dotted line, like the header's */
+.news-run::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9px;
+  border-top: 2px dotted rgba(247, 238, 236, 0.16);
+}
+
+/* each Mano rides a full-width lane that slides one width (+ a sprite) */
+.news-mano {
+  position: absolute;
+  left: 0;
+  bottom: calc(10px + var(--y));
+  width: 100%;
+  height: 60px;
+  animation: news-cross var(--dur) linear var(--delay) infinite both;
+  will-change: transform;
+}
+
+@keyframes news-cross {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% + 64px)); }
+}
+
+.news-mano__sprite {
+  position: absolute;
+  left: -58px;
+  bottom: 0;
+  width: 50px;
+  height: 60px;
+  overflow: hidden;
+}
+
+.news-mano__sprite img {
+  display: block;
+  max-width: none;
+  width: 500px;
+  height: 60px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  animation: news-stride var(--step) steps(8) infinite;
+  will-change: transform;
+}
+
+/* the first 8 cells are one running stride */
+@keyframes news-stride {
+  from { transform: translateX(0); }
+  to { transform: translateX(-400px); }
+}
+
+.news-mano__shadow {
+  position: absolute;
+  left: -48px;
+  bottom: -2px;
+  width: 26px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 163, 188, 0.2);
+}
+
+.news-run.is-paused .news-mano,
+.news-run.is-paused .news-mano__sprite img {
+  animation-play-state: paused;
+}
+
+/* ───────── list ───────── */
+
+.news__list {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.news-item {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px 8px;
+  border: 1px solid var(--line);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: news-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(0.1s + var(--i) * 0.08s);
+  transition: border-color 0.3s;
+}
+
+@keyframes news-in {
+  to { opacity: 1; transform: none; }
+}
+
+.news-item:hover,
+.news-item:focus-within {
+  border-color: rgba(247, 238, 236, 0.42);
+}
+
+.news-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.news-item__cat {
+  padding: 2px 7px 1px;
+  border: 1px solid rgba(255, 163, 188, 0.5);
+  color: var(--pink);
+  letter-spacing: 0.12em;
+}
+
+.news-item__title {
+  margin: 2px 0 0;
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: clamp(17px, 4.6vw, 21px);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.news-item__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.news-item__link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--white);
+  transition: color 0.2s;
+}
+
+/* the whole card is the link's touch area */
+.news-item__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.news-item:hover .news-item__link,
+.news-item__link:focus-visible {
+  color: var(--pink);
+}
+
+.news__more {
+  display: block;
+  margin: 28px auto 0;
+  padding: 12px 28px;
+  border: 1px solid var(--white);
+  border-radius: 999px;
+  background: none;
+  color: var(--white);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.news__more:hover,
+.news__more:focus-visible {
+  background: var(--white);
+  color: var(--void);
+}
+
+/* reduced motion: Manos stand still, spread along the line */
+@media (prefers-reduced-motion: reduce) {
+  .news-item { opacity: 1; transform: none; animation: none; }
+  .news-mano,
+  .news-mano__sprite img { animation: none !important; }
+  .news-mano { transform: translateX(calc(12% + 58px + var(--n) * 20%)); }
+  .news-mano__sprite img { transform: translateX(calc(var(--n) * -100px)); }
+}
