@@ -15,6 +15,7 @@ import { useRoute } from './route'
 const VisitorPage = lazy(() => import('./visitor/VisitorPage'))
 const GamePage = lazy(() => import('./game/GamePage'))
 const ArtistPage = lazy(() => import('./artist/ArtistPage'))
+const ColonyPage = lazy(() => import('./colony/ColonyPage'))
 
 const SWAP_MS = 420
 const END_MS = 900
@@ -85,7 +86,8 @@ export default function App() {
           {shown.page === 'game' ? (
             // the game waits for the loading screen, so keys pressed while it
             // plays can't start a run nobody can see yet
-            booted && <GamePage exitHref={exitTo.current} />
+            booted &&
+            (shown.game === 'colony' ? <ColonyPage exitHref={exitTo.current} /> : <GamePage exitHref={exitTo.current} />)
           ) : shown.page === 'artist' ? (
             <ArtistPage />
           ) : (

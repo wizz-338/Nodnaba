@@ -1,4 +1,4 @@
-import { ARTIST_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
+import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 
 // NEWS — NODNABA activity log.
 //
@@ -15,6 +15,15 @@ import { ARTIST_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 //               in a new tab. Leave it out for news without a link.
 //   linkText    optional button label, e.g. VIEW · LISTEN · PLAY
 export const NEWS = [
+  {
+    date: '2026-10-18',
+    time: '01:42',
+    category: 'GAME',
+    title: '마노 마을 (Mano Colony) 공개',
+    description: '마노들이 나무·돌·별가루를 모으고 집과 일터를 지으며 마을을 넓혀 가는 마을 가꾸기 게임 「마노 마을」을 공개합니다.',
+    link: MANO_COLONY_HASH,
+    linkText: 'PLAY',
+  },
   {
     date: '2026-10-17',
     time: '17:30',
