@@ -7,6 +7,8 @@ import Hero from './components/Hero'
 import Vision from './components/Vision'
 import Footer from './components/Footer'
 import PageTransition from './components/PageTransition'
+// NEWS is small, so it ships with the app: opening it shows no extra loader
+import NewsPage from './news/NewsPage'
 import { startMotion, glitchNow } from './motion'
 import { useRoute } from './route'
 
@@ -76,6 +78,8 @@ export default function App() {
       {shown.page !== 'game' && <Header page={shown.page} />}
       {shown.page === 'main' ? (
         <MainPage ready={booted} />
+      ) : shown.page === 'news' ? (
+        <NewsPage />
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
           {shown.page === 'game' ? (
