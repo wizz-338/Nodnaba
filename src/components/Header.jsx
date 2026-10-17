@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
-import { ARTIST_HASH, MANO_RUN_HASH, NEWS_HASH, VISITOR_HASH } from '../route'
+import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, NEWS_HASH, VISITOR_HASH } from '../route'
 
 // menu order: MAIN · NEWS · ARTIST · GAME (MANO RUN) · VISITOR
 const LINKS = [
@@ -90,6 +90,10 @@ export default function Header({ page = 'main' }) {
                 <a href={MANO_RUN_HASH} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
                   <span className="menu__n mono">└</span>
                   <span className="glitch" data-text="MANO RUN">MANO RUN</span>
+                </a>
+                <a href={MANO_COLONY_HASH} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
+                  <span className="menu__n mono">└</span>
+                  <span className="glitch" data-text="마노 마을">마노 마을</span>
                 </a>
               </div>
             </div>

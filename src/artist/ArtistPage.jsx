@@ -1,6 +1,6 @@
 import manoImg from '../assets/artist/mano.webp'
 import zyoImg from '../assets/artist/zyo.webp'
-import { MANO_RUN_HASH } from '../route'
+import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
 import { YOUTUBE_URL } from '../components/Footer'
 import './artist.css'
 
@@ -14,7 +14,10 @@ const ARTISTS = [
     img: manoImg,
     w: 832,
     h: 1216,
-    links: [{ label: '▶ MANO RUN', href: MANO_RUN_HASH }],
+    links: [
+      { label: '▶ MANO RUN', href: MANO_RUN_HASH },
+      { label: '▶ 마노 마을', href: MANO_COLONY_HASH },
+    ],
   },
   {
     id: 'zyo',
