@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 //   '#/news'           NEWS: activity log
 //   '#/artist'         ARTIST: the NODNABA artists
 //   '#/game/mano-run'  MANO RUN mini game
-//   '#/game/mano-colony'  Mano Colony (마노 마을) village game
+//   '#/game/mano-colony'  MANO COLONY (DEMO) village game
 // Anything else is the main page, so in-page anchors like '#vision' keep working.
 // The developer system check lives in its own document, check.html.
 export const VISITOR_HASH = '#/visitor'

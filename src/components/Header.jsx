@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
+import manoHammer from '../assets/menu/mano-hammer.png'
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, NEWS_HASH, VISITOR_HASH } from '../route'
 
 // menu order: MAIN · NEWS · ARTIST · GAME (MANO RUN) · VISITOR
@@ -93,7 +94,14 @@ export default function Header({ page = 'main' }) {
                 </a>
                 <a href={MANO_COLONY_HASH} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
                   <span className="menu__n mono">└</span>
-                  <span className="glitch" data-text="마노 마을">마노 마을</span>
+                  <span className="menu__colony">
+                    <span className="glitch" data-text="MANO COLONY">MANO COLONY</span>
+                    {/* demo badge: Mano mending it with her hammer */}
+                    <span className="menu__demo">
+                      <span className="glitch" data-text="(DEMO)">(DEMO)</span>
+                      <img src={manoHammer} alt="" width="186" height="160" decoding="async" />
+                    </span>
+                  </span>
                 </a>
               </div>
             </div>

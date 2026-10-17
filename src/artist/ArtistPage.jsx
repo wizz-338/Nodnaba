@@ -16,7 +16,7 @@ const ARTISTS = [
     h: 1216,
     links: [
       { label: '▶ MANO RUN', href: MANO_RUN_HASH },
-      { label: '▶ 마노 마을', href: MANO_COLONY_HASH },
+      { label: '▶ MANO COLONY (DEMO)', href: MANO_COLONY_HASH },
     ],
   },
   {
