@@ -35,7 +35,10 @@ export default function App() {
   const route = useRoute()
   const [shown, setShown] = useState(route)
   const [warping, setWarping] = useState(false)
-  const [booted, setBooted] = useState(route.page !== 'main')
+  // The loading screen plays once per page load, whatever address the visit
+  // starts on. It lives here in App (mounted once), so moving between pages
+  // never brings it back; a browser refresh starts a new run and shows it again.
+  const [booted, setBooted] = useState(false)
   const done = useCallback(() => setBooted(true), [])
   const timers = useRef([])
   // where EXIT in the game goes back to
@@ -76,7 +79,9 @@ export default function App() {
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
           {shown.page === 'game' ? (
-            <GamePage exitHref={exitTo.current} />
+            // the game waits for the loading screen, so keys pressed while it
+            // plays can't start a run nobody can see yet
+            booted && <GamePage exitHref={exitTo.current} />
           ) : shown.page === 'artist' ? (
             <ArtistPage />
           ) : (
