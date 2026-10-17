@@ -131,6 +131,7 @@ main,
   position: fixed;
   inset: 0;
   z-index: 1;
+  overflow: hidden; /* drifting petals must not widen the page on small phones */
   pointer-events: none;
 }
 
@@ -703,8 +704,16 @@ main,
   margin: 0;
   font-family: var(--display);
   font-weight: 800;
-  font-size: 34px;
+  font-size: clamp(24px, 9vw, 34px); /* 34px from 378px wide; fits 320px phones */
   letter-spacing: 0.12em;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
 }
 
 .footer__x {
@@ -799,4 +808,25 @@ main,
   display: grid;
   place-items: center;
   color: var(--dim);
+}
+
+/* keep X and YouTube side by side on narrow phones */
+@media (max-width: 400px) {
+  .footer__x {
+    gap: 8px;
+    padding: 12px 14px;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 360px) {
+  .footer__links {
+    gap: 8px;
+  }
+  .footer__x {
+    gap: 6px;
+    padding: 11px 11px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
 }
