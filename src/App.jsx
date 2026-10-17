@@ -12,6 +12,7 @@ import { useRoute } from './route'
 
 const VisitorPage = lazy(() => import('./visitor/VisitorPage'))
 const GamePage = lazy(() => import('./game/GamePage'))
+const ArtistPage = lazy(() => import('./artist/ArtistPage'))
 
 const SWAP_MS = 420
 const END_MS = 900
@@ -74,7 +75,13 @@ export default function App() {
         <MainPage ready={booted} />
       ) : (
         <Suspense fallback={<p className="route-loading mono">LOADING…</p>}>
-          {shown.page === 'game' ? <GamePage exitHref={exitTo.current} /> : <VisitorPage admin={shown.admin} />}
+          {shown.page === 'game' ? (
+            <GamePage exitHref={exitTo.current} />
+          ) : shown.page === 'artist' ? (
+            <ArtistPage />
+          ) : (
+            <VisitorPage admin={shown.admin} />
+          )}
         </Suspense>
       )}
       <PageTransition active={warping} />

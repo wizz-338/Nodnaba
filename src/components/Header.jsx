@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
-import { MANO_RUN_HASH, VISITOR_HASH } from '../route'
+import { ARTIST_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 
 const LINKS = [
   ['01', 'MAIN', '#/', 'main'],
   ['02', 'VISITOR', VISITOR_HASH, 'visitor'],
+  ['03', 'ARTIST', ARTIST_HASH, 'artist'],
 ]
+
+// GAME opens on hover where a mouse can hover, and on tap/click everywhere
+const canHover = () => typeof matchMedia !== 'undefined' && matchMedia('(hover: hover) and (pointer: fine)').matches
 
 export default function Header({ page = 'main' }) {
   const [open, setOpen] = useState(false)
@@ -24,7 +28,7 @@ export default function Header({ page = 'main' }) {
 
   return (
     <>
-      <header className={`header ${page === 'visitor' ? 'header--bar' : ''}`}>
+      <header className={`header ${page === 'visitor' || page === 'artist' ? 'header--bar' : ''}`}>
         <a className="header__brand" href="#/" aria-label="NODNABA home" onClick={() => setOpen(false)}>
           <Logo className="header__logo" glitch={false} />
           <span className="header__name">NODNABA</span>
@@ -60,16 +64,20 @@ export default function Header({ page = 'main' }) {
               </a>
             </li>
           ))}
-          <li style={{ '--i': LINKS.length }}>
+          <li
+            style={{ '--i': LINKS.length }}
+            onMouseEnter={() => canHover() && setGameOpen(true)}
+            onMouseLeave={() => canHover() && setGameOpen(false)}
+          >
             <button
               type="button"
               className="menu__group"
               tabIndex={open ? 0 : -1}
               aria-expanded={gameOpen}
               aria-controls="menu-game"
-              onClick={() => setGameOpen((v) => !v)}
+              onClick={() => setGameOpen((v) => (canHover() ? true : !v))}
             >
-              <span className="menu__n mono">03</span>
+              <span className="menu__n mono">04</span>
               <span className="glitch" data-text="GAME">GAME</span>
               <span className="menu__toggle mono" aria-hidden="true">{gameOpen ? '−' : '+'}</span>
             </button>

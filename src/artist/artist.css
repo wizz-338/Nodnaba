@@ -1,0 +1,222 @@
+/* ARTIST — dark, quiet, a little CRT. Two equal cards: 2 columns on wide
+   screens, 1 column on phones. */
+
+.artist {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: calc(104px + env(safe-area-inset-top)) var(--gutter) calc(64px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(90% 40% at 15% 0%, rgba(79, 227, 224, 0.08), transparent 70%),
+    radial-gradient(90% 50% at 90% 10%, rgba(255, 51, 85, 0.12), transparent 70%),
+    var(--void);
+}
+
+.artist__title {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 36px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(36px, 11vw, 88px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: -2px 0 rgba(79, 227, 224, 0.6), 2px 0 rgba(255, 51, 85, 0.6);
+}
+
+.artist__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+@media (min-width: 720px) {
+  .artist__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+  }
+}
+
+/* ───────── card ───────── */
+
+.artist-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(16, 11, 18, 0.7);
+  border: 1px solid var(--line);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: artist-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(0.12s + var(--i) * 0.12s);
+  transition: border-color 0.3s, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes artist-in {
+  to { opacity: 1; transform: none; }
+}
+
+/* both originals are ~2:3 portraits: show them whole, anchored to the top so
+   ears and hair are never cut */
+.artist-card__frame {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #000;
+}
+
+.artist-card__img,
+.artist-card__ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.artist-card__img {
+  display: block;
+  object-fit: cover;
+  object-position: 50% 0%;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s;
+}
+
+.artist-card__ghost {
+  background-size: cover;
+  background-position: 50% 0%;
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.artist-card__ghost--c { filter: sepia(1) hue-rotate(140deg) saturate(4); }
+.artist-card__ghost--m { filter: sepia(1) hue-rotate(290deg) saturate(5); }
+
+/* CRT: fine scanlines + soft vignette, always on */
+.artist-card__crt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(0, 0, 0, 0.45));
+}
+
+.artist-card__body {
+  display: grid;
+  gap: 12px;
+  padding: 18px 18px 20px;
+}
+
+.artist-card__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  /* never uppercase: "zyo_" is the official spelling */
+  text-transform: none;
+}
+
+.artist-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artist-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--white);
+  border-radius: 999px;
+  font-size: 12px;
+  transition: background 0.3s, color 0.3s;
+}
+
+.artist-link svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.artist-link:hover,
+.artist-link:active,
+.artist-link:focus-visible {
+  background: var(--white);
+  color: var(--void);
+}
+
+.artist-link--small {
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px;
+  color: var(--dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.artist-link--small:hover,
+.artist-link--small:active,
+.artist-link--small:focus-visible {
+  background: none;
+  color: var(--pink);
+}
+
+/* ───────── hover / touch: a subtle glitch ───────── */
+
+.artist-card:hover,
+.artist-card:focus-within {
+  border-color: rgba(247, 238, 236, 0.4);
+  transform: translateY(-3px);
+}
+
+.artist-card:hover .artist-card__img {
+  transform: scale(1.02);
+}
+
+.artist-card:hover .artist-card__ghost--c {
+  opacity: 0.32;
+  animation: artist-tear-c 2.4s steps(1) infinite;
+}
+
+.artist-card:hover .artist-card__ghost--m {
+  opacity: 0.28;
+  animation: artist-tear-m 2.4s steps(1) infinite;
+}
+
+.artist-card:hover .artist-card__name::before,
+.artist-card:hover .artist-card__name::after {
+  opacity: 0.8;
+}
+
+/* mostly a soft 2px RGB split, with a brief torn band now and then */
+@keyframes artist-tear-c {
+  0%, 100% { transform: translate(-2px, 0); clip-path: inset(0); }
+  82% { transform: translate(-6px, 0); clip-path: inset(28% 0 58% 0); }
+  86% { transform: translate(-2px, 0); clip-path: inset(0); }
+}
+
+@keyframes artist-tear-m {
+  0%, 100% { transform: translate(2px, 0); clip-path: inset(0); }
+  82% { transform: translate(7px, 0); clip-path: inset(62% 0 26% 0); }
+  86% { transform: translate(2px, 0); clip-path: inset(0); }
+}
+
+/* the site-wide glitch bursts touch the cards too, very lightly */
+.is-glitching .artist-card__ghost--c { opacity: 0.25; transform: translate(-4px, 0); }
+.is-glitching .artist-card__ghost--m { opacity: 0.22; transform: translate(4px, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .artist-card { opacity: 1; transform: none; animation: none; }
+  .artist-card:hover .artist-card__ghost--c,
+  .artist-card:hover .artist-card__ghost--m { animation: none; }
+}
