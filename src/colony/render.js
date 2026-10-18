@@ -6,10 +6,10 @@
 // image processing. Everything standing is sorted by where it touches the
 // ground (the middle of its footprint), back to front.
 
-import { BUILDINGS, CAMP_SIZE, DECOR, FLOOR_TYPES, FLOORS, GATHER, MAP, NODES, RES_LABEL, START, TH, TW, ZONES, ZONE_IDS } from './config.js'
+import { BUILDINGS, CAMP_SIZE, DECOR, FLOOR_TYPES, FLOORS, GATHER, MAP, NODES, PLAY, RES_LABEL, START, TH, TW, ZONES, ZONE_IDS } from './config.js'
 import { fromIso, hash, idx, inMap, iso, nodeOf } from './world.js'
 import { buildWork } from './sim.js'
-import { ANIMS, EFFECTS } from './assets.js'
+import { ANIMS, EFFECTS, PLAY_ANIMS, SLEEPY, playFrame } from './assets.js'
 
 const FONT = "'Galmuri11', 'IBM Plex Sans KR', sans-serif"
 const RES_COLOR = { wood: '#a0612d', stone: '#5d6a82', stardust: '#b26be0' }
@@ -527,10 +527,24 @@ export function createRenderer(cvs, A) {
       if (d.x < R.x0 - 1 || d.x > R.x1 + 1 || d.y < R.y0 - 1 || d.y > R.y1 + 1) continue
       fenceItems(world, d, items, manoTiles, ui)
     }
+    // two friends playing together are one drawing; while it shows, the two
+    // residents are not drawn on their own (see play.js)
+    const together = new Set()
+    for (const j of s._joints || []) {
+      if (j.state !== 'play') continue
+      together.add(j.a).add(j.b)
+      const cx = (j.spots[0][0] + j.spots[1][0]) / 2 + 0.5
+      const cy = (j.spots[0][1] + j.spots[1][1]) / 2 + 0.5
+      const p = iso(cx, cy)
+      if (!onScreen(p.X, p.Y)) continue
+      items.push({ depth: cx + cy, id: j.id, d: () => drawPair(s, j, p, ui.selected === j.id) })
+    }
     for (const m of s.manos) {
+      if (together.has(m.id)) continue
       const p = iso(m.x, m.y)
       if (!onScreen(p.X, p.Y)) continue
-      items.push({ depth: m.x + m.y, d: () => drawMano(s, world, m, p, dt) })
+      const seated = m.task && m.task.kind === 'play' && m.task.seat && m.task.phase === 'play'
+      items.push({ depth: m.x + m.y + (seated ? 0.02 : 0), id: 'm' + m.id, d: () => drawMano(s, world, m, p, dt, ui.selected === 'm' + m.id) })
     }
     if (ui.ghost) {
       const g = ui.ghost
@@ -687,10 +701,29 @@ export function createRenderer(cvs, A) {
     }
   }
 
-  function drawMano(s, world, m, p, dt) {
+  // two residents in one picture, standing where the two of them stand
+  function drawPair(s, j, p, glow) {
+    const a = PLAY_ANIMS[j.act]
+    const i = playFrame(a, j.t)
+    shadow(p.X - 14, p.Y + 4)
+    shadow(p.X + 14, p.Y - 4)
+    const bob = SLEEPY.has(j.act) ? Math.round(Math.sin(j.t * 1.6)) * 0.5 : 0
+    return spr(a.atlas, a.frames[i], p.X, p.Y + 4 + bob, { filter: glow ? GLOW : null })
+  }
+
+  function drawMano(s, world, m, p, dt, glow) {
     let a = anim.get(m.id)
     if (!a) anim.set(m.id, (a = { t: Math.random() * 2, key: '', face: 1, hit: -1 }))
     const t = m.task
+    if (t && t.kind === 'play' && t.phase === 'play') {
+      // playing alone: the action's own frames, timed from when it began
+      const pa = PLAY_ANIMS[t.act]
+      const i = playFrame(pa, t.at || 0)
+      const lift = t.seat ? PLAY.seatLift : 0
+      if (!lift) shadow(p.X, p.Y)
+      const bob = SLEEPY.has(t.act) ? Math.round(Math.sin((t.at || 0) * 1.6)) * 0.5 : 0
+      return spr(pa.atlas, pa.frames[i], p.X, p.Y + 1 - lift + bob, { flip: t.flip, filter: glow ? GLOW : null })
+    }
     let name = 'stand'
     let flip = false
     if (m._goal) {
@@ -722,7 +755,7 @@ export function createRenderer(cvs, A) {
     a.hit = i
     const bob = name === 'sleep' ? Math.sin(time * 2 + m.id) * 0.5 : 0
     shadow(p.X, p.Y)
-    return spr('mano', def.frames[i], p.X, p.Y + 1 + bob, { flip })
+    return spr('mano', def.frames[i], p.X, p.Y + 1 + bob, { flip, filter: glow ? GLOW : null })
   }
 
   function events(list, effectsOn) {
@@ -733,6 +766,7 @@ export function createRenderer(cvs, A) {
       if (e.type === 'gather' && e.res === 'stardust') fx.push({ kind: 'sparkle', x: e.x, y: e.y, t: 0, dy: -30 })
       if (e.type === 'built') fx.push({ kind: 'poof', x: e.x, y: e.y, t: 0 }, { kind: 'sparkle', x: e.x, y: e.y, t: 0, dy: -80 })
       if (e.type === 'arrive') fx.push({ kind: 'hearts', x: e.x, y: e.y, t: 0, dy: -50 })
+      if (e.type === 'cheer') fx.push({ kind: 'hearts', x: e.x, y: e.y, t: 0, dy: -55, alpha: 0.85 })
       if (e.type === 'place') fx.push({ kind: 'poof', x: e.x, y: e.y, t: 0 })
     }
     if (fx.length > 120) fx.splice(0, fx.length - 120)
@@ -741,15 +775,22 @@ export function createRenderer(cvs, A) {
   // what was tapped: the tile's occupant, else a drawing covering the point
   function hit(world, sx, sy) {
     const t = tileAt(sx, sy)
+    const p = toWorld(sx, sy)
+    // a Mano (or two playing together) in front of whatever stands on the tile
+    for (let i = drawn.length - 1; i >= 0; i--) {
+      const { box, id } = drawn[i]
+      if ((id[0] === 'm' || id[0] === 'j') && p.X >= box.x + box.w * 0.15 && p.X <= box.x + box.w * 0.85 && p.Y >= box.y + box.h * 0.1 && p.Y <= box.y + box.h)
+        return { id, kind: id[0] === 'm' ? 'mano' : 'pair', tile: [t.x, t.y] }
+    }
     if (inMap(t.x, t.y)) {
       const o = world.occ[idx(t.x, t.y)]
       if (o) return { id: o.id, kind: o.kind, tile: [t.x, t.y] }
     }
-    const p = toWorld(sx, sy)
     for (let i = drawn.length - 1; i >= 0; i--) {
       const { box, id } = drawn[i]
       if (p.X >= box.x && p.X <= box.x + box.w && p.Y >= box.y && p.Y <= box.y + box.h * 0.85) {
-        return { id, kind: id[0] === 'b' ? 'building' : id[0] === 'd' ? 'decor' : id === 'camp' ? 'camp' : 'node', tile: [t.x, t.y] }
+        const kind = id === 'camp' ? 'camp' : { b: 'building', d: 'decor', m: 'mano', j: 'pair', n: 'node' }[id[0]]
+        return { id, kind, tile: [t.x, t.y] }
       }
     }
     return { tile: [t.x, t.y] }

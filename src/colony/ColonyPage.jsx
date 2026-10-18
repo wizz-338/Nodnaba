@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  ACTS,
+  ACT_IDS,
   BUILDINGS,
   BUILDING_TYPES,
   CATEGORIES,
@@ -20,6 +22,7 @@ import {
   ZONE_IDS,
 } from './config.js'
 import { idx, inMap } from './world.js'
+import { forcePlay } from './play.js'
 import * as sim from './sim.js'
 import {
   activity,
@@ -816,6 +819,23 @@ export default function ColonyPage({ exitHref = '#/' }) {
     g.save()
     rerender()
   }
+  // development only: play one action now with the Mano nearest the middle of the view
+  const previewPlay = (act) => {
+    const c = g.R.tileAt(g.R.view.w / 2, g.R.view.h / 2)
+    let best = null
+    for (const m of g.s.manos) {
+      const d = (m.x - c.fx) ** 2 + (m.y - c.fy) ** 2
+      if (!best || d < best.d) best = { m, d }
+    }
+    if (!best) return
+    const ok = forcePlay(g.s, g.world, best.m, act)
+    toast(ok ? `${act} 미리보기 (마노 #${best.m.id})` : `${act}: 놀 자리를 찾지 못했어요`, 'preview', ok ? 'good' : 'warn')
+    if (ok) {
+      g.R.lookAtTile(best.m.x, best.m.y)
+      setPanel(null)
+      setSel({ id: 'm' + best.m.id, kind: 'mano' })
+    }
+  }
   const doUnlock = (z) => {
     const r = sim.unlock(g.s, g.world, z)
     if (!r.ok) return toast(reasonText(r), 'zone', 'warn')
@@ -1129,6 +1149,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
                 onImport={() => fileRef.current.click()}
                 onReset={() => pushModal({ kind: 'reset' })}
                 onNotice={() => pushModal({ kind: 'notice' })}
+                onPreview={import.meta.env.DEV ? previewPlay : null}
                 onEffects={() => {
                   s.settings.effects = !s.settings.effects
                   g.save()
@@ -1474,6 +1495,26 @@ function SelCard({ g, s, sel, onClose, onUpgrade, onMove, onDemolish, onCancelUp
         </p>
       </>
     )
+  } else if (sel.kind === 'mano') {
+    const m = s.manos.find((o) => 'm' + o.id === sel.id)
+    if (!m) return null
+    body = (
+      <>
+        <p className="mc-sel__title">마노 #{m.id}</p>
+        <p className="mc-card__text">{sim.activity(s, g.world, m)}</p>
+      </>
+    )
+  } else if (sel.kind === 'pair') {
+    const j = (s._joints || []).find((x) => x.id === sel.id)
+    if (!j) return null
+    body = (
+      <>
+        <p className="mc-sel__title">
+          마노 #{j.a} · 마노 #{j.b}
+        </p>
+        <p className="mc-card__text">{ACTS[j.act].label}</p>
+      </>
+    )
   } else if (sel.kind === 'camp') {
     body = (
       <>
@@ -1558,7 +1599,25 @@ function ManoList({ g, s, onPick }) {
   )
 }
 
-function Settings({ s, saveState, onSave, onExport, onImport, onReset, onNotice, onEffects, exitHref }) {
+// development builds only (never shown to players): play any of the 25 actions
+function PlayPreview({ onPreview }) {
+  return (
+    <div className="mc-dev">
+      <p className="mc-card__name">행동 미리보기 (개발 모드 전용)</p>
+      <p className="mc-small mc-dim">화면 가운데에 가장 가까운 마노가 바로 재생해요. 친구 놀이는 가장 가까운 다른 마노와 함께해요.</p>
+      <div className="mc-dev__grid">
+        {ACT_IDS.map((a) => (
+          <button key={a} type="button" className="mc-btn mc-btn--small" data-act={a} onClick={() => onPreview(a)}>
+            {ACTS[a].pair ? '👥 ' : ''}
+            {a}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Settings({ s, saveState, onSave, onExport, onImport, onReset, onNotice, onEffects, onPreview, exitHref }) {
   return (
     <>
       <div className={`mc-savebox ${saveState.ok ? '' : 'is-bad'}`}>
@@ -1598,6 +1657,7 @@ function Settings({ s, saveState, onSave, onExport, onImport, onReset, onNotice,
         <img className="mc-inline" src={ICONS.clock} alt="" /> 게임을 닫아 둔 동안에도 일하던 마노들이 조금씩 자원을 모아요 (최대 {OFFLINE.maxSeconds / 3600}시간). 공사는 그때
         망치질하던 마노만큼만 진행돼요.
       </p>
+      {import.meta.env.DEV && onPreview && <PlayPreview onPreview={onPreview} />}
       <div className="mc-grid">
         <a className="mc-btn mc-btn--ghost" href={exitHref}>
           사이트로 돌아가기

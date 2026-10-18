@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 sys.path.insert(0, os.path.dirname(__file__))
-from colony_assets_lib import cells, clean_soft, cut, head_x, pack, resize  # noqa: E402
+from colony_assets_lib import body, cells, clean_soft, cut, head_width, head_x, pack, resize, segment, split_pair  # noqa: E402
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 SRC = os.path.join(ROOT, 'assets-src/colony')
@@ -67,6 +67,56 @@ def tile(a, mask):
     res[grow, :3] = out[iy[grow], ix[grow], :3]
     res[grow, 3] = 255
     return res, ((w + 2 * BLEED) / 2, (h + 2 * BLEED) / 2), STORE
+
+
+def mano_head_world(man):
+    """Hood width of the walking / standing Mano in game px (the size to match)."""
+    sh = man['sheets']['mano-carry-rest']
+    a = clean_soft(os.path.join(SRC, 'originals-v2', sh['file']))
+    found = cells(a, 4, 4, dilate=2, min_px=300)
+    stand, _ = cut(a, found[(3, 0)])
+    return head_width(stand) / (stand.shape[0] / MANO_WORLD_H)
+
+
+def play_sheets(atlases, head_world):
+    """Play / rest actions: one row per action, frames found where they are drawn.
+
+    Every sheet gets one scale (its hood width matched to the walking Mano), so
+    frames of one action never change size. Each frame is anchored where the
+    character meets the ground: the lowest body pixel (or one ground line for a
+    whole row when the action leaves the ground), horizontally at the hood or
+    body centre, so poses do not slide around between frames."""
+    man = json.load(open(os.path.join(SRC, 'manifest-play.json')))
+    for name, sh in man['sheets'].items():
+        a = clean_soft(os.path.join(SRC, 'originals-play', sh['file']))
+        frames = segment(a, sh['rows'], 4)
+        heads = []
+        for key in sh['scale']:
+            img, _ = cut(a, frames[tuple(map(int, key.split(',')))][0])
+            if sh.get('pair'):
+                left, right, _ = split_pair(img)
+                heads += [head_width(left), head_width(right)]
+            else:
+                heads.append(head_width(img))
+        k = float(np.median(heads)) / head_world
+        s = min(1.0, STORE / k)
+        print(f'· {name}  scale {k:.2f} source px per game px')
+        for r, (act, anchor, base) in enumerate(sh['acts']):
+            row_ground = max(int(np.where(body(frames[(r, c)][0]))[0].max()) for c in range(4))
+            for c in range(4):
+                mask, _ = frames[(r, c)]
+                img, src = cut(a, mask)
+                core = body(mask)[src[1]:src[3], src[0]:src[2]]
+                ys, xs = np.where(core)
+                if anchor == 'head':
+                    shown = img.copy()
+                    shown[~core] = 0
+                    ax = head_x(shown)
+                else:  # body / pair: centre of the drawn body (or both bodies)
+                    ax = (xs.min() + xs.max() + 1) / 2
+                ay = (row_ground - src[1] + 1) if base == 'row' else ys.max() + 1
+                small = resize(img, s) if s < 1 else img
+                atlases.setdefault(sh['atlas'], {})[f'{act}_{c}'] = (small, (ax * s, ay * s), k * s, src, name)
 
 
 def main():
@@ -125,6 +175,8 @@ def main():
             else:
                 anchor = (small.shape[1] / 2, small.shape[0])
             atlases.setdefault(sh['atlas'], {})[fname] = (small, anchor, k * s, src, name)
+
+    play_sheets(atlases, mano_head_world(man))
 
     for atlas, items in atlases.items():
         img, pos = pack({n: v[0] for n, v in items.items()}, width=2048)

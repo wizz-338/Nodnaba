@@ -402,5 +402,193 @@ function v2save() {
   ok(walkable(w2, Math.floor(m.x), Math.floor(m.y)) && m.task, 'a Mano a building was placed on steps out and gets a job')
 }
 
+// ── play and rest ───────────────────────────────────────────────────────────
+{
+  const P = await import('../src/colony/play.js')
+  const { ACTS, ACT_IDS, PLAY } = await import('../src/colony/config.js')
+  // a village with free homes for exactly 40, benches and flowers, storage full
+  const village = () => {
+    const [s, w] = fresh(rich)
+    for (let y = 30; y < 66 && homes(s) < 40; y += 5) for (let x = 30; x < 66 && homes(s) < 40; x += 5) {
+      if (Math.abs(x - 47) < 7 && Math.abs(y - 47) < 7) continue
+      const r = sim.build(s, w, 'house', x, y)
+      if (r.ok) { r.building.level = 3; r.building.build = null }
+    }
+    sim.decorate(s, w, 'bench', 45, 55); sim.decorate(s, w, 'bench', 49, 56, 1); sim.decorate(s, w, 'lavender', 52, 52); sim.decorate(s, w, 'bush_flower', 43, 52)
+    while (s.manos.length < homes(s)) s.manos.push({ id: s.nextId++, x: 47.5 + (s.manos.length % 5) * 0.3, y: 51.5, carry: null, task: null })
+    s.res = { ...caps(s) }
+    return [s, w]
+  }
+  const playing = (s) => s.manos.filter((m) => m.task && (m.task.kind === 'play' || m.task.kind === 'duo'))
+  const clean = (s) => (!s._joints || !s._joints.length) && (!s._spots || !s._spots.size) && ![...(s._crowd || new Map()).values()].some((n) => n > 0)
+
+  // 1. every one of the 25 actions plays and ends cleanly
+  {
+    const [s, w] = village()
+    const ids = s.manos.map((m) => m.id).join()
+    const bad = []
+    let k = 0
+    for (const act of ACT_IDS) {
+      const m = s.manos[k++ % s.manos.length]
+      if (!P.forcePlay(s, w, m, act)) { bad.push(act + ':start'); continue }
+      let saw = false
+      for (let i = 0; i < 20 * 40 && !saw; i++) {
+        tick(s, w, 0.05)
+        const j = P.jointOf(s, m)
+        saw = ACTS[act].pair ? !!(j && j.act === act && j.state === 'play') : m.task && m.task.kind === 'play' && m.task.act === act && m.task.phase === 'play'
+      }
+      if (!saw) bad.push(act + ':never played')
+    }
+    s.res = { wood: 0, stone: 0, stardust: 0 } // work: everyone wraps up
+    run(s, w, 40)
+    ok(!bad.length, `all ${ACT_IDS.length} actions can be played (${bad.join(' ') || 'none failed'})`)
+    ok(s.manos.map((m) => m.id).join() === ids, 'residents and their ids are the same before and after (nobody added for a pair play)')
+    ok(playing(s).length === 0 && clean(s), 'when work comes back every play has ended: no pair, spot or flower-bed reservation left')
+  }
+
+  // 2. left alone with full storage, plays happen by themselves, varied
+  {
+    const [s, w] = village()
+    const seen = new Map()
+    const last = new Map()
+    let repeats = 0
+    let starts = 0
+    let maxPairs = 0
+    let hiddenBad = 0
+    for (let i = 0; i < 20 * 600; i++) {
+      tick(s, w, 0.05)
+      for (const m of s.manos) {
+        const t = m.task
+        const act = t && t.kind === 'play' ? t.act : t && t.kind === 'duo' && P.jointOf(s, m) ? P.jointOf(s, m).act : null
+        if (act && act !== m._seenAct) {
+          starts++
+          seen.set(act, (seen.get(act) || 0) + 1)
+          if (last.get(m.id) === act) repeats++
+          last.set(m.id, act)
+        }
+        m._seenAct = act
+      }
+      maxPairs = Math.max(maxPairs, (s._joints || []).length)
+      for (const j of s._joints || []) if (j.a === j.b) hiddenBad++
+    }
+    const pairActs = [...seen.keys()].filter((a) => ACTS[a].pair).length
+    ok(seen.size >= 22 && pairActs >= 7, `10 min alone: ${seen.size} different actions happened by themselves (${pairActs} with a friend)`)
+    ok(repeats / starts < 0.05, `the same Mano rarely repeats the same action right away (${repeats} of ${starts})`)
+    ok(maxPairs <= PLAY.maxPairs && hiddenBad === 0, `at most ${PLAY.maxPairs} pairs at once (max seen ${maxPairs})`)
+    const idle = s.manos.filter((m) => !m.task || (m.task.kind === 'rest' && m.task.pose === 'stand')).length
+    ok(idle <= 4, `full storage: Manos keep doing things, not just standing (${idle} of ${s.manos.length} standing still)`)
+  }
+
+  // 3. a pair play: two real residents, hidden only while together, back after
+  {
+    const [s, w] = village()
+    const a = s.manos[0], b = s.manos[1]
+    a.x = 47.5; a.y = 55.5; b.x = 48.5; b.y = 56.5
+    for (const m of s.manos.slice(2)) m.task = { kind: 'rest', pose: 'sit', t: 999 }
+    ok(P.startJoint(s, w, a, b, 'highfive'), 'two Manos agree to a high five')
+    const n0 = s.manos.length
+    let together = false
+    for (let i = 0; i < 20 * 20; i++) { tick(s, w, 0.05); if (P.jointOf(s, a) && P.jointOf(s, a).state === 'play') together = true; if (together && !P.jointOf(s, a)) break }
+    ok(together && !P.jointOf(s, a) && !P.jointOf(s, b), 'they met, played together and the pair ended')
+    ok(s.manos.length === n0 && s.manos.includes(a) && s.manos.includes(b), 'same two residents afterwards, none added or lost')
+    ok(walkable(w, Math.floor(a.x), Math.floor(a.y)) && walkable(w, Math.floor(b.x), Math.floor(b.y)) && (Math.floor(a.x) !== Math.floor(b.x) || Math.floor(a.y) !== Math.floor(b.y)), 'each back on their own open tile, not on top of each other')
+  }
+
+  // 4. a friend that never arrives: the pair is called off in time
+  {
+    const [s, w] = village()
+    const a = s.manos[0], b = s.manos[1]
+    for (const m of s.manos.slice(2)) m.task = { kind: 'rest', pose: 'sit', t: 999 }
+    a.x = 47.5; a.y = 55.5; b.x = 48.5; b.y = 57.5
+    P.startJoint(s, w, a, b, 'ball')
+    const j = P.jointOf(s, a)
+    b._goal = null; b._path = []
+    // b is held in place (as if stuck behind something) every tick
+    let off = null
+    for (let i = 0; i < 20 * (PLAY.meetTimeout + 2) && off === null; i++) {
+      b.x = 48.5; b.y = 57.5; b._goal = { x: 48.5, y: 57.5 }; b._path = [[48, 57]]
+      tick(s, w, 0.05)
+      if (!s._joints.includes(j)) off = { t: i * 0.05, free: !s._spots.has(idx(j.spots[0][0], j.spots[0][1])) && !s._spots.has(idx(j.spots[1][0], j.spots[1][1])) }
+    }
+    ok(off && off.t <= PLAY.meetTimeout + 0.3 && P.jointOf(s, a) === null && P.jointOf(s, b) === null, `a meeting not completed in ${PLAY.meetTimeout} s is called off (after ${off && off.t.toFixed(1)} s)`)
+    ok(off && off.free, 'its meeting tiles are freed at once')
+  }
+
+  // 5. a crew order pulls Manos out of play (pairs end for both), no double work
+  {
+    const [s, w] = village()
+    s.res = { wood: 400, stone: 400, stardust: 50 }
+    const site = sim.build(s, w, 'storage', 40, 58).building
+    sim.setCrew(s, w, site.id, 0)
+    s.res = { ...caps(s) }
+    run(s, w, 60)
+    const before = site.build.progress
+    ok(before === 0, 'with nobody assigned, Manos at play add nothing to a site')
+    const pairs = (s._joints || []).filter((j) => j.state === 'play').length
+    sim.setCrew(s, w, site.id, 3)
+    run(s, w, 6) // (34 work: three builders finish in ~12 s)
+    const crew = s.manos.filter((m) => m.task && m.task.kind === 'build' && m.task.b === site.id)
+    ok(crew.length === 3, `crew order: 3 Manos leave their play and go to the site (pairs playing then: ${pairs})`)
+    ok(s._joints.every((j) => ![j.a, j.b].some((id) => crew.some((m) => m.id === id))), 'none of the builders is still in a pair play')
+    ok(s.manos.every((m) => !(m.task && m.task.kind === 'duo') || P.jointOf(s, m)), 'no one is left half in a pair whose friend left')
+    const active = site.build ? site.build.active : 3
+    ok(active <= 3, `only the hammering crew counts toward the site (${active})`)
+  }
+
+  // 6. automatic work comes back: plays wrap up
+  {
+    const [s, w] = village()
+    run(s, w, 60)
+    const before = playing(s).length
+    s.res = { wood: 0, stone: 0, stardust: 0 }
+    run(s, w, 14)
+    const gathering = s.manos.filter((m) => m.task && (m.task.kind === 'gather' || m.task.kind === 'deliver')).length
+    ok(before > 10 && gathering >= s.manos.length * 0.5, `storage empties: ${before} at play, 14 s later ${gathering} of ${s.manos.length} are gathering again`)
+  }
+
+  // 7. a bench taken away while a Mano swings its feet on it
+  {
+    const [s, w] = village()
+    const m = s.manos[0]
+    const bench = s.decor.find((d) => d.type === 'bench')
+    m.x = bench.x + 1.5; m.y = bench.y + 0.5
+    P.forcePlay(s, w, m, 'swing')
+    run(s, w, 2)
+    const onBench = m.task && m.task.kind === 'play' && m.task.seat === bench.id
+    sim.stow(s, w, bench.id)
+    ok(onBench && !(m.task && m.task.seat === bench.id) && walkable(w, Math.floor(m.x), Math.floor(m.y)), 'bench put away mid-play: the Mano gets up onto open ground')
+    run(s, w, 3)
+    ok(!(s._spots || new Set()).size || playing(s).every((o) => o !== m || o.task.seat !== bench.id), 'its seat and spot are released')
+  }
+
+  // 8. saving in the middle of plays
+  {
+    const [s, w] = village()
+    run(s, w, 90)
+    const n = playing(s).length
+    const pairs = (s._joints || []).length
+    const mem = new Mem()
+    const st = createStore(mem)
+    st.save(s, 9)
+    const saved = JSON.parse(mem.getItem(KEYS.save)).data
+    ok(n > 5 && saved.manos.every((m) => !m.task || (m.task.kind !== 'play' && m.task.kind !== 'duo')) && !('_joints' in saved), `saved while ${n} play (${pairs} pairs): no play, pair or reservation is written`)
+    const back = st.load().data
+    const w2 = worldFor(back)
+    ok(back.manos.length === s.manos.length && back.manos.map((m) => m.id).join() === s.manos.map((m) => m.id).join(), 'after loading, every resident is there with the same id')
+    run(back, w2, 20)
+    ok(back.manos.every((m) => walkable(w2, Math.floor(m.x), Math.floor(m.y)) || (m.task && m.task.seat)), 'and everyone stands on open ground (or sits on a seat)')
+    ok(back.manos.filter((m) => m.task).length === back.manos.length, 'and is doing something again')
+  }
+
+  // 9. time away: plays end, nothing is replayed or paid twice
+  {
+    const [s, w] = village()
+    run(s, w, 60)
+    const res0 = { ...s.res }
+    applyOffline(s, w, 600)
+    ok(playing(s).length === 0 && clean(s) && s.res.wood <= caps(s).wood && s.res.wood >= res0.wood, 'after time away all plays have ended; resources only as the offline rules give')
+  }
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed')
 process.exit(fails ? 1 : 0)
