@@ -21,6 +21,8 @@
   font-size: 14px;
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
   overscroll-behavior: none;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -398,7 +400,13 @@
   font-weight: 800;
 }
 
-/* battle HUD (placed in the 360 × 640 screen by data/ui.json) */
+/* battle HUD (placed in the 360 × 640 screen by data/ui.json); its text
+   follows the frame's width, which is far narrower than the screen when a
+   phone lies sideways */
+.ms-stage {
+  container-type: inline-size;
+}
+
 .ms-hud > * {
   position: absolute;
 }
@@ -425,6 +433,7 @@
   display: block;
   font-style: normal;
   font-size: 9px;
+  font-size: clamp(6px, 2.5cqw, 9px);
   font-weight: 800;
   line-height: 1;
   color: #fff;
@@ -440,6 +449,7 @@
 .ms-cur {
   font-weight: 800;
   font-size: clamp(11px, 3.4vw, 15px);
+  font-size: clamp(8px, 4.2cqw, 15px);
   color: var(--ink);
   text-shadow: 0 0 3px var(--paper), 0 0 2px var(--paper);
   text-align: center;
@@ -465,6 +475,8 @@
 .ms-cur img {
   width: 18px;
   height: 18px;
+  width: clamp(11px, 5cqw, 18px);
+  height: clamp(11px, 5cqw, 18px);
 }
 
 .ms-pause {
@@ -474,6 +486,8 @@
   cursor: pointer;
   min-width: 32px;
   min-height: 32px;
+  min-width: min(32px, 9cqw);
+  min-height: min(32px, 9cqw);
 }
 
 .ms-pause img {
@@ -687,4 +701,68 @@
 .ms-chest__item img {
   width: 40px;
   height: 40px;
+}
+
+/* a narrow frame (a phone lying sideways): the boxes inside the battle get
+   smaller, and scroll rather than run off the frame */
+.ms-modal--in > * {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+@container (max-width: 300px) {
+  .ms-modal--in {
+    padding: 8px;
+  }
+
+  .ms-modal--in .ms-h {
+    font-size: 15px;
+  }
+
+  .ms-modal--in .ms-dim,
+  .ms-modal--in .ms-btn {
+    font-size: 11px;
+  }
+
+  .ms-level {
+    gap: 6px;
+    padding: 10px 8px;
+  }
+
+  .ms-card {
+    gap: 8px;
+    min-height: 0;
+    padding: 6px 8px;
+  }
+
+  .ms-card img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .ms-card__name {
+    font-size: 12.5px;
+  }
+
+  .ms-card__stack,
+  .ms-card__num,
+  .ms-build li {
+    font-size: 10.5px;
+  }
+
+  .ms-stats dd {
+    font-size: 13px;
+  }
+}
+
+@container (max-width: 300px) {
+  .ms-modal--in .ms-panel {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .ms-modal--in .ms-btn {
+    min-height: 38px;
+    padding: 0 8px;
+  }
 }

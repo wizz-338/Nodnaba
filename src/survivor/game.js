@@ -132,9 +132,10 @@ function makeGrid(run) {
 
 // ── enemies ─────────────────────────────────────────────────────────────────
 
-const chapterHp = (c) => 1.35 ** (c - 1)
-const chapterDamage = (c) => 1.12 ** (c - 1)
-export const spawnInterval = (run) => run.D.balance.waves[run.wave].spawnInterval / Math.max(1, 1 + 0.1 * (run.chapter - 1))
+const scaling = (run) => run.D.balance.chapterScaling
+const chapterHp = (run) => scaling(run).hpPerChapter ** (run.chapter - 1)
+const chapterDamage = (run) => scaling(run).damagePerChapter ** (run.chapter - 1)
+export const spawnInterval = (run) => run.D.balance.waves[run.wave].spawnInterval / Math.max(1, 1 + scaling(run).spawnPerChapter * (run.chapter - 1))
 
 function pickType(run) {
   const mix = run.D.balance.waves[run.wave].mix
@@ -171,7 +172,7 @@ function spawn(run) {
     y = Math.max(y0 + m, Math.min(y1 - m, y))
     if ((x - p.x) ** 2 + (y - p.y) ** 2 < 60 * 60) continue
     const wave = B.waves[run.wave]
-    const hp = def.hp * wave.hpMultiplier * chapterHp(run.chapter)
+    const hp = def.hp * wave.hpMultiplier * chapterHp(run)
     run.enemies.push({
       id: run.nextId++,
       type,
@@ -181,7 +182,7 @@ function spawn(run) {
       hp,
       maxHp: hp,
       speed: def.speed * wave.speedMultiplier,
-      damage: def.damage * chapterDamage(run.chapter),
+      damage: def.damage * chapterDamage(run),
       xp: def.xp,
       state: 'spawn',
       t: 0,

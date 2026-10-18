@@ -600,13 +600,13 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
       {/* top bar: health, XP, level, wave and time, coins, pause */}
       <div className="ms-hud">
         <div className="ms-bar ms-bar--hp" style={box(H.health)}>
-          <span style={{ width: pct(p.hp / p.maxHp) }} />
+          <span style={{ width: pct(Math.max(0, Math.min(1, p.hp / p.maxHp))) }} />
           <em>
             {Math.ceil(p.hp)} / {Math.round(p.maxHp)}
           </em>
         </div>
         <div className="ms-bar ms-bar--xp" style={box(H.xp)}>
-          <span style={{ width: pct(run.xp / run.need) }} />
+          <span style={{ width: pct(Math.max(0, Math.min(1, run.xp / run.need))) }} />
         </div>
         <div className="ms-lv" style={{ left: pct(12 / 360), top: pct(38 / 640) }}>
           LV {run.level}

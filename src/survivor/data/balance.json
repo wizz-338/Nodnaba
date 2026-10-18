@@ -1,5 +1,5 @@
 {
-  "status": "initial values requiring Claude playtest",
+  "status": "initial values, tuned with bot runs (scripts/survivor-balance.mjs); not measured with people",
   "logicalArena": {
     "width": 360,
     "height": 640,
@@ -114,9 +114,10 @@
   ],
   "waveHeal": 15,
   "chapterScaling": {
-    "enemyHp": "1.35^(chapter-1)",
-    "enemyDamage": "1.12^(chapter-1)",
-    "spawnInterval": "base/max(1,1+0.10*(chapter-1))"
+    "note": "per chapter after the first: enemy HP × hpPerChapter^(chapter-1), contact damage × damagePerChapter^(chapter-1), spawn interval ÷ (1 + spawnPerChapter × (chapter-1)). Package proposal was 1.35 / 1.12 / 0.10; lowered after bot runs (chapter 2 ended most average runs in wave 2).",
+    "hpPerChapter": 1.22,
+    "damagePerChapter": 1.08,
+    "spawnPerChapter": 0.06
   },
   "drops": {
     "coinChance": 0.3,

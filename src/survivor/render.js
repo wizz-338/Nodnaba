@@ -56,6 +56,36 @@ export function loadImages() {
   return loading
 }
 
+// the box (in a 128 px cell) that any of a sheet's n frames draws on
+const used = new Map()
+function usedBox(img, n) {
+  let b = used.get(img.src)
+  if (b) return b
+  const c = document.createElement('canvas')
+  c.width = 128 * n
+  c.height = 128
+  const g = c.getContext('2d', { willReadFrequently: true })
+  g.drawImage(img, 0, 0, 128 * n, 128, 0, 0, 128 * n, 128)
+  const a = g.getImageData(0, 0, 128 * n, 128).data
+  let x0 = 128
+  let y0 = 128
+  let x1 = -1
+  let y1 = -1
+  for (let y = 0; y < 128; y++)
+    for (let x = 0; x < 128 * n; x++)
+      if (a[(y * 128 * n + x) * 4 + 3] > 0) {
+        const cx = x % 128
+        if (cx < x0) x0 = cx
+        if (cx > x1) x1 = cx
+        if (y < y0) y0 = y
+        if (y > y1) y1 = y
+      }
+  // a pixel of room each side keeps the smoothing from clipping the edge
+  b = x1 < 0 ? { x0: 0, y0: 0, w: 128, h: 128 } : { x0: Math.max(0, x0 - 1), y0: Math.max(0, y0 - 1), w: Math.min(128, x1 + 2) - Math.max(0, x0 - 1), h: Math.min(128, y1 + 2) - Math.max(0, y0 - 1) }
+  used.set(img.src, b)
+  return b
+}
+
 // height of the drawing inside a 128 px cell (for sizing monsters by their real height)
 function drawnBox(img, cellX = 0, cell = 128) {
   const c = document.createElement('canvas')
@@ -108,14 +138,66 @@ export function createRenderer(canvas, img, D) {
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
   const fx = []
   const numbers = []
+  // the field, painted once per screen size (one copy per frame after that)
+  let field = null
+  // shadows wait here and go down together, one fill per darkness
+  const shade = new Map()
+  // sprites shrunk once to their size on screen (again after a resize), so a
+  // frame copies pixels 1:1 instead of resampling the big sheets each time
+  const shrunk = new Map()
 
   function resize(cssW, cssH, dpr) {
-    view.dpr = Math.min(dpr || 1, 3)
+    // past 2 the 128px art has no more detail to show, only more pixels to fill
+    view.dpr = Math.min(dpr || 1, 2)
     view.w = cssW
     view.h = cssH
     view.k = cssW / 360
     canvas.width = Math.round(cssW * view.dpr)
     canvas.height = Math.round(cssH * view.dpr)
+    field = null
+    shrunk.clear()
+  }
+
+  // a 128 px-cell sheet at scale s (in field units), optionally mirrored cell
+  // by cell; only the part any frame draws on is kept (most of a cell is empty)
+  function shrunkSheet(sheet, s, flip) {
+    const key = sheet.src + '|' + s + (flip ? '|f' : '')
+    let c = shrunk.get(key)
+    if (c) return c
+    const n = Math.max(1, Math.round(sheet.width / 128))
+    const box = usedBox(sheet, n)
+    const q = s * view.k * view.dpr
+    const w = Math.max(1, Math.round(box.w * q))
+    const h = Math.max(1, Math.round(box.h * q))
+    c = document.createElement('canvas')
+    c.width = w * n
+    c.height = h
+    const g = c.getContext('2d')
+    g.imageSmoothingEnabled = true
+    g.imageSmoothingQuality = 'high'
+    for (let i = 0; i < n; i++) {
+      g.setTransform(flip ? -1 : 1, 0, 0, 1, flip ? (i + 1) * w : i * w, 0)
+      g.drawImage(sheet, i * 128 + box.x0, box.y0, box.w, box.h, 0, 0, w, h)
+    }
+    Object.assign(c, { w, h, q, box })
+    shrunk.set(key, c)
+    return c
+  }
+
+  // the ball at one size in device pixels (only a few sizes ever occur)
+  function shrunkBall(w, h) {
+    const key = 'ball|' + w + 'x' + h
+    let c = shrunk.get(key)
+    if (c) return c
+    c = document.createElement('canvas')
+    c.width = w
+    c.height = h
+    const g = c.getContext('2d')
+    g.imageSmoothingEnabled = true
+    g.imageSmoothingQuality = 'high'
+    g.drawImage(img.ball, ballBox.x0, ballBox.y0, ballBox.w, ballBox.h, 0, 0, w, h)
+    shrunk.set(key, c)
+    return c
   }
 
   function frame(sheet, col, row, x, y, s, alpha = 1) {
@@ -125,10 +207,54 @@ export function createRenderer(canvas, img, D) {
   }
 
   function shadow(x, y, rx, ry, a = 0.17) {
-    ctx.fillStyle = `rgba(38, 49, 62, ${a})`
-    ctx.beginPath()
-    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2)
-    ctx.fill()
+    let q = shade.get(a)
+    if (!q) shade.set(a, (q = []))
+    q.push(x, y, rx, ry)
+  }
+
+  // all shadows lie on the ground, under everything standing or flying
+  function drawShadows() {
+    for (const [a, q] of shade) {
+      if (!q.length) continue
+      ctx.fillStyle = `rgba(38, 49, 62, ${a})`
+      ctx.beginPath()
+      for (let i = 0; i < q.length; i += 4) {
+        ctx.moveTo(q[i] + q[i + 2], q[i + 1])
+        ctx.ellipse(q[i], q[i + 1], q[i + 2], q[i + 3], 0, 0, Math.PI * 2)
+      }
+      ctx.fill()
+      q.length = 0
+    }
+  }
+
+  function paintField() {
+    const c = document.createElement('canvas')
+    c.width = canvas.width
+    c.height = canvas.height
+    const f = c.getContext('2d')
+    const k = view.k * view.dpr
+    f.setTransform(k, 0, 0, k, 0, 0)
+    f.imageSmoothingEnabled = true
+    f.imageSmoothingQuality = 'high'
+    // one ground picture covering the screen, softened
+    const g = img.ground
+    const cover = Math.max(360 / g.width, 640 / g.height)
+    f.fillStyle = '#d8ccb8'
+    f.fillRect(0, 0, 360, 640)
+    f.globalAlpha = 0.6
+    f.drawImage(g, (360 - g.width * cover) / 2, (640 - g.height * cover) / 2, g.width * cover, g.height * cover)
+    f.globalAlpha = 1
+    const [x0, y0, x1, y1] = D.balance.logicalArena.bounds
+    // outside the field (behind the top bar): a little darker
+    f.fillStyle = 'rgba(38, 49, 62, 0.16)'
+    f.fillRect(0, 0, 360, y0)
+    f.fillRect(0, y1, 360, 640 - y1)
+    f.fillRect(0, y0, x0, y1 - y0)
+    f.fillRect(x1, y0, 360 - x1, y1 - y0)
+    f.strokeStyle = 'rgba(38, 49, 62, 0.25)'
+    f.lineWidth = 1.5
+    f.strokeRect(x0, y0, x1 - x0, y1 - y0)
+    return c
   }
 
   // ── Mano ──
@@ -139,7 +265,6 @@ export function createRenderer(canvas, img, D) {
     const row = DIRS.indexOf(mano.dir)
     if (p.hitT > 0 && mano.prevHit <= 0) mano.hitT = st.hit.durationSeconds
     mano.prevHit = p.hitT
-    shadow(p.x, p.y, 15, 5)
     let sheet
     let col
     if (run.state === 'dying' || run.state === 'over') {
@@ -182,7 +307,6 @@ export function createRenderer(canvas, img, D) {
     if (e.state === 'spawn') {
       // where it will appear: a shadow growing in, the body fading in
       const f = Math.min(1, e.t / 0.35)
-      shadow(e.x, e.y, e.r * 1.2 * f, e.r * 0.45 * f, 0.28)
       alpha = 0.25 + 0.45 * f
       sheet = img[e.type + '-move']
       col = 0
@@ -199,29 +323,35 @@ export function createRenderer(canvas, img, D) {
       sheet = img[e.type + '-move']
       col = Math.floor((((e.t + e.id * 0.137) % m.durationSeconds) / m.durationSeconds) * m.frames)
     }
-    if (e.state !== 'spawn') shadow(e.x, e.y, e.r * 1.15, e.r * 0.42)
-    const w = 128 * s
-    ctx.save()
+    // the feet stay on the anchor; mirrored, the kept box mirrors around it
+    const c = shrunkSheet(sheet, s, e.face < 0)
+    const { w, h, q, box } = c
+    const kd = view.k * view.dpr
+    const dx = e.face < 0 ? ax - box.x0 - box.w : box.x0 - ax
     if (alpha !== 1) ctx.globalAlpha = alpha
-    ctx.translate(e.x, e.y)
-    if (e.face < 0) ctx.scale(-1, 1)
-    ctx.drawImage(sheet, col * 128, 0, 128, 128, -ax * s, -ay * s, w, w)
-    ctx.restore()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.drawImage(c, col * w, 0, w, h, Math.round(e.x * kd + dx * q), Math.round(e.y * kd + (box.y0 - ay) * q), w, h)
+    ctx.setTransform(kd, 0, 0, kd, 0, 0)
+    if (alpha !== 1) ctx.globalAlpha = 1
   }
 
-  function drawBall(b) {
-    const d = b.r * 2
-    const k = d / ballBox.w
+  // (drawn in device pixels: the caller has set the identity transform)
+  function drawBall(b, kd) {
+    const d = b.r * 2 * kd
     // a short tail: where it was a few hundredths of a second ago, faint
     const t = b.trail
-    for (let i = 0; i + 2 < t.length - 3; i += 3) {
-      const a = 0.12 + 0.1 * (i / t.length)
-      ctx.globalAlpha = a
-      ctx.drawImage(img.ball, ballBox.x0, ballBox.y0, ballBox.w, ballBox.h, t[i + 1] - b.r * 0.8, t[i + 2] - BALL_LIFT - b.r * 0.8, d * 0.8, d * 0.8)
+    if (t.length > 3) {
+      const tw = Math.max(1, Math.round(d * 0.8))
+      const tail = shrunkBall(tw, tw)
+      for (let i = 0; i + 2 < t.length - 3; i += 3) {
+        ctx.globalAlpha = 0.12 + 0.1 * (i / t.length)
+        ctx.drawImage(tail, Math.round(t[i + 1] * kd - tw / 2), Math.round((t[i + 2] - BALL_LIFT) * kd - tw / 2))
+      }
+      ctx.globalAlpha = 1
     }
-    ctx.globalAlpha = 1
-    shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
-    ctx.drawImage(img.ball, ballBox.x0, ballBox.y0, ballBox.w, ballBox.h, b.x - b.r, b.y - BALL_LIFT - b.r, d, ballBox.h * k)
+    const w = Math.max(1, Math.round(d))
+    const h = Math.max(1, Math.round((d * ballBox.h) / ballBox.w))
+    ctx.drawImage(shrunkBall(w, h), Math.round(b.x * kd - w / 2), Math.round((b.y - BALL_LIFT) * kd - w / 2))
   }
 
   function drawOrb(o) {
@@ -237,33 +367,32 @@ export function createRenderer(canvas, img, D) {
     ctx.setTransform(k, 0, 0, k, 0, 0)
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    // the field: one ground picture covering the screen, softened
-    const g = img.ground
-    const cover = Math.max(360 / g.width, 640 / g.height)
-    ctx.fillStyle = '#d8ccb8'
-    ctx.fillRect(0, 0, 360, 640)
-    ctx.globalAlpha = 0.6
-    ctx.drawImage(g, (360 - g.width * cover) / 2, (640 - g.height * cover) / 2, g.width * cover, g.height * cover)
-    ctx.globalAlpha = 1
-    const [x0, y0, x1, y1] = D.balance.logicalArena.bounds
-    // outside the field (behind the top bar): a little darker
-    ctx.fillStyle = 'rgba(38, 49, 62, 0.16)'
-    ctx.fillRect(0, 0, 360, y0)
-    ctx.fillRect(0, y1, 360, 640 - y1)
-    ctx.fillRect(0, y0, x0, y1 - y0)
-    ctx.fillRect(x1, y0, 360 - x1, y1 - y0)
-    ctx.strokeStyle = 'rgba(38, 49, 62, 0.25)'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0)
+    if (!field) field = paintField()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.drawImage(field, 0, 0)
+    ctx.setTransform(k, 0, 0, k, 0, 0)
 
+    // shadows first (all on the ground), then pickups, then standing things
+    // back to front, then balls in the air
+    const p = run.player
+    shadow(p.x, p.y, 15, 5)
+    for (const e of run.enemies) {
+      if (e.state === 'spawn') {
+        const f = Math.min(1, e.t / 0.35)
+        shadow(e.x, e.y, e.r * 1.2 * f, e.r * 0.45 * f, 0.28)
+      } else shadow(e.x, e.y, e.r * 1.15, e.r * 0.42)
+    }
+    for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
+    drawShadows()
     for (const o of run.orbs) drawOrb(o)
-    // standing things, back to front
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
     list.push([run.player.y, 1, run.player])
     list.sort((a, b) => a[0] - b[0])
     for (const [, kind, o] of list) (kind ? drawMano(run, dt) : drawEnemy(o))
-    for (const b of run.balls) drawBall(b)
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    for (const b of run.balls) drawBall(b, k)
+    ctx.setTransform(k, 0, 0, k, 0, 0)
 
     // effects from this frame's events
     for (const ev of run.events) {

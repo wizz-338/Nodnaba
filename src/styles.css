@@ -888,3 +888,13 @@ main,
   border: 1px solid var(--line);
   object-fit: cover;
 }
+
+.menu__game > .menu__colony {
+  flex: 1;
+  min-width: 0;
+}
+
+/* "MANO SURVIVOR" is two letters longer than "MANO COLONY": a touch smaller on narrow phones */
+.menu__game > .menu__colony > .glitch {
+  font-size: min(1em, 4.6vw);
+}
