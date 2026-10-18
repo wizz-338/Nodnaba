@@ -696,7 +696,32 @@ function findSeat(s, world, m) {
 
 const DECIDE_PER_SECOND = 240
 
+// Standing where something was just built (or on a tile now closed in): step
+// out to the nearest open tile first, or no way anywhere can be found.
+function stepOut(world, m) {
+  const x = tile(m.x)
+  const y = tile(m.y)
+  const open = (a, b) => walkable(world, a, b)
+  if (open(x, y) && (open(x + 1, y) || open(x - 1, y) || open(x, y + 1) || open(x, y - 1))) return
+  for (let r = 1; r <= 8; r++) {
+    let best = null
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !open(x + dx, y + dy)) continue
+        const d = dx * dx + dy * dy
+        if (!best || d < best.d) best = { x: x + dx, y: y + dy, d }
+      }
+    if (best) {
+      m.x = best.x + 0.5
+      m.y = best.y + 0.5
+      m._path = m._goal = null
+      return
+    }
+  }
+}
+
 export function decide(s, world, m, out) {
+  stepOut(world, m)
   if (m.task && m.task.node) m._lastNode = m.task.node
   m.task = null
   m._path = m._goal = null
@@ -835,6 +860,7 @@ function walk(world, m, dt) {
 
 // after loading, a map change or a blocked step: find the way again
 function rePath(s, world, m) {
+  stepOut(world, m)
   const t = m.task
   if (!t || !t.spot) return false
   if (!walkable(world, t.spot[0], t.spot[1])) return false

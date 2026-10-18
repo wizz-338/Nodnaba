@@ -226,28 +226,78 @@ export function createRenderer(cvs, A) {
     clamp()
   }
 
+  // Once the zoom has settled, each drawing is scaled once to its size on
+  // screen and from then on copied pixel for pixel: with 200 Manos on screen,
+  // resampling every sprite every frame is the biggest cost after the ground.
+  const sized = new Map()
+  let sizedK = 0
+  let viewTX = 0
+  let viewTY = 0
+  function blit(key, X, Y, w, h, ax, ay, paint) {
+    const kd = view.dpr * view.zoom
+    if (kd !== sizedK || sized.size > 600) {
+      sized.clear()
+      sizedK = kd
+    }
+    let e = sized.get(key)
+    if (!e) {
+      const ox = Math.ceil(ax * kd) + 1
+      const oy = Math.ceil(ay * kd) + 1
+      const [c, g] = canvas(Math.ceil(w * kd) + 3, Math.ceil(h * kd) + 3)
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = 'high'
+      g.setTransform(kd, 0, 0, kd, ox, oy) // anchor at (ox, oy)
+      paint(g)
+      sized.set(key, (e = { c, ox, oy }))
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.drawImage(e.c, Math.round(X * kd + viewTX - e.ox), Math.round(Y * kd + viewTY - e.oy))
+    ctx.setTransform(kd, 0, 0, kd, viewTX, viewTY)
+  }
+  const settled = () => time - zoomT > 0.25
+
+  function shadow(X, Y) {
+    if (settled())
+      return blit('shadow', X, Y, 28, 12, 14, 6, (g) => {
+        g.fillStyle = 'rgba(40, 30, 30, 0.22)'
+        g.beginPath()
+        g.ellipse(0, 0, 13, 5, 0, 0, Math.PI * 2)
+        g.fill()
+      })
+    ctx.fillStyle = 'rgba(40, 30, 30, 0.22)'
+    ctx.beginPath()
+    ctx.ellipse(X, Y, 13, 5, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   function spr(atlas, name, X, Y, { flip = false, alpha = 1, scaleX = 1, filter = null } = {}) {
     const a = A[atlas]
     const f = a && a.frames[name]
     if (!f) return null
     const k = f.k
-    const lv = levelFor((view.zoom * view.dpr) / k)
-    const img = mip(a.img, lv)
-    const d = 2 ** lv
     const w = f.w / k
     const h = f.h / k
     const ax = f.ax / k
     const ay = f.ay / k
+    const lv = levelFor((view.zoom * view.dpr) / k)
+    const img = mip(a.img, lv)
+    const d = 2 ** lv
     if (alpha !== 1) ctx.globalAlpha = alpha
-    if (filter) ctx.filter = filter
-    if (flip || scaleX !== 1) {
+    if (scaleX === 1 && !filter && settled()) {
+      blit(atlas + '/' + name + (flip ? '~' : ''), X, Y, w, h, flip ? w - ax : ax, ay, (g) => {
+        if (flip) g.scale(-1, 1)
+        g.drawImage(img, f.x / d, f.y / d, f.w / d, f.h / d, -ax, -ay, w, h)
+      })
+    } else {
+      // selected (glowing), a gate swinging open, or a pinch still zooming
+      if (filter) ctx.filter = filter
       ctx.save()
       ctx.translate(X, Y)
       ctx.scale(flip ? -scaleX : scaleX, 1)
       ctx.drawImage(img, f.x / d, f.y / d, f.w / d, f.h / d, -ax, -ay, w, h)
       ctx.restore()
-    } else ctx.drawImage(img, f.x / d, f.y / d, f.w / d, f.h / d, X - ax, Y - ay, w, h)
-    if (filter) ctx.filter = 'none'
+      if (filter) ctx.filter = 'none'
+    }
     if (alpha !== 1) ctx.globalAlpha = 1
     const left = flip ? X - (w - ax) : X - ax
     return { x: left, y: Y - ay, w, h }
@@ -279,44 +329,80 @@ export function createRenderer(cvs, A) {
     return p.x > -m * view.zoom && p.x < view.w + m * view.zoom && p.y > -m * view.zoom && p.y < view.h + (m + 60) * view.zoom
   }
 
-  // ── one frame ──
-  function draw(s, world, ui, dt) {
-    time += dt
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.fillStyle = '#273526'
-    ctx.fillRect(0, 0, cvs.width, cvs.height)
-    const k = view.dpr * view.zoom
-    ctx.setTransform(k, 0, 0, k, (view.w / 2 - view.x * view.zoom) * view.dpr, (view.h / 2 - view.y * view.zoom) * view.dpr)
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'low' // see mip(): sharper results come from the pre-shrunk copies
-    const tileLv = levelFor((view.zoom * view.dpr) / 2)
-    const R = visibleRange()
-    const { water } = world.gen
-    const waterFrame = Math.floor(time / 0.9) % 4
+  // ── the ground layer ──
+  // Grass, water, paths and the edit grid change only when the map changes,
+  // the view moves past the painted margin, the zoom changes or the water
+  // ripples (every 0.9 s, only if water is in view). Otherwise last frame's
+  // painting is copied as it is. While a pinch is zooming, the old painting
+  // is stretched and repainted once the zoom settles.
+  const ground = { cvs: null, ctx: null, key: '', X0: 0, Y0: 0, W: 0, H: 0, zoom: 0, water: false }
+  let lastZoom = 0
+  let zoomT = -1
+  const MARGIN = 120 // css px painted beyond each screen edge
 
-    // 1. ground (the map diamond is filled with grass colour first, so the
-    // hairline where four tiles meet never shows the dark outside)
-    {
-      const a = iso(0, 0)
-      const b = iso(MAP, 0)
-      const c = iso(MAP, MAP)
-      const d = iso(0, MAP)
-      ctx.fillStyle = '#bcc673'
-      ctx.beginPath()
-      ctx.moveTo(a.X, a.Y)
-      ctx.lineTo(b.X, b.Y)
-      ctx.lineTo(c.X, c.Y)
-      ctx.lineTo(d.X, d.Y)
-      ctx.closePath()
-      ctx.fill()
+  function groundLayer(world, ui) {
+    const k = view.dpr * view.zoom
+    if (view.zoom !== lastZoom) {
+      lastZoom = view.zoom
+      zoomT = time
     }
-    for (let y = R.y0; y <= R.y1; y++) {
-      for (let x = R.x0; x <= R.x1; x++) {
+    const left = view.x - view.w / 2 / view.zoom
+    const top = view.y - view.h / 2 / view.zoom
+    const right = left + view.w / view.zoom
+    const bottom = top + view.h / view.zoom
+    const waterFrame = Math.floor(time / 0.9) % 4
+    const base = [view.dpr, view.w, view.h, world.version, ui.grid ? 1 : 0, ground.water ? waterFrame : -1].join()
+    const inside = left >= ground.X0 && top >= ground.Y0 && right <= ground.X0 + ground.W && bottom <= ground.Y0 + ground.H
+    const settling = time - zoomT < 0.2 && ground.cvs && Math.abs(view.zoom / ground.zoom - 1) < 0.5
+    if (!(ground.key === base + ',' + view.zoom && inside) && !(settling && ground.key.startsWith(base + ',') && inside)) {
+      paintGround(world, ui, k, left - MARGIN / view.zoom, top - MARGIN / view.zoom, (view.w + 2 * MARGIN) / view.zoom, (view.h + 2 * MARGIN) / view.zoom, waterFrame)
+      ground.key = [view.dpr, view.w, view.h, world.version, ui.grid ? 1 : 0, ground.water ? waterFrame : -1].join() + ',' + view.zoom
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    const s = k / (view.dpr * ground.zoom) // 1 unless a pinch is still settling
+    ctx.drawImage(ground.cvs, Math.round((ground.X0 - left) * k), Math.round((ground.Y0 - top) * k), ground.cvs.width * s, ground.cvs.height * s)
+  }
+
+  function paintGround(world, ui, k, X0, Y0, W, H, waterFrame) {
+    const cw = Math.ceil(W * k)
+    const ch = Math.ceil(H * k)
+    if (!ground.cvs) [ground.cvs, ground.ctx] = canvas(cw, ch)
+    if (ground.cvs.width !== cw || ground.cvs.height !== ch) {
+      ground.cvs.width = cw
+      ground.cvs.height = ch
+    }
+    Object.assign(ground, { X0, Y0, W, H, zoom: view.zoom, water: false })
+    const g = ground.ctx
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.fillStyle = '#273526'
+    g.fillRect(0, 0, cw, ch)
+    g.setTransform(k, 0, 0, k, -X0 * k, -Y0 * k)
+    g.imageSmoothingEnabled = true
+    g.imageSmoothingQuality = 'low'
+    const tileLv = levelFor((view.zoom * view.dpr) / 2)
+    const { water } = world.gen
+    // the map diamond in grass colour first, so the hairline where four
+    // tiles meet never shows the dark outside
+    const corners = [iso(0, 0), iso(MAP, 0), iso(MAP, MAP), iso(0, MAP)]
+    g.fillStyle = '#bcc673'
+    g.beginPath()
+    corners.forEach((c, i) => (i ? g.lineTo(c.X, c.Y) : g.moveTo(c.X, c.Y)))
+    g.closePath()
+    g.fill()
+    const pts = [fromIso(X0, Y0), fromIso(X0 + W, Y0), fromIso(X0, Y0 + H), fromIso(X0 + W, Y0 + H)]
+    const x0 = Math.max(0, Math.floor(Math.min(...pts.map((q) => q.x))) - 1)
+    const x1 = Math.min(MAP - 1, Math.ceil(Math.max(...pts.map((q) => q.x))) + 1)
+    const y0 = Math.max(0, Math.floor(Math.min(...pts.map((q) => q.y))) - 1)
+    const y1 = Math.min(MAP - 1, Math.ceil(Math.max(...pts.map((q) => q.y))) + 1)
+    const seen = (c) => c.X > X0 - 40 && c.X < X0 + W + 40 && c.Y > Y0 - 20 && c.Y < Y0 + H + 20
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
         const c = iso(x + 0.5, y + 0.5)
-        if (!onScreen(c.X, c.Y, 80)) continue
+        if (!seen(c)) continue
         const i = idx(x, y)
         let img
         if (water[i]) {
+          ground.water = true
           let mask = 0
           if (y > 0 && !water[i - MAP]) mask |= 1
           if (x < MAP - 1 && !water[i + 1]) mask |= 2
@@ -327,7 +413,7 @@ export function createRenderer(cvs, A) {
           const h = hash(x, y)
           img = tiles.base['grass_' + Math.floor(h * 4) + (hash(x, y, 1) < 0.5 ? '~' : '')]
         }
-        ctx.drawImage(mip(img, tileLv), c.X - 33, c.Y - 17, 66, 34)
+        g.drawImage(mip(img, tileLv), c.X - 33, c.Y - 17, 66, 34)
         const f = world.floor[i]
         if (f) {
           const t = FLOOR_TYPES[f - 1]
@@ -336,10 +422,47 @@ export function createRenderer(cvs, A) {
           if (x < MAP - 1 && world.floor[i + 1] !== f) mask |= 2
           if (y < MAP - 1 && world.floor[i + MAP] !== f) mask |= 4
           if (x > 0 && world.floor[i - 1] !== f) mask |= 8
-          ctx.drawImage(mip(tiles.fringe[t][mask], tileLv), c.X - 33, c.Y - 17, 66, 34)
+          g.drawImage(mip(tiles.fringe[t][mask], tileLv), c.X - 33, c.Y - 17, 66, 34)
         }
       }
     }
+    // the edit grid: every open tile's outline in one stroke
+    if (ui.grid) {
+      g.lineWidth = 1 / view.zoom
+      g.strokeStyle = 'rgba(255, 255, 255, 0.16)'
+      g.beginPath()
+      for (let y = y0; y <= y1; y++)
+        for (let x = x0; x <= x1; x++) {
+          if (!world.open[idx(x, y)] || !seen(iso(x + 0.5, y + 0.5))) continue
+          const q = iso(x, y)
+          g.moveTo(q.X, q.Y)
+          g.lineTo(q.X + TW / 2, q.Y + TH / 2)
+          g.lineTo(q.X, q.Y + TH)
+          g.lineTo(q.X - TW / 2, q.Y + TH / 2)
+          g.closePath()
+        }
+      g.stroke()
+    }
+  }
+
+  // ── one frame ──
+  function draw(s, world, ui, dt) {
+    time += dt
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.fillStyle = '#273526'
+    ctx.fillRect(0, 0, cvs.width, cvs.height)
+    const k = view.dpr * view.zoom
+    ctx.setTransform(k, 0, 0, k, (view.w / 2 - view.x * view.zoom) * view.dpr, (view.h / 2 - view.y * view.zoom) * view.dpr)
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'low' // see mip(): sharper results come from the pre-shrunk copies
+    const R = visibleRange()
+
+    // 1. ground: painted into its own canvas only when it changes (see
+    // groundLayer), then copied — most frames the ground costs one copy
+    groundLayer(world, ui)
+    viewTX = (view.w / 2 - view.x * view.zoom) * view.dpr
+    viewTY = (view.h / 2 - view.y * view.zoom) * view.dpr
+    ctx.setTransform(k, 0, 0, k, viewTX, viewTY)
 
     // 2. flat things: bridges, blankets, petals, stepping stones
     for (const b of world.gen.bridges) {
@@ -363,18 +486,6 @@ export function createRenderer(cvs, A) {
     }
 
     // 3. edit grid and placement cells
-    if (ui.grid) {
-      ctx.lineWidth = 1 / view.zoom
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)'
-      for (let y = R.y0; y <= R.y1; y++)
-        for (let x = R.x0; x <= R.x1; x++) {
-          if (!world.open[idx(x, y)]) continue
-          const c = iso(x + 0.5, y + 0.5)
-          if (!onScreen(c.X, c.Y, 60)) continue
-          diamond(x, y)
-          ctx.stroke()
-        }
-    }
     if (ui.cells) {
       for (const [x, y, good] of ui.cells) {
         if (!inMap(x, y)) continue
@@ -466,15 +577,17 @@ export function createRenderer(cvs, A) {
     }
 
     // 6. locked zones: a veil and the zone's name (screen space)
+    // (one shape per locked zone: zones are rectangles of tiles)
     ctx.fillStyle = 'rgba(30, 22, 40, 0.5)'
-    for (let y = R.y0; y <= R.y1; y++)
-      for (let x = R.x0; x <= R.x1; x++) {
-        if (world.open[idx(x, y)]) continue
-        const c = iso(x + 0.5, y + 0.5)
-        if (!onScreen(c.X, c.Y, 60)) continue
-        diamond(x, y)
-        ctx.fill()
-      }
+    ctx.beginPath()
+    for (const z of ZONE_IDS) {
+      if (s.zones[z]) continue
+      const [x0, y0, x1, y1] = ZONES[z].rect
+      const corners = [iso(x0, y0), iso(x1 + 1, y0), iso(x1 + 1, y1 + 1), iso(x0, y1 + 1)]
+      corners.forEach((c, i) => (i ? ctx.lineTo(c.X, c.Y) : ctx.moveTo(c.X, c.Y)))
+      ctx.closePath()
+    }
+    ctx.fill()
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0)
     for (const z of ZONE_IDS) {
       if (s.zones[z]) continue
@@ -608,10 +721,7 @@ export function createRenderer(cvs, A) {
     }
     a.hit = i
     const bob = name === 'sleep' ? Math.sin(time * 2 + m.id) * 0.5 : 0
-    ctx.fillStyle = 'rgba(40, 30, 30, 0.22)'
-    ctx.beginPath()
-    ctx.ellipse(p.X, p.Y, 13, 5, 0, 0, Math.PI * 2)
-    ctx.fill()
+    shadow(p.X, p.Y)
     return spr('mano', def.frames[i], p.X, p.Y + 1 + bob, { flip })
   }
 
