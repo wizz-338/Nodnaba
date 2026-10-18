@@ -1,224 +1,241 @@
-// Mano Colony — every number that shapes the game lives here: map, zones,
-// building costs and effects, gather times, arrivals, offline rules, saving.
-// Units: tiles (1 tile = TILE world px) for positions, seconds for time.
+// MANO COLONY — every number that shapes the game lives here: the map and its
+// zones, building costs and effects, decorations, gathering, crews, offline
+// rules and saving.
+//
+// Map units are logical tiles (x, y). The screen shows them as 2:1 diamonds:
+// TW × TH world px per tile (see world.js for the conversion).
 
-export const TILE = 32
-export const COLS = 20
-export const ROWS = 34
+export const MAP = 96
+export const TW = 64
+export const TH = 32
+export const DEFAULT_SEED = 20261018 // terrain, rivers and groves are rebuilt from this
 
 export const RESOURCES = ['wood', 'stone', 'stardust']
 export const RES_LABEL = { wood: '나무', stone: '돌', stardust: '별가루' }
 
 // ── village start ────────────────────────────────────────────────────────────
 export const START = {
-  res: { wood: 24, stone: 12, stardust: 0 },
+  res: { wood: 40, stone: 20, stardust: 0 },
   manos: 3,
-  baseCap: { wood: 80, stone: 80, stardust: 20 },
+  baseCap: { wood: 100, stone: 100, stardust: 25 },
   baseHomes: 3, // the camp sleeps three before any house exists
-  camp: { x: 11, y: 26 }, // stockpile crate (a drop point); its front tile is below it
+  camp: { x: 47, y: 47 }, // 2×2 stockpile crate: everyone can drop off here
 }
-
-export const MAX_MANOS = 24
+export const CAMP_SIZE = [2, 2]
+export const MAX_MANOS = 30
 
 // ── Mano ─────────────────────────────────────────────────────────────────────
 export const MANO = {
-  speed: 74, // world px / s
-  arriveEvery: 20, // s until a new Mano moves in while there is room
+  speed: 2.3, // tiles / s
+  arriveEvery: 25, // s until a new Mano moves in while there is a free home
+  workRate: 1, // construction work per second per Mano on site
   restMin: 3,
   restMax: 7,
+  breakChance: 0.08, // after a delivery, sometimes a short sit on a bench
 }
 
 // ── gathering ────────────────────────────────────────────────────────────────
-// time = seconds of work per load, carry = items per trip (before bonuses)
 export const GATHER = {
   wood: { time: 2.6, carry: 2, node: 'tree', anim: 'chop' },
   stone: { time: 3.2, carry: 2, node: 'rock', anim: 'pick' },
-  stardust: { time: 4.2, carry: 1, node: 'crystal', anim: 'pick' },
+  stardust: { time: 4.2, carry: 1, node: 'crystal', anim: 'gather_star' },
 }
-
-// resource nodes: amount when full, regrowth per second (never runs out for good)
 export const NODES = {
   tree: { res: 'wood', max: 30, regen: 0.22, slots: 2 },
   rock: { res: 'stone', max: 40, regen: 0.18, slots: 2 },
   crystal: { res: 'stardust', max: 12, regen: 0.05, slots: 2 },
 }
-
-// at most this share of the village gathers stardust at once (rounded up)
 export const STARDUST_SHARE = 1 / 3
 
-// ── buildings ────────────────────────────────────────────────────────────────
-// levels[i] is level i+1: cost to build/upgrade to it, work = builder-seconds,
-// builders = how many Manos can work on it at once.
+// ── buildings (3×3 tiles) ────────────────────────────────────────────────────
+// work = construction work (1 Mano on site does 1 per second, 3 do 3 per
+// second); slots = most Manos that can work on it at once.
 export const BUILDINGS = {
   house: {
     name: '마노 집',
-    icon: 'house',
-    about: '마노가 살 집. 빈자리가 생기면 새 마노가 이사 와요.',
+    icon: 'mano',
+    about: '마노가 사는 집. 빈자리가 생기면 새 마노가 이사 와요.',
+    size: [3, 3],
     levels: [
-      { cost: { wood: 30, stone: 10 }, work: 12, builders: 2, homes: 2 },
-      { cost: { wood: 80, stone: 50, stardust: 3 }, work: 24, builders: 3, homes: 4 },
-      { cost: { wood: 150, stone: 120, stardust: 10 }, work: 40, builders: 3, homes: 6 },
+      { cost: { wood: 30, stone: 10 }, work: 30, slots: 3, homes: 2 },
+      { cost: { wood: 80, stone: 50, stardust: 3 }, work: 60, slots: 4, homes: 4 },
+      { cost: { wood: 150, stone: 120, stardust: 10 }, work: 100, slots: 5, homes: 6 },
     ],
   },
   lumber: {
     name: '벌목장',
-    icon: 'lumber',
+    icon: 'wood',
     about: '나무를 더 빨리, 더 많이 모아요. 나무를 여기에 내려놓을 수도 있어요.',
+    size: [3, 3],
     gathers: 'wood',
     levels: [
-      { cost: { wood: 25, stone: 15 }, work: 12, builders: 2, speed: 1.25, carry: 1 },
-      { cost: { wood: 90, stone: 50, stardust: 4 }, work: 24, builders: 3, speed: 1.5, carry: 2 },
-      { cost: { wood: 170, stone: 130, stardust: 12 }, work: 40, builders: 3, speed: 1.8, carry: 3 },
+      { cost: { wood: 25, stone: 15 }, work: 30, slots: 3, speed: 1.25, carry: 1 },
+      { cost: { wood: 90, stone: 50, stardust: 4 }, work: 60, slots: 4, speed: 1.5, carry: 2 },
+      { cost: { wood: 170, stone: 130, stardust: 12 }, work: 100, slots: 5, speed: 1.8, carry: 3 },
     ],
   },
   quarry: {
     name: '채석장',
-    icon: 'quarry',
+    icon: 'stone',
     about: '돌을 더 빨리, 더 많이 캐요. 돌을 여기에 내려놓을 수도 있어요.',
+    size: [3, 3],
     gathers: 'stone',
     levels: [
-      { cost: { wood: 35, stone: 10 }, work: 12, builders: 2, speed: 1.25, carry: 1 },
-      { cost: { wood: 80, stone: 90, stardust: 4 }, work: 24, builders: 3, speed: 1.5, carry: 2 },
-      { cost: { wood: 150, stone: 180, stardust: 12 }, work: 40, builders: 3, speed: 1.8, carry: 3 },
+      { cost: { wood: 35, stone: 10 }, work: 30, slots: 3, speed: 1.25, carry: 1 },
+      { cost: { wood: 80, stone: 90, stardust: 4 }, work: 60, slots: 4, speed: 1.5, carry: 2 },
+      { cost: { wood: 150, stone: 180, stardust: 12 }, work: 100, slots: 5, speed: 1.8, carry: 3 },
     ],
   },
   storage: {
     name: '저장소',
     icon: 'storage',
     about: '자원을 더 많이 보관해요. 모든 자원을 여기에 내려놓을 수 있어요.',
+    size: [3, 3],
     levels: [
-      { cost: { wood: 40, stone: 25 }, work: 14, builders: 2, cap: { wood: 60, stone: 60, stardust: 15 } },
-      { cost: { wood: 100, stone: 80, stardust: 5 }, work: 26, builders: 3, cap: { wood: 140, stone: 140, stardust: 35 } },
-      { cost: { wood: 190, stone: 170, stardust: 14 }, work: 42, builders: 3, cap: { wood: 260, stone: 260, stardust: 60 } },
+      { cost: { wood: 40, stone: 25 }, work: 34, slots: 3, cap: { wood: 80, stone: 80, stardust: 20 } },
+      { cost: { wood: 100, stone: 80, stardust: 5 }, work: 64, slots: 4, cap: { wood: 180, stone: 180, stardust: 45 } },
+      { cost: { wood: 190, stone: 170, stardust: 14 }, work: 104, slots: 5, cap: { wood: 320, stone: 320, stardust: 80 } },
     ],
   },
 }
 export const BUILDING_TYPES = Object.keys(BUILDINGS)
+export const DEMOLISH_REFUND = 0.5 // finished buildings give back half of what was spent
 
-// ── map ──────────────────────────────────────────────────────────────────────
-// Zones are bands of rows. A is open from the start; B (across the stream,
-// over the bridge) and C (beyond B) are bought with resources.
+// ── floors (one tile each, painted in lines) ─────────────────────────────────
+// Removing a floor gives back exactly what that tile cost when it was laid.
+export const FLOORS = {
+  soil: { name: '흙길', tex: 'soil', cost: {} },
+  cobble: { name: '돌길', tex: 'cobble', cost: { stone: 1 } },
+  brick: { name: '벽돌길', tex: 'brick', cost: { stone: 2 } },
+  planks: { name: '나무 바닥', tex: 'planks', cost: { wood: 1 } },
+  sand: { name: '모래 마당', tex: 'sand_0', cost: {} },
+}
+export const FLOOR_TYPES = Object.keys(FLOORS)
+export const PATH_COST = 0.72 // walking on a floor feels this much shorter, so Manos like paths
+
+// ── decorations ──────────────────────────────────────────────────────────────
+// size: footprint in tiles. blocks: Manos cannot walk through it.
+// flat: lies on the ground (drawn under everything that stands).
+// dirs: drawings for each facing (only where the art has them; `flip` mirrors).
+// seats: where a resting Mano sits (tile offsets inside the footprint).
+// line: placed by drawing a line (fences); gate: lets Manos through.
+// water: must be placed on water (bridges, boats).
+export const DECOR = {
+  fence: { name: '나무 울타리', cat: 'fence', cost: { wood: 1 }, line: true, blocks: true, icon: ['street', 'fence_post'] },
+  gate: { name: '울타리 문', cat: 'fence', cost: { wood: 3 }, gate: true, blocks: false, icon: ['street', 'gate'] },
+  hedge: {
+    name: '꽃 울타리', cat: 'fence', cost: { wood: 2 }, blocks: true,
+    dirs: [{ atlas: 'street', sprite: 'hedge_a' }, { atlas: 'street', sprite: 'hedge_a', flip: true }],
+  },
+  hedge_b: {
+    name: '꽃 울타리 (길게)', cat: 'fence', cost: { wood: 2 }, blocks: true,
+    dirs: [{ atlas: 'street', sprite: 'hedge_b' }, { atlas: 'street', sprite: 'hedge_b', flip: true }],
+  },
+  lamp_post: { name: '가로등', cat: 'light', atlas: 'street', sprite: 'lamp_post', cost: { wood: 2, stone: 1 }, blocks: true },
+  lamp_small: { name: '작은 등불', cat: 'light', atlas: 'street', sprite: 'lamp_small', cost: { stone: 2 }, blocks: true },
+  bench: {
+    name: '벤치', cat: 'light', cost: { wood: 3 }, blocks: true, seats: [[0.5, 0.5]],
+    dirs: [{ atlas: 'street', sprite: 'bench_ne' }, { atlas: 'street', sprite: 'bench_nw' }],
+  },
+  picnic_table: { name: '피크닉 테이블', cat: 'light', atlas: 'garden', sprite: 'picnic_table', cost: { wood: 5 }, blocks: true, seats: [[0.5, 0.5]] },
+  signpost: { name: '표지판', cat: 'light', atlas: 'street', sprite: 'signpost', cost: { wood: 2 }, blocks: true },
+  board: { name: '게시판', cat: 'light', atlas: 'street', sprite: 'board', cost: { wood: 4 }, blocks: true },
+  banner: { name: '고양이 깃발', cat: 'light', atlas: 'street', sprite: 'banner', cost: { wood: 3 }, blocks: true },
+  sakura: { name: '벚나무', cat: 'nature', atlas: 'nature', sprite: 'sakura', cost: { wood: 4, stardust: 1 }, blocks: true },
+  sapling: { name: '어린 나무', cat: 'nature', atlas: 'nature', sprite: 'sapling', cost: { wood: 2 }, blocks: true },
+  bush: { name: '덤불', cat: 'nature', atlas: 'nature', sprite: 'bush', cost: { wood: 1 }, blocks: true },
+  bush_flower: { name: '꽃 덤불', cat: 'nature', atlas: 'nature', sprite: 'bush_flower', cost: { wood: 2 }, blocks: true },
+  flower_rock: { name: '꽃바위', cat: 'nature', atlas: 'garden', sprite: 'flower_rock', cost: { stone: 2 }, blocks: true },
+  lavender: { name: '라벤더 화단', cat: 'nature', atlas: 'garden', sprite: 'lavender', cost: { wood: 2 }, blocks: true },
+  grass_tufts: { name: '풀숲', cat: 'nature', atlas: 'garden', sprite: 'grass_tufts', cost: {}, flat: true, blocks: false },
+  petals: { name: '꽃잎', cat: 'nature', atlas: 'garden', sprite: 'petals', cost: {}, flat: true, blocks: false },
+  cattails: { name: '부들', cat: 'nature', atlas: 'water', sprite: 'cattails', cost: { wood: 1 }, blocks: true },
+  rocks_deco: { name: '돌무더기', cat: 'nature', atlas: 'water', sprite: 'rocks_deco', cost: { stone: 3 }, blocks: true },
+  planter: {
+    name: '나무 화분', cat: 'garden', cost: { wood: 3 }, blocks: true,
+    dirs: [{ atlas: 'garden', sprite: 'planter_a' }, { atlas: 'garden', sprite: 'planter_b' }],
+  },
+  flowerbed: { name: '둥근 화단', cat: 'garden', atlas: 'garden', sprite: 'flowerbed_round', size: [2, 2], cost: { stone: 4 }, blocks: true },
+  fountain: { name: '고양이 분수', cat: 'garden', atlas: 'garden', sprite: 'fountain', size: [2, 2], cost: { stone: 12, stardust: 2 }, blocks: true },
+  cat_statue: { name: '고양이 동상', cat: 'garden', atlas: 'garden', sprite: 'cat_statue', size: [2, 2], cost: { stone: 10, stardust: 3 }, blocks: true },
+  flower_arch: { name: '꽃 아치', cat: 'garden', atlas: 'garden', sprite: 'flower_arch', cost: { wood: 4 }, blocks: false },
+  pergola: { name: '정자', cat: 'garden', atlas: 'garden', sprite: 'pergola', size: [2, 2], cost: { wood: 12 }, blocks: true, seats: [[0.6, 1], [1.4, 1]] },
+  picnic_blanket: { name: '피크닉 돗자리', cat: 'garden', atlas: 'garden', sprite: 'picnic_blanket', size: [2, 2], cost: { wood: 2 }, flat: true, blocks: false, seats: [[0.7, 1], [1.3, 1]] },
+  flower_cart: { name: '꽃수레', cat: 'garden', atlas: 'garden', sprite: 'flower_cart', cost: { wood: 4 }, blocks: true },
+  well: { name: '우물', cat: 'garden', atlas: 'garden', sprite: 'well', cost: { stone: 6, wood: 2 }, blocks: true },
+  stepping_stones: { name: '디딤돌', cat: 'garden', atlas: 'garden', sprite: 'stepping_stones', cost: { stone: 1 }, flat: true, blocks: false },
+  barrel_crate: { name: '통과 상자', cat: 'garden', atlas: 'street', sprite: 'barrel_crate', cost: { wood: 2 }, blocks: true },
+  log_rack: { name: '장작 더미', cat: 'garden', atlas: 'water', sprite: 'log_rack', cost: { wood: 4 }, blocks: true },
+  wheelbarrow: { name: '외바퀴 수레', cat: 'garden', atlas: 'water', sprite: 'wheelbarrow', cost: { wood: 2 }, blocks: true },
+  stone_cart: { name: '돌 수레', cat: 'garden', atlas: 'water', sprite: 'stone_cart', cost: { wood: 3, stone: 3 }, blocks: true },
+  berry_patch: { name: '산딸기 밭', cat: 'garden', atlas: 'water', sprite: 'berry_patch', cost: { wood: 2 }, blocks: true },
+  bridge: {
+    name: '나무 다리', cat: 'garden', cost: { wood: 6 }, size: [2, 2], water: true, bridge: true, blocks: false,
+    dirs: [{ atlas: 'water', sprite: 'bridge' }, { atlas: 'water', sprite: 'bridge', flip: true }],
+  },
+  boat: { name: '나룻배', cat: 'garden', atlas: 'water', sprite: 'boat', cost: { wood: 5 }, water: true, waterOnly: true, blocks: true },
+  lily_pond: { name: '연꽃', cat: 'garden', atlas: 'water', sprite: 'lily_pond', cost: {}, water: true, waterOnly: true, flat: true, blocks: true },
+}
+export const DECOR_TYPES = Object.keys(DECOR)
+
+export const CATEGORIES = [
+  { id: 'build', name: '건물', icon: 'build' },
+  { id: 'floor', name: '길·바닥', icon: 'cat_floor' },
+  { id: 'fence', name: '울타리·문', icon: 'cat_fence' },
+  { id: 'light', name: '조명·벤치', icon: 'settings' },
+  { id: 'nature', name: '나무·꽃', icon: 'cat_tree' },
+  { id: 'garden', name: '광장·정원', icon: 'cat_flowers' },
+  { id: 'storage', name: '보관함', icon: 'storage' },
+]
+
+// ── zones ────────────────────────────────────────────────────────────────────
+// rect = [x0, y0, x1, y1] inclusive. The centre 48×48 is open from the start;
+// the ring around it opens piece by piece (each next to an open zone).
 export const ZONES = {
-  A: { name: '마을 광장', rows: [20, 33], cost: null },
-  B: { name: '숲 언저리', rows: [9, 19], cost: { wood: 60, stone: 40 }, needs: 'A' },
-  C: { name: '별빛 언덕', rows: [0, 8], cost: { wood: 160, stone: 130, stardust: 15 }, needs: 'B' },
+  C: { name: '마을 중심', rect: [24, 24, 71, 71], cost: null },
+  W: { name: '서쪽 들판', rect: [0, 24, 23, 71], cost: { wood: 80, stone: 50 }, needs: ['C'] },
+  E: { name: '동쪽 바위언덕', rect: [72, 24, 95, 71], cost: { wood: 100, stone: 70 }, needs: ['C'] },
+  N: { name: '북쪽 개울숲', rect: [24, 0, 71, 23], cost: { wood: 110, stone: 80, stardust: 4 }, needs: ['C'] },
+  S: { name: '남쪽 꽃밭', rect: [24, 72, 71, 95], cost: { wood: 130, stone: 100, stardust: 8 }, needs: ['C'] },
+  NW: { name: '북서 숲', rect: [0, 0, 23, 23], cost: { wood: 200, stone: 160, stardust: 18 }, needs: ['N', 'W'] },
+  NE: { name: '북동 별빛터', rect: [72, 0, 95, 23], cost: { wood: 200, stone: 160, stardust: 18 }, needs: ['N', 'E'] },
+  SW: { name: '남서 연못', rect: [0, 72, 23, 95], cost: { wood: 200, stone: 160, stardust: 18 }, needs: ['S', 'W'] },
+  SE: { name: '남동 초원', rect: [72, 72, 95, 95], cost: { wood: 200, stone: 160, stardust: 18 }, needs: ['S', 'E'] },
 }
 export const ZONE_IDS = Object.keys(ZONES)
 
-// stream across row 19, crossed by the bridge at cols 9–10
-export const WATER_ROW = 19
-export const BRIDGE = [9, 10]
+// ── texts ────────────────────────────────────────────────────────────────────
+export const STORAGE_NOTICE =
+  '진행 상황은 현재 기기와 브라우저에만 저장됩니다. 다른 기기·브라우저에서는 자동으로 이어지지 않습니다. 브라우저 데이터 삭제 전 백업을 내보내세요.'
 
-// dirt paths: [x0, y0, x1, y1] tile rectangles (inclusive), purely visual
-export const PATHS = [
-  [9, 1, 10, 33],
-  [3, 27, 16, 27],
-  [3, 16, 16, 16],
-  [3, 5, 16, 5],
-]
-
-// building lots (2×2 tiles, top-left corner). Manos use the two tiles below.
-export const LOTS = [
-  { id: 'A1', x: 3, y: 22 },
-  { id: 'A2', x: 6, y: 22 },
-  { id: 'A3', x: 12, y: 22 },
-  { id: 'A4', x: 15, y: 22 },
-  { id: 'A5', x: 3, y: 29 },
-  { id: 'A6', x: 15, y: 29 },
-  { id: 'B1', x: 3, y: 12 },
-  { id: 'B2', x: 6, y: 12 },
-  { id: 'B3', x: 14, y: 12 },
-  { id: 'C1', x: 4, y: 2 },
-  { id: 'C2', x: 14, y: 2 },
-]
-
-// resource nodes (1 tile each)
-export const NODE_LIST = [
-  // A — trees west, rocks east, one small crystal
-  { id: 'tA1', kind: 'tree', x: 1, y: 21 },
-  { id: 'tA2', kind: 'tree', x: 1, y: 24 },
-  { id: 'tA3', kind: 'tree', x: 0, y: 27 },
-  { id: 'tA4', kind: 'tree', x: 1, y: 32 },
-  { id: 'tA5', kind: 'tree', x: 6, y: 32 },
-  { id: 'rA1', kind: 'rock', x: 18, y: 21 },
-  { id: 'rA2', kind: 'rock', x: 18, y: 25 },
-  { id: 'rA3', kind: 'rock', x: 13, y: 32 },
-  { id: 'rA4', kind: 'rock', x: 18, y: 32 },
-  { id: 'cA1', kind: 'crystal', x: 7, y: 29 },
-  // B — the forest
-  { id: 'tB1', kind: 'tree', x: 1, y: 10 },
-  { id: 'tB2', kind: 'tree', x: 5, y: 9 },
-  { id: 'tB3', kind: 'tree', x: 13, y: 9 },
-  { id: 'tB4', kind: 'tree', x: 17, y: 10 },
-  { id: 'tB5', kind: 'tree', x: 1, y: 15 },
-  { id: 'tB6', kind: 'tree', x: 18, y: 15 },
-  { id: 'tB7', kind: 'tree', x: 6, y: 17 },
-  { id: 'rB1', kind: 'rock', x: 12, y: 14 },
-  { id: 'rB2', kind: 'rock', x: 16, y: 17 },
-  { id: 'cB1', kind: 'crystal', x: 7, y: 15 },
-  { id: 'cB2', kind: 'crystal', x: 13, y: 18 },
-  // C — the starlit hill
-  { id: 'cC1', kind: 'crystal', x: 1, y: 3 },
-  { id: 'cC2', kind: 'crystal', x: 8, y: 2 },
-  { id: 'cC3', kind: 'crystal', x: 18, y: 4 },
-  { id: 'cC4', kind: 'crystal', x: 12, y: 7 },
-  { id: 'rC1', kind: 'rock', x: 2, y: 7 },
-  { id: 'rC2', kind: 'rock', x: 16, y: 7 },
-  { id: 'tC1', kind: 'tree', x: 6, y: 7 },
-]
-
-// decorations: [sprite, x, y, blocks walking]
-export const DECOR = [
-  ['board', 8, 26, true],
-  ['lantern', 8, 21, true],
-  ['lantern', 11, 21, true],
-  ['flowers', 5, 25, false],
-  ['flowers', 13, 25, false],
-  ['bench', 5, 28, true],
-  ['planter', 13, 28, true],
-  ['sakura', 0, 33, true],
-  ['sakura', 19, 29, true],
-  ['bush', 19, 23, true],
-  ['bush', 11, 32, true],
-  ['wheelbarrow', 14, 26, true],
-  ['banner', 12, 26, true],
-  ['flowers', 2, 18, false],
-  ['bush', 11, 11, true],
-  ['sakura', 19, 12, true],
-  ['lantern', 8, 9, true],
-  ['signpost', 11, 9, true],
-  ['flowers', 16, 13, false],
-  ['bush', 0, 6, true],
-  ['flowers', 14, 6, false],
-  ['sakura', 19, 1, true],
-]
-
-// ── tutorial ────────────────────────────────────────────────────────────────
 export const TUTORIAL = [
-  '마노들이 알아서 나무·돌·별가루를 모아요. 화면을 끌어서 마을을 둘러보세요.',
-  '아래 [건설]을 누르거나 빈 부지(+)를 눌러 첫 건물을 지어 보세요.',
-  '마노들이 망치로 건물을 지어요. 건물을 누르면 레벨과 업그레이드를 볼 수 있어요.',
+  '마노들이 알아서 나무·돌·별가루를 모아요. 지도를 끌어 둘러보고, 두 손가락이나 +/− 버튼으로 확대해 보세요.',
+  '[건설]에서 건물이나 장식을 고른 뒤 땅을 눌러 위치를 정하고 확정하세요. 초록색이면 놓을 수 있어요.',
+  '건설 현장을 누르면 일할 마노 수를 늘리거나 줄일 수 있어요. 많을수록 빨리 지어요.',
 ]
 
 // ── offline progress ─────────────────────────────────────────────────────────
 export const OFFLINE = {
-  maxSeconds: 8 * 3600, // only up to 8 hours count
-  efficiency: 0.8, // conservative: 80% of what the same Manos make online
-  minNotice: 60, // show a report for absences of a minute or more
-  gap: 3, // a frame gap longer than this (s) goes through the offline path
+  maxSeconds: 8 * 3600,
+  efficiency: 0.8,
+  minNotice: 60,
+  gap: 3,
 }
 
 // ── saving ───────────────────────────────────────────────────────────────────
 export const SAVE = {
-  version: 2,
+  version: 3,
   prefix: 'nodnaba:colony:',
   keys: {
     save: 'nodnaba:colony:save',
     backup: 'nodnaba:colony:backup',
     corrupt: 'nodnaba:colony:corrupt',
     lock: 'nodnaba:colony:lock',
+    // the last save of an older format, kept as it was the first time a newer
+    // version opened it (never overwritten afterwards)
+    beforeUpgrade: 'nodnaba:colony:pre-v3',
   },
-  every: 10, // autosave interval, s
-  lockBeat: 2, // tab-lock heartbeat, s
-  lockStale: 7, // a lock older than this belongs to a closed tab, s
+  every: 10,
+  lockBeat: 2,
+  lockStale: 7,
 }

@@ -89,3 +89,37 @@ def pack(items, pad=2, width=1024):
         atlas[y0:y0 + h, x0:x0 + w] = items[k]
     used_w = max(x0 + w for (x0, _, w, _) in pos.values()) + pad
     return atlas[:, :used_w], pos
+
+
+# ── v2 sheets: keep soft edges, drop only the background noise ──────────────
+
+def clean_soft(path, core=200, min_core=60, band=3, floor=24):
+    """Separate the drawing from the noisy background without hardening it.
+
+    core      pixels this opaque are the inside of a drawing
+    min_core  solid specks smaller than this are noise, not drawing
+    band      px around the solid inside where soft edges / thin lines live
+    floor     inside the band, fainter pixels than this are noise
+
+    Inside stays as drawn (near-opaque interior → fully opaque); the soft
+    edge keeps its own alpha but takes the colour of the nearest solid pixel,
+    which removes the coloured fringe without eroding thin outlines.
+    """
+    a = np.array(Image.open(path).convert('RGBA'))
+    al = a[..., 3].astype(int)
+    solid = al >= core
+    lab, n = ndimage.label(solid, structure=np.ones((3, 3)))
+    sizes = ndimage.sum(solid, lab, range(1, n + 1))
+    keep = np.zeros(n + 1, bool)
+    keep[1:] = sizes >= min_core
+    solid = keep[lab]
+    near = ndimage.binary_dilation(solid, iterations=band)
+    edge = near & ~solid & (al >= floor)
+    # colour of the nearest solid pixel for every edge pixel
+    _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
+    out = np.zeros_like(a)
+    out[solid] = a[solid]
+    out[solid, 3] = np.where(al[solid] >= 235, 255, al[solid])
+    out[edge, :3] = a[iy[edge], ix[edge], :3]
+    out[edge, 3] = al[edge]
+    return out
