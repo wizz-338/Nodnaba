@@ -74,7 +74,6 @@ function Item({ n, i }) {
         </time>
         <span className="news-item__cat">{n.category}</span>
       </p>
-      {n.img && <img className="news-item__img" src={n.img} alt="" width="480" height="480" loading="lazy" decoding="async" />}
       <h2 className="news-item__title">{n.title}</h2>
       <p className="news-item__desc">{n.description}</p>
       {n.link && (

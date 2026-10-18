@@ -104,19 +104,16 @@ export default function Header({ page = 'main' }) {
                     </span>
                   </span>
                 </a>
-                <a className="menu__game" href={GAMES.survivor.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
+                <a href={GAMES.survivor.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
                   <span className="menu__n mono">└</span>
-                  <span className="menu__colony">
+                  <span className="menu__colony menu__colony--long">
                     <span className="glitch" data-text={GAMES.survivor.title}>
                       {GAMES.survivor.title}
                     </span>
                     <span className="menu__demo">
                       <span className="glitch" data-text="(DEMO)">(DEMO)</span>
+                      <img src={manoHammer} alt="" width="186" height="160" decoding="async" />
                     </span>
-                  </span>
-                  <span className="menu__intro">
-                    <img src={GAMES.survivor.img} alt="" width="480" height="480" loading="lazy" decoding="async" />
-                    <span>{GAMES.survivor.description}</span>
                   </span>
                 </a>
               </div>

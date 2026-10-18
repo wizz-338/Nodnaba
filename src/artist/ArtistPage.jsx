@@ -18,7 +18,7 @@ const ARTISTS = [
     links: [
       { label: '▶ MANO RUN', href: MANO_RUN_HASH },
       { label: '▶ MANO COLONY (DEMO)', href: MANO_COLONY_HASH },
-      { label: `▶ ${GAMES.survivor.title} (DEMO)`, href: GAMES.survivor.href, game: GAMES.survivor },
+      { label: `▶ ${GAMES.survivor.title} (DEMO)`, href: GAMES.survivor.href },
     ],
   },
   {
@@ -57,23 +57,15 @@ function Card({ a, i }) {
           {a.name}
         </h2>
         <ul className="artist-card__links">
-          {a.links.map(({ label, small, icon, game, ...l }) => (
+          {a.links.map(({ label, small, icon, ...l }) => (
             <li key={label}>
-              <a className={`artist-link mono ${small ? 'artist-link--small' : ''} ${game ? 'artist-link--game' : ''}`} {...l}>
-                {game && <img className="artist-link__img" src={game.img} alt="" width="480" height="480" loading="lazy" decoding="async" />}
+              <a className={`artist-link mono ${small ? 'artist-link--small' : ''}`} {...l}>
                 {icon && (
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.7 15.1V8.9l5.8 3.1-5.8 3.1Z" />
                   </svg>
                 )}
-                {game ? (
-                  <span className="artist-link__text">
-                    {label}
-                    <small>{game.description}</small>
-                  </span>
-                ) : (
-                  label
-                )}
+                {label}
               </a>
             </li>
           ))}

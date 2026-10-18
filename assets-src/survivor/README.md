@@ -18,5 +18,4 @@ game image comes from.
 
 `python3 scripts/survivor-assets.py` makes everything in
 `src/survivor/assets/` from these (Mano sheets copied unchanged, the other
-sheets cut exactly at the listed cells, the ground saved as a JPEG) and the
-site thumbnail `src/assets/games/mano-survivor.webp`.
+sheets cut exactly at the listed cells, the ground saved as a JPEG).
