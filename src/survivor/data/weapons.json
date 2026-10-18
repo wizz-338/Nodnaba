@@ -1,0 +1,46 @@
+{
+  "slotCount": 1,
+  "initialWeaponId": "bouncy_ball",
+  "registry": [
+    {
+      "id": "bouncy_ball",
+      "name": "탱탱볼",
+      "behaviorId": "bounce_projectile",
+      "icon": "assets/icons/ball.png",
+      "base": {
+        "damage": 14,
+        "interval": 1.1,
+        "count": 1,
+        "radius": 4.5,
+        "speed": 260,
+        "bounces": 2,
+        "splitChance": 0,
+        "ttl": 3.2
+      },
+      "split": {
+        "trigger": "first enemy hit only",
+        "childCountPerProc": 2,
+        "childDamageMultiplier": 0.45,
+        "childRadiusMultiplier": 0.75,
+        "childBounces": 1,
+        "childTtl": 1.4,
+        "childrenCanSplit": false
+      },
+      "upgradePool": [
+        "count",
+        "damage",
+        "bounce",
+        "split",
+        "haste",
+        "size",
+        "magnet",
+        "health"
+      ]
+    }
+  ],
+  "futureExtension": {
+    "churu": "summoner behavior; cats auto-fight; not implemented or unlockable in this MVP",
+    "bubble": "reserved; no committed behavior",
+    "rattle": "reserved; no committed behavior"
+  }
+}

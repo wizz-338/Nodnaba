@@ -1,4 +1,5 @@
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
+import { GAMES } from './games'
 
 // NEWS — NODNABA activity log.
 //
@@ -14,7 +15,18 @@ import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../r
 //   link        optional. '#/…' opens a page of this site, 'https://…' opens
 //               in a new tab. Leave it out for news without a link.
 //   linkText    optional button label, e.g. VIEW · LISTEN · PLAY
+//   img         optional picture shown with the news (e.g. a game's picture)
 export const NEWS = [
+  {
+    date: '2026-10-19',
+    time: '08:00',
+    category: 'GAME',
+    title: `${GAMES.survivor.title} (DEMO) 공개`,
+    description: GAMES.survivor.description,
+    link: GAMES.survivor.href,
+    linkText: 'PLAY',
+    img: GAMES.survivor.img,
+  },
   {
     date: '2026-10-18',
     time: '01:42',

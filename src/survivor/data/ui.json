@@ -1,0 +1,90 @@
+{
+  "logicalViewport": [
+    360,
+    640
+  ],
+  "aspect": "9:16",
+  "safeArea": "env(safe-area-inset-*)",
+  "hud": {
+    "health": [
+      12,
+      12,
+      122,
+      12
+    ],
+    "xp": [
+      12,
+      30,
+      122,
+      4
+    ],
+    "wave": [
+      152,
+      12,
+      95,
+      20
+    ],
+    "timer": [
+      160,
+      35,
+      80,
+      18
+    ],
+    "pause": [
+      316,
+      12,
+      32,
+      32
+    ],
+    "currency": [
+      285,
+      52,
+      62,
+      20
+    ]
+  },
+  "joystick": {
+    "mode": "floating",
+    "radius": 42,
+    "knobRadius": 18,
+    "deadzone": 0.12,
+    "activationRegion": [
+      0,
+      320,
+      360,
+      320
+    ]
+  },
+  "modal": {
+    "x": 20,
+    "y": 112,
+    "w": 320,
+    "cardH": 90,
+    "gap": 12
+  },
+  "colors": {
+    "ink": "#26313e",
+    "paper": "#fff3dc",
+    "panel": "#eceddf",
+    "accent": "#e6cb70",
+    "xp": "#66d6c7",
+    "health": "#eb7c75",
+    "muted": "#77828e"
+  },
+  "fonts": "system-ui, -apple-system, sans-serif",
+  "radii": {
+    "panel": 16,
+    "card": 12,
+    "button": 12
+  },
+  "grades": {
+    "D": "#87929d",
+    "C": "#64ad80",
+    "B": "#5f99d3",
+    "A": "#a77cd5",
+    "S": "#dcb551",
+    "SS": "#e28a50",
+    "SSS": "#db657d",
+    "EX": "#78d8d3"
+  }
+}

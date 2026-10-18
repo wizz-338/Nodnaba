@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:game": "node scripts/mano-run-fairness.mjs",
-    "test:colony": "node scripts/colony-test.mjs && node scripts/colony-sim-check.mjs"
+    "test:colony": "node scripts/colony-test.mjs && node scripts/colony-sim-check.mjs",
+    "test:survivor": "node scripts/survivor-test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

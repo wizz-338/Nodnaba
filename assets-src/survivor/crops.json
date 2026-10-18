@@ -1,0 +1,327 @@
+[
+ {
+  "upload": "01-mano-walk.png",
+  "output": "assets/mano/sheets/walk.png",
+  "operation": "copy unchanged"
+ },
+ {
+  "upload": "02-mano-idle.png",
+  "output": "assets/mano/sheets/idle.png",
+  "operation": "copy unchanged"
+ },
+ {
+  "upload": "03-mano-hit.png",
+  "output": "assets/mano/sheets/hit.png",
+  "operation": "copy unchanged"
+ },
+ {
+  "upload": "04-mano-down.png",
+  "output": "assets/mano/sheets/down.png",
+  "operation": "copy unchanged"
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/jaw-move.png",
+  "crop": [
+   0,
+   0,
+   768,
+   128
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/jaw.png",
+  "crop": [
+   0,
+   0,
+   128,
+   128
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/jaw-hit.png",
+  "crop": [
+   0,
+   128,
+   384,
+   256
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/jaw-die.png",
+  "crop": [
+   0,
+   256,
+   640,
+   384
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/hunter-move.png",
+  "crop": [
+   0,
+   384,
+   768,
+   512
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/hunter.png",
+  "crop": [
+   0,
+   384,
+   128,
+   512
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/hunter-hit.png",
+  "crop": [
+   0,
+   512,
+   384,
+   640
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/hunter-die.png",
+  "crop": [
+   0,
+   640,
+   640,
+   768
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/armor-move.png",
+  "crop": [
+   0,
+   768,
+   768,
+   896
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/armor.png",
+  "crop": [
+   0,
+   768,
+   128,
+   896
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/armor-hit.png",
+  "crop": [
+   0,
+   896,
+   384,
+   1024
+  ]
+ },
+ {
+  "upload": "05-enemies.png",
+  "output": "assets/enemies/armor-die.png",
+  "crop": [
+   0,
+   1024,
+   640,
+   1152
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/ball.png",
+  "crop": [
+   0,
+   0,
+   128,
+   128
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/split_balls.png",
+  "crop": [
+   128,
+   0,
+   256,
+   128
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/xp.png",
+  "crop": [
+   256,
+   0,
+   384,
+   128
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/coin.png",
+  "crop": [
+   384,
+   0,
+   512,
+   128
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_count.png",
+  "crop": [
+   0,
+   128,
+   128,
+   256
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_bounce.png",
+  "crop": [
+   128,
+   128,
+   256,
+   256
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_split.png",
+  "crop": [
+   256,
+   128,
+   384,
+   256
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_size.png",
+  "crop": [
+   384,
+   128,
+   512,
+   256
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_power.png",
+  "crop": [
+   0,
+   256,
+   128,
+   384
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_haste.png",
+  "crop": [
+   128,
+   256,
+   256,
+   384
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_magnet.png",
+  "crop": [
+   256,
+   256,
+   384,
+   384
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/upgrade_health.png",
+  "crop": [
+   384,
+   256,
+   512,
+   384
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/impact.png",
+  "crop": [
+   0,
+   384,
+   128,
+   512
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/dust.png",
+  "crop": [
+   128,
+   384,
+   256,
+   512
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/chest.png",
+  "crop": [
+   256,
+   384,
+   384,
+   512
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/icons/fusion.png",
+  "crop": [
+   384,
+   384,
+   512,
+   512
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/fx/impact.png",
+  "crop": [
+   0,
+   512,
+   512,
+   640
+  ]
+ },
+ {
+  "upload": "06-icons-effects.png",
+  "output": "assets/fx/dust.png",
+  "crop": [
+   0,
+   640,
+   512,
+   768
+  ]
+ },
+ {
+  "upload": "07-ground.png",
+  "output": "assets/environment/ground.png",
+  "operation": "copy unchanged"
+ }
+]
