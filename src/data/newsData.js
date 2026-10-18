@@ -15,17 +15,15 @@ import { GAMES } from './games'
 //   link        optional. '#/…' opens a page of this site, 'https://…' opens
 //               in a new tab. Leave it out for news without a link.
 //   linkText    optional button label, e.g. VIEW · LISTEN · PLAY
-//   img         optional picture shown with the news (e.g. a game's picture)
 export const NEWS = [
   {
     date: '2026-10-19',
     time: '08:00',
     category: 'GAME',
     title: `${GAMES.survivor.title} (DEMO) 공개`,
-    description: GAMES.survivor.description,
+    description: '마노가 탱탱볼 하나로 몰려오는 괴물을 버텨 내는 세로형 액션 게임의 데모 버전이 공개되었습니다.',
     link: GAMES.survivor.href,
     linkText: 'PLAY',
-    img: GAMES.survivor.img,
   },
   {
     date: '2026-10-18',

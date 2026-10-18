@@ -861,40 +861,7 @@ main,
   }
 }
 
-/* a game entry with its picture and one line about it (MANO SURVIVOR) */
-.menu__game {
-  flex-wrap: wrap;
-}
-
-.menu__intro {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  flex-basis: 100%;
-  margin: 0.35em 0 0.2em;
-  padding-left: 1.6em;
-  font-family: var(--body);
-  font-size: 0.42em;
-  line-height: 1.45;
-  letter-spacing: 0;
-  color: var(--dim);
-  word-break: keep-all;
-}
-
-.menu__intro img {
-  flex: none;
-  width: 4.6em;
-  height: 4.6em;
-  border: 1px solid var(--line);
-  object-fit: cover;
-}
-
-.menu__game > .menu__colony {
-  flex: 1;
-  min-width: 0;
-}
-
 /* "MANO SURVIVOR" is two letters longer than "MANO COLONY": a touch smaller on narrow phones */
-.menu__game > .menu__colony > .glitch {
+.menu__colony--long > .glitch {
   font-size: min(1em, 4.6vw);
 }

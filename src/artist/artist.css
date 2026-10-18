@@ -220,39 +220,3 @@
   .artist-card:hover .artist-card__ghost--c,
   .artist-card:hover .artist-card__ghost--m { animation: none; }
 }
-
-/* a game link with its picture and one line about it */
-.artist-link--game {
-  gap: 12px;
-  padding: 8px 16px 8px 8px;
-  border-radius: 16px;
-  max-width: 420px;
-  text-align: left;
-}
-
-.artist-link__img {
-  flex: none;
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.artist-link__text {
-  display: grid;
-  gap: 4px;
-}
-
-.artist-link__text small {
-  font-family: var(--body);
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--dim);
-  word-break: keep-all;
-}
-
-.artist-link--game:hover small,
-.artist-link--game:active small,
-.artist-link--game:focus-visible small {
-  color: inherit;
-}
