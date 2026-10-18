@@ -27,6 +27,7 @@ import {
   createWorld,
   decorSize,
   findPath,
+  findPathAny,
   footprint,
   idx,
   inMap,
@@ -552,9 +553,13 @@ export function unlock(s, world, z) {
 
 function changed(s, world) {
   refresh(world, s)
+  // only walkers whose way is now blocked look for a new one (not all of
+  // them at once, which would be a burst of searches with many residents)
   for (const m of s.manos) {
-    m._path = null
-    m._goal = null
+    if (m._path && m._path.some(([x, y]) => !walkable(world, x, y))) {
+      m._path = null
+      m._goal = null
+    }
   }
   s.cap = caps(s)
 }
@@ -572,22 +577,16 @@ function release(s, pred) {
 const tile = (v) => Math.floor(v)
 const d2 = (m, x, y) => (x + 0.5 - m.x) ** 2 + (y + 0.5 - m.y) ** 2
 
-// nearest reachable stand tile among a few close candidates
+// nearest reachable stand tile among a few close candidates (one search
+// toward all of them at once)
 function route(s, world, m, stands, taken = []) {
-  const sx = tile(m.x)
-  const sy = tile(m.y)
   const free = stands.filter(([x, y]) => !taken.some(([a, b]) => a === x && b === y))
   const pool = (free.length ? free : stands)
     .slice()
     .sort((a, b) => d2(m, a[0], a[1]) - d2(m, b[0], b[1]))
-    .slice(0, 3)
-  let best = null
-  for (const st of pool) {
-    const p = findPath(world, sx, sy, st[0], st[1])
-    const len = pathLength(p)
-    if (len < (best ? best.len : Infinity)) best = { stand: st, path: p, len }
-  }
-  return best
+    .slice(0, 4)
+  const r = findPathAny(world, tile(m.x), tile(m.y), pool)
+  return r && { stand: r.goal, path: r.path, len: pathLength(r.path) }
 }
 
 function failed(s, m, key) {
@@ -605,46 +604,54 @@ function setPath(m, stand, path) {
   m._goal = { x: stand[0] + 0.5 + j, y: stand[1] + 0.5 + k }
 }
 
-function incoming(s, world, res, except) {
-  let n = 0
+// Who is doing what right now, in one pass over the residents (instead of
+// one pass per tree, which grows with residents × trees).
+function census(s, world, except) {
+  const at = new Map() // node id → stand spots of its gatherers
+  const incoming = { wood: 0, stone: 0, stardust: 0 }
+  let crystal = 0
   for (const o of s.manos) {
     if (o === except) continue
-    if (o.carry && o.carry.res === res) n += o.carry.n
-    else if (o.task && o.task.kind === 'gather') {
-      const nd = nodeOf(world, o.task.node)
-      if (nd && NODES[nd.kind].res === res) n += carryOf(s, res)
-    }
+    if (o.carry) incoming[o.carry.res] += o.carry.n
+    const t = o.task
+    if (!t || t.kind !== 'gather') continue
+    const nd = nodeOf(world, t.node)
+    if (!nd) continue
+    if (!o.carry) incoming[NODES[nd.kind].res] += carryOf(s, NODES[nd.kind].res)
+    if (nd.kind === 'crystal') crystal++
+    let list = at.get(t.node)
+    if (!list) at.set(t.node, (list = []))
+    list.push(t.spot)
   }
-  return n
+  return { at, incoming, crystal }
 }
 
 function pickGather(s, world, m) {
   const cap = caps(s)
   const last = m.resume || m._lastNode
+  const who = census(s, world, m)
   const options = []
   for (const res of RESOURCES) {
     // full (or over-full after a storage was removed): pause this resource
     if (s.res[res] >= cap[res]) continue
-    if (res === 'stardust') {
-      const n = tasksOf(s, (t) => t.kind === 'gather' && nodeOf(world, t.node) && nodeOf(world, t.node).kind === 'crystal', m).length
-      if (n >= Math.max(1, Math.ceil(s.manos.length * STARDUST_SHARE))) continue
-    }
-    const ratio = (s.res[res] + incoming(s, world, res, m)) / cap[res]
+    if (res === 'stardust' && who.crystal >= Math.max(1, Math.ceil(s.manos.length * STARDUST_SHARE))) continue
+    const ratio = (s.res[res] + who.incoming[res]) / cap[res]
     if (ratio < 1) options.push({ res, ratio })
   }
   options.sort((a, b) => a.ratio - b.ratio)
   for (const { res } of options) {
     const kind = GATHER[res].node
     const carry = carryOf(s, res)
-    const cands = world.gen.nodes
-      .filter((n) => n.kind === kind && world.open[idx(n.x, n.y)] && !recentlyFailed(s, m, n.id))
-      .map((n) => ({ n, gs: tasksOf(s, (t) => t.kind === 'gather' && t.node === n.id, m).length }))
-      .filter(({ n, gs }) => gs < NODES[kind].slots && s.nodes[n.id] - gs * carry >= 1)
-      .sort((a, b) => (a.n.id === last ? -1e6 : 0) + d2(m, a.n.x, a.n.y) - ((b.n.id === last ? -1e6 : 0) + d2(m, b.n.x, b.n.y)))
-      .slice(0, 3)
-    for (const { n } of cands) {
-      const taken = tasksOf(s, (t) => t.kind === 'gather' && t.node === n.id, m).map((o) => o.task.spot)
-      const r = route(s, world, m, around(world, { kind: 'node', x: n.x, y: n.y }), taken)
+    const cands = []
+    for (const n of world.gen.nodes) {
+      if (n.kind !== kind || !world.open[idx(n.x, n.y)] || recentlyFailed(s, m, n.id)) continue
+      const gs = (who.at.get(n.id) || []).length
+      if (gs >= NODES[kind].slots || s.nodes[n.id] - gs * carry < 1) continue
+      cands.push({ n, key: (n.id === last ? -1e6 : 0) + d2(m, n.x, n.y) })
+    }
+    cands.sort((a, b) => a.key - b.key)
+    for (const { n } of cands.slice(0, 3)) {
+      const r = route(s, world, m, around(world, { kind: 'node', x: n.x, y: n.y }), who.at.get(n.id) || [])
       if (r) return { node: n.id, ...r }
       failed(s, m, n.id)
     }
@@ -686,6 +693,8 @@ function findSeat(s, world, m) {
   }
   return best
 }
+
+const DECIDE_PER_SECOND = 240
 
 export function decide(s, world, m, out) {
   if (m.task && m.task.node) m._lastNode = m.task.node
@@ -762,8 +771,9 @@ function staffSites(s, world) {
     const pool = s.manos
       .filter((m) => !(m.task && m.task.kind === 'build') && !recentlyFailed(s, m, b.id))
       .sort((a, c) => rank(a) - rank(c) || d2(a, b.x + 1, b.y + 1) - d2(c, b.x + 1, b.y + 1))
+    let have = crew.length
     for (const m of pool) {
-      if (tasksOf(s, (t) => t.kind === 'build' && t.b === b.id).length >= want || !free.length) break
+      if (have >= want || !free.length) break
       // leave a tile between workers when there is room, so each one shows
       const spaced = free.filter(([x, y]) => !taken.some(([a, c]) => Math.abs(a - x) <= 1 && Math.abs(c - y) <= 1))
       const r = route(s, world, m, spaced.length ? spaced : free)
@@ -777,6 +787,7 @@ function staffSites(s, world) {
       setPath(m, r.stand, r.path)
       free.splice(free.findIndex(([x, y]) => x === r.stand[0] && y === r.stand[1]), 1)
       taken.push(r.stand)
+      have++
     }
   }
 }
@@ -862,13 +873,30 @@ export function tick(s, world, dt, out = []) {
   }
 
   for (const b of s.buildings) if (b.build) b.build.active = 0
-  for (const m of s.manos) step(s, world, m, dt, out)
+  // choosing a job means path searches: only so many per tick, the rest wait
+  // a moment (a few hundredths of a second), so 200 Manos finishing at once
+  // never freeze a frame. Whose turn comes first rotates.
+  s._budget = Math.max(2, Math.round(dt * DECIDE_PER_SECOND))
+  const n = s.manos.length
+  const first = n ? (s._turn = ((s._turn || 0) + 1) % n) : 0
+  for (let i = 0; i < n; i++) step(s, world, s.manos[(first + i) % n], dt, out)
   s.cap = caps(s)
+}
+
+// pick a new job now if this tick still has room for it, else next tick
+function next(s, world, m, out) {
+  if (s._budget > 0) {
+    s._budget--
+    return decide(s, world, m, out)
+  }
+  if (m.task && m.task.node) m._lastNode = m.task.node
+  m.task = null
+  m._path = m._goal = null
 }
 
 function step(s, world, m, dt, out) {
   const t = m.task
-  if (!t) return decide(s, world, m, out)
+  if (!t) return next(s, world, m, out)
 
   if (t.kind === 'rest') {
     t.t -= dt
@@ -882,20 +910,22 @@ function step(s, world, m, dt, out) {
           m.y = st[1] + 0.5
         }
       }
-      decide(s, world, m, out)
+      next(s, world, m, out)
     }
     return
   }
 
   if (t.phase === 'go') {
     if (!m._goal && !m._path) {
+      if (s._budget <= 0) return // finds the way again next tick
+      s._budget--
       if (!rePath(s, world, m) && t.spot) {
         if (t.b) failed(s, m, t.b)
-        return decide(s, world, m, out)
+        return next(s, world, m, out)
       }
     }
-    if (t.kind === 'build' && !s.buildings.some((b) => b.id === t.b && b.build)) return decide(s, world, m, out)
-    if (t.kind === 'gather' && !nodeOf(world, t.node)) return decide(s, world, m, out)
+    if (t.kind === 'build' && !s.buildings.some((b) => b.id === t.b && b.build)) return next(s, world, m, out)
+    if (t.kind === 'gather' && !nodeOf(world, t.node)) return next(s, world, m, out)
     if (!walk(world, m, dt)) return
     if (t.kind === 'wander') {
       m.task = { kind: 'rest', pose: rand(s) < 0.5 ? 'sit' : 'stand', t: 1.5 + rand(s) * 3 }
@@ -903,7 +933,7 @@ function step(s, world, m, dt, out) {
     }
     if (t.kind === 'sit') {
       const d = s.decor.find((x) => x.id === t.seat)
-      if (!d) return decide(s, world, m, out)
+      if (!d) return next(s, world, m, out)
       const [sx, sy] = DECOR[d.type].seats[t.si] || [0.5, 0.5]
       m.x = d.x + sx
       m.y = d.y + sy
@@ -927,7 +957,7 @@ function step(s, world, m, dt, out) {
       const seat = findSeat(s, world, m)
       if (seat && goSit(s, world, m, seat)) return
     }
-    return decide(s, world, m, out)
+    return next(s, world, m, out)
   }
 
   if (t.kind === 'gather' && t.phase === 'work') {
@@ -937,7 +967,7 @@ function step(s, world, m, dt, out) {
     t.t += dt
     if (t.t < workOf(s, res)) return
     const got = Math.min(carryOf(s, res), Math.floor(s.nodes[t.node]))
-    if (got < 1) return decide(s, world, m, out)
+    if (got < 1) return next(s, world, m, out)
     s.nodes[t.node] -= got
     m.carry = { res, n: got }
     m._lastNode = t.node
@@ -947,7 +977,7 @@ function step(s, world, m, dt, out) {
 
   if (t.kind === 'build' && t.phase === 'work') {
     const b = s.buildings.find((x) => x.id === t.b)
-    if (!b || !b.build) return decide(s, world, m, out)
+    if (!b || !b.build) return next(s, world, m, out)
     m._face = b.x + 1.5 - m.x - (b.y + 1.5 - m.y)
     // only Manos actually standing at the site and hammering count
     b.build.progress += MANO.workRate * dt

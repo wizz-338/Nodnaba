@@ -10,7 +10,7 @@
 //  - nothing new starts while away: no new sites, upgrades or residents.
 
 import { MANO, NODES, OFFLINE, RESOURCES } from './config.js'
-import { findPath, idx, nodeOf, pathLength, refresh } from './world.js'
+import { findPathAny, idx, nodeOf, pathLength, refresh } from './world.js'
 import { buildWork, caps, carryOf, drops, workOf } from './sim.js'
 
 export function elapsed(simAt, now) {
@@ -21,12 +21,17 @@ export function elapsed(simAt, now) {
   return { seconds: raw, capped: false }
 }
 
-// tiles from a node to its nearest drop-off, as walked
-function tripLength(s, world, n) {
-  const res = NODES[n.kind].res
-  let best = Infinity
-  for (const [x, y] of drops(s, world, res).slice(0, 24)) best = Math.min(best, pathLength(findPath(world, n.x, n.y, x, y, 4000)))
-  return Number.isFinite(best) ? best : 30
+// tiles from a node to its nearest drop-off, as walked (one search toward
+// all drop-off spots; each node is measured once however many Manos use it)
+function tripLength(s, world, n, cache) {
+  if (cache.has(n.id)) return cache.get(n.id)
+  const near = drops(s, world, NODES[n.kind].res)
+    .sort((a, b) => (a[0] - n.x) ** 2 + (a[1] - n.y) ** 2 - ((b[0] - n.x) ** 2 + (b[1] - n.y) ** 2))
+    .slice(0, 8)
+  const r = findPathAny(world, n.x, n.y, near, 4000)
+  const len = r ? pathLength(r.path) : 30
+  cache.set(n.id, len)
+  return len
 }
 
 export function applyOffline(s, world, seconds) {
@@ -53,13 +58,14 @@ export function applyOffline(s, world, seconds) {
 
   // 2. gathering: Manos working a node (gathering there or carrying from it)
   const rate = { wood: 0, stone: 0, stardust: 0 }
+  const trips = new Map()
   for (const m of s.manos) {
     const t = m.task
     if (!t || (t.kind !== 'gather' && t.kind !== 'deliver')) continue
     const n = t.node && nodeOf(world, t.node)
     if (!n || !world.open[idx(n.x, n.y)]) continue
     const res = NODES[n.kind].res
-    const cycle = workOf(s, res) + (2 * tripLength(s, world, n)) / MANO.speed + 1
+    const cycle = workOf(s, res) + (2 * tripLength(s, world, n, trips)) / MANO.speed + 1
     rate[res] += carryOf(s, res) / cycle
   }
   const cap = caps(s)
