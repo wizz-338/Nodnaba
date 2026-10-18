@@ -4,6 +4,7 @@ import { useClock } from '../hooks'
 import { glitchNow } from '../motion'
 import manoHammer from '../assets/menu/mano-hammer.png'
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, NEWS_HASH, VISITOR_HASH } from '../route'
+import { GAMES } from '../data/games'
 
 // menu order: MAIN · NEWS · ARTIST · GAME (MANO RUN) · VISITOR
 const LINKS = [
@@ -101,6 +102,21 @@ export default function Header({ page = 'main' }) {
                       <span className="glitch" data-text="(DEMO)">(DEMO)</span>
                       <img src={manoHammer} alt="" width="186" height="160" decoding="async" />
                     </span>
+                  </span>
+                </a>
+                <a className="menu__game" href={GAMES.survivor.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
+                  <span className="menu__n mono">└</span>
+                  <span className="menu__colony">
+                    <span className="glitch" data-text={GAMES.survivor.title}>
+                      {GAMES.survivor.title}
+                    </span>
+                    <span className="menu__demo">
+                      <span className="glitch" data-text="(DEMO)">(DEMO)</span>
+                    </span>
+                  </span>
+                  <span className="menu__intro">
+                    <img src={GAMES.survivor.img} alt="" width="480" height="480" loading="lazy" decoding="async" />
+                    <span>{GAMES.survivor.description}</span>
                   </span>
                 </a>
               </div>

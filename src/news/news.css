@@ -231,3 +231,13 @@
   .news-mano { transform: translateX(calc(12% + 58px + var(--n) * 20%)); }
   .news-mano__sprite img { transform: translateX(calc(var(--n) * -100px)); }
 }
+
+/* a news item's picture (e.g. a game's picture, the same one the menu shows) */
+.news-item__img {
+  display: block;
+  width: min(100%, 220px);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
