@@ -58,7 +58,9 @@ def tile(a, mask):
     ImageDraw.Draw(dm).polygon([(BLEED + w / 2, BLEED - 0.5), (BLEED + w + 0.5, BLEED + h / 2),
                                 (BLEED + w / 2, BLEED + h + 0.5), (BLEED - 0.5, BLEED + h / 2)], fill=255)
     inside = np.array(dm) > 0
-    solid = inside & (out[..., 3] > 0)
+    # colour is taken from 2px inside the diamond, so a dark outline drawn
+    # around the tile on the sheet never shows up as dots where tiles meet
+    solid = ndimage.binary_erosion(inside, iterations=2) & (out[..., 3] > 0)
     _, (iy, ix) = ndimage.distance_transform_edt(~solid, return_indices=True)
     grow = ndimage.binary_dilation(inside, iterations=BLEED)
     res = np.zeros_like(out)

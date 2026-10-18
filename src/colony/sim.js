@@ -755,22 +755,28 @@ function staffSites(s, world) {
     if (crew.length === want) continue
     const spots = around(world, { kind: 'building', x: b.x, y: b.y })
     const taken = crew.map((m) => m.task.spot)
-    const free = spots.filter(([x, y]) => !taken.some(([a, c]) => a === x && c === y))
+    const open = spots.filter(([x, y]) => !taken.some(([a, c]) => a === x && c === y))
+    // work from the two sides facing the viewer while there is room there
+    const front = open.filter(([x, y]) => x === b.x + 3 || y === b.y + 3)
+    const free = front.length >= want - crew.length ? front : open
     const pool = s.manos
       .filter((m) => !(m.task && m.task.kind === 'build') && !recentlyFailed(s, m, b.id))
       .sort((a, c) => rank(a) - rank(c) || d2(a, b.x + 1, b.y + 1) - d2(c, b.x + 1, b.y + 1))
     for (const m of pool) {
       if (tasksOf(s, (t) => t.kind === 'build' && t.b === b.id).length >= want || !free.length) break
-      const r = route(s, world, m, free)
+      // leave a tile between workers when there is room, so each one shows
+      const spaced = free.filter(([x, y]) => !taken.some(([a, c]) => Math.abs(a - x) <= 1 && Math.abs(c - y) <= 1))
+      const r = route(s, world, m, spaced.length ? spaced : free)
       if (!r) {
         failed(s, m, b.id)
         continue
       }
-      // remember what she was doing, to go back to it when the site is done
+      // remember the job, to go back to it when the site is done
       if (m.task && m.task.kind === 'gather') m.resume = m.task.node
       m.task = { kind: 'build', b: b.id, phase: 'go', spot: r.stand, t: 0 }
       setPath(m, r.stand, r.path)
       free.splice(free.findIndex(([x, y]) => x === r.stand[0] && y === r.stand[1]), 1)
+      taken.push(r.stand)
     }
   }
 }

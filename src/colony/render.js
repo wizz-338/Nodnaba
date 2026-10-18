@@ -114,6 +114,27 @@ function tileSet(A) {
   return { base, shore, fringe }
 }
 
+// Half / quarter size copies, made once with good filtering. Drawing from the
+// copy nearest the size on screen keeps zoomed-out views smooth and sharp
+// with cheap (bilinear) scaling.
+const mipCache = new WeakMap()
+function mip(src, lv) {
+  if (!lv) return src
+  let m = mipCache.get(src)
+  if (!m) mipCache.set(src, (m = []))
+  if (!m[lv]) {
+    const prev = mip(src, lv - 1)
+    const pw = prev.naturalWidth || prev.width
+    const ph = prev.naturalHeight || prev.height
+    const [c, g] = canvas(Math.max(1, Math.ceil(pw / 2)), Math.max(1, Math.ceil(ph / 2)))
+    g.imageSmoothingQuality = 'high'
+    g.drawImage(prev, 0, 0, c.width, c.height)
+    m[lv] = c
+  }
+  return m[lv]
+}
+const levelFor = (s) => (s < 0.3 ? 2 : s < 0.6 ? 1 : 0) // s = screen px per stored px
+
 function frameOf(anim, t) {
   if (anim.durs) {
     const total = anim.durs.reduce((a, b) => a + b, 0)
@@ -210,6 +231,9 @@ export function createRenderer(cvs, A) {
     const f = a && a.frames[name]
     if (!f) return null
     const k = f.k
+    const lv = levelFor((view.zoom * view.dpr) / k)
+    const img = mip(a.img, lv)
+    const d = 2 ** lv
     const w = f.w / k
     const h = f.h / k
     const ax = f.ax / k
@@ -220,9 +244,9 @@ export function createRenderer(cvs, A) {
       ctx.save()
       ctx.translate(X, Y)
       ctx.scale(flip ? -scaleX : scaleX, 1)
-      ctx.drawImage(a.img, f.x, f.y, f.w, f.h, -ax, -ay, w, h)
+      ctx.drawImage(img, f.x / d, f.y / d, f.w / d, f.h / d, -ax, -ay, w, h)
       ctx.restore()
-    } else ctx.drawImage(a.img, f.x, f.y, f.w, f.h, X - ax, Y - ay, w, h)
+    } else ctx.drawImage(img, f.x / d, f.y / d, f.w / d, f.h / d, X - ax, Y - ay, w, h)
     if (filter) ctx.filter = 'none'
     if (alpha !== 1) ctx.globalAlpha = 1
     const left = flip ? X - (w - ax) : X - ax
@@ -264,12 +288,28 @@ export function createRenderer(cvs, A) {
     const k = view.dpr * view.zoom
     ctx.setTransform(k, 0, 0, k, (view.w / 2 - view.x * view.zoom) * view.dpr, (view.h / 2 - view.y * view.zoom) * view.dpr)
     ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
+    ctx.imageSmoothingQuality = 'low' // see mip(): sharper results come from the pre-shrunk copies
+    const tileLv = levelFor((view.zoom * view.dpr) / 2)
     const R = visibleRange()
     const { water } = world.gen
     const waterFrame = Math.floor(time / 0.9) % 4
 
-    // 1. ground
+    // 1. ground (the map diamond is filled with grass colour first, so the
+    // hairline where four tiles meet never shows the dark outside)
+    {
+      const a = iso(0, 0)
+      const b = iso(MAP, 0)
+      const c = iso(MAP, MAP)
+      const d = iso(0, MAP)
+      ctx.fillStyle = '#bcc673'
+      ctx.beginPath()
+      ctx.moveTo(a.X, a.Y)
+      ctx.lineTo(b.X, b.Y)
+      ctx.lineTo(c.X, c.Y)
+      ctx.lineTo(d.X, d.Y)
+      ctx.closePath()
+      ctx.fill()
+    }
     for (let y = R.y0; y <= R.y1; y++) {
       for (let x = R.x0; x <= R.x1; x++) {
         const c = iso(x + 0.5, y + 0.5)
@@ -287,7 +327,7 @@ export function createRenderer(cvs, A) {
           const h = hash(x, y)
           img = tiles.base['grass_' + Math.floor(h * 4) + (hash(x, y, 1) < 0.5 ? '~' : '')]
         }
-        ctx.drawImage(img, c.X - 33, c.Y - 17, 66, 34)
+        ctx.drawImage(mip(img, tileLv), c.X - 33, c.Y - 17, 66, 34)
         const f = world.floor[i]
         if (f) {
           const t = FLOOR_TYPES[f - 1]
@@ -296,7 +336,7 @@ export function createRenderer(cvs, A) {
           if (x < MAP - 1 && world.floor[i + 1] !== f) mask |= 2
           if (y < MAP - 1 && world.floor[i + MAP] !== f) mask |= 4
           if (x > 0 && world.floor[i - 1] !== f) mask |= 8
-          ctx.drawImage(tiles.fringe[t][mask], c.X - 33, c.Y - 17, 66, 34)
+          ctx.drawImage(mip(tiles.fringe[t][mask], tileLv), c.X - 33, c.Y - 17, 66, 34)
         }
       }
     }

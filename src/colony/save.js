@@ -129,7 +129,7 @@ function cost(c, what) {
 // Placement mistakes (two things on one tile) are repaired, never fatal:
 // a building that does not fit goes to the storage box, a decoration too.
 export function validate(d) {
-  must(isObj(d), '데이터 형식이 아니에요')
+  must(isObj(d), '저장 내용의 형식이 맞지 않아요')
   const seed = int(d.seed) && d.seed > 0 ? d.seed : DEFAULT_SEED
   const gen = generate(seed)
 
@@ -337,7 +337,7 @@ const costOfLevels = (type, upTo) => {
 const MIGRATIONS = {
   // v1 (development format): totals, a building list, a head count
   1: (d) => {
-    must(isObj(d), '데이터 형식이 아니에요')
+    must(isObj(d), '저장 내용의 형식이 맞지 않아요')
     const now = fin(d.savedAt) ? d.savedAt : Date.now()
     const n = int(d.manoCount) ? Math.max(1, Math.min(d.manoCount, MAX_MANOS)) : START.manos
     return {
@@ -356,7 +356,7 @@ const MIGRATIONS = {
 
   // v2 (first demo: 20×34 map, fixed lots) → v3 (96×96 diamond map)
   2: (d) => {
-    must(isObj(d) && isObj(d.res) && Array.isArray(d.buildings) && Array.isArray(d.manos) && isObj(d.clock), '데이터 형식이 아니에요')
+    must(isObj(d) && isObj(d.res) && Array.isArray(d.buildings) && Array.isArray(d.manos) && isObj(d.clock), '저장 내용의 형식이 맞지 않아요')
     for (const r of RESOURCES) must(fin(d.res[r]) && d.res[r] >= 0, '자원 값이 올바르지 않아요')
     must(d.manos.length >= 1 && d.manos.length <= MAX_MANOS, '주민 정보가 올바르지 않아요')
     const notes = []

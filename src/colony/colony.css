@@ -172,12 +172,13 @@
 .mc-toasts {
   position: absolute;
   top: 8px;
-  left: 50%;
+  left: max(10px, env(safe-area-inset-left));
+  right: 64px;
   z-index: 3;
   display: grid;
   gap: 6px;
-  width: min(92%, 420px);
-  transform: translateX(-50%);
+  max-width: 420px;
+  margin: 0 auto;
   pointer-events: none;
 }
 
@@ -1046,6 +1047,43 @@
   }
   .mc-seg button {
     padding: 0 9px;
+  }
+}
+
+/* phone turned sideways: one slim bar on top, slim buttons below */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mc-top {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding-top: calc(4px + env(safe-area-inset-top));
+    padding-bottom: 4px;
+  }
+  .mc-title {
+    display: none;
+  }
+  .mc-bar {
+    padding-top: 4px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+  .mc-bar__btn {
+    grid-auto-flow: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 2px;
+  }
+  .mc-bar__btn img {
+    width: 24px;
+    height: 24px;
+  }
+  .mc-sheet {
+    max-height: 86%;
+  }
+  .mc-zoom {
+    gap: 4px;
+    top: 6px;
   }
 }
 

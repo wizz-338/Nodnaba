@@ -284,7 +284,8 @@ export default function ColonyPage({ exitHref = '#/' }) {
       g.active = true
       g.wasFull = s.manos.length >= homes(s)
       if (!s.notice.storage) queue.unshift({ kind: 'notice', first: true })
-      if (notes.length) queue.push({ kind: 'notes', title: noteTitle || '알림', notes })
+      // things to read go in a box; a short confirmation is a toast
+      if (notes.length && noteTitle) queue.push({ kind: 'notes', title: noteTitle, notes })
       setModals(queue)
       setSel(null)
       setMode(null)
@@ -293,6 +294,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
       if (store.available) g.save()
       else setSaveState({ ok: false, error: 'unavailable' })
       g.lookHome?.()
+      if (!noteTitle) setTimeout(() => notes.forEach((n) => toast(n, n, 'info')), 50)
     }
 
     g.fromStorage = () => {
@@ -314,7 +316,10 @@ export default function ColonyPage({ exitHref = '#/' }) {
       if (r.data && (r.data.tutorial.step > 0 || r.data.buildings.length)) r.data.tutorial.done = true
       const notes = []
       let title = ''
-      if (r.status === 'restored') notes.push('저장본이 손상되어 직전 백업으로 복구했어요.')
+      if (r.status === 'restored') {
+        title = '저장 데이터 복구'
+        notes.push('저장본이 손상되어 직전 백업으로 복구했어요. 손상된 데이터는 따로 보관해 두었어요.')
+      }
       if (r.status === 'migrated' || (r.status === 'restored' && r.from < SAVE.version)) {
         title = '새 마을 지도로 옮겼어요'
         notes.push('예전 저장을 새 대각선 지도로 옮겼어요. 자원·주민·건물 레벨과 공사 진행은 그대로예요.', ...(r.notes || []))
@@ -752,7 +757,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
       const r = m.tool === 'fence' ? sim.placeFence(S, W, cells) : sim.paintFloors(S, W, m.tool === 'erase' ? null : m.type, cells)
       if (!r.ok) return toast(reasonText(r), 'paint', 'warn')
       g.save()
-      toast(m.tool === 'erase' ? `${r.count}칸을 지웠어요.` : `${r.count}칸을 깔았어요.`, 'paint', 'good')
+      toast(m.tool === 'erase' ? `${r.count}칸을 지웠어요.` : m.tool === 'fence' ? `울타리 ${r.count}칸을 놓았어요.` : `${r.count}칸을 깔았어요.`, 'paint', 'good')
       setMode({ ...m, a: null, b: null })
     }
   }
@@ -846,13 +851,13 @@ export default function ColonyPage({ exitHref = '#/' }) {
       g.store.backupNow() // the progress being replaced stays in the backup slot
     } else if (info.raw) g.store.keepCorrupt(info.raw)
     data.notice.storage = true
-    g.play(data, r.migrated ? ['백업을 불러왔어요.', ...r.notes] : ['백업을 불러왔어요.'], '백업 불러오기')
+    g.play(data, r.migrated ? ['백업을 불러왔어요.', ...r.notes] : ['백업을 불러왔어요.'], r.migrated ? '백업 불러오기' : '')
   }
   const doReset = () => {
     g.store.reset()
     const ns = newGame(Date.now(), newSeed())
     ns.notice.storage = true
-    g.play(ns, ['새 마을을 시작했어요. 지형도 새로 만들어졌어요.'], '새 마을')
+    g.play(ns, ['새 마을을 시작했어요. 지형도 새로 만들어졌어요.'])
   }
   const takeOver = () => {
     setPhase('loading')
@@ -880,7 +885,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
         onFresh={() => {
           g.store.keepCorrupt(info.raw)
           const ns = newGame(Date.now(), newSeed())
-          g.play(ns, ['새 마을을 시작했어요. 손상된 데이터는 따로 보관해 두었어요.'], '새 마을')
+          g.play(ns, ['새 마을을 시작했어요. 손상된 데이터는 따로 보관해 두었어요.'])
         }}
       />
     )
@@ -1682,7 +1687,7 @@ function Modal({ modal, s, onClose, onImport, onReset, onExport, onPickFile, onD
         <h2 className="mc-modal__title">{cancel ? `${name} 공사를 취소할까요?` : `${josa(name, '을', '를')} 철거할까요?`}</h2>
         <p className="mc-card__text">
           돌려받는 자원: <b>{resText(p.refund) || '없음'}</b>
-          {cancel ? ' (낸 비용 전부)' : ' (쓴 비용의 절반, 진행 중인 업그레이드는 전부)'}
+          {cancel ? ' (낸 비용 전부)' : b && b.build ? ' (쓴 비용의 절반 + 진행 중인 업그레이드 비용 전부)' : ' (쓴 비용의 절반)'}
         </p>
         {p.after.homes !== p.before.homes && (
           <p className="mc-card__text">

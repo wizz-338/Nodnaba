@@ -189,8 +189,10 @@ function workTime(crew) {
   let full = null
   let fullP = 0
   let walked = 0
+  let end = 0
   for (let t = 0; t < 300 && b.build; t += 0.05) {
     tick(s, w, 0.05)
+    end = t
     if (!b.build) break
     if (b.build.active) working += 0.05
     else walked += 0.05
@@ -199,15 +201,16 @@ function workTime(crew) {
       fullP = b.build.progress
     }
   }
-  return { working, level: b.level, walked, full, fullP }
+  return { working, level: b.level, walked, full, fullP, end }
 }
 {
   const one = workTime(1)
   const three = workTime(3)
   ok(one.level === 1 && three.level === 1, 'both sites finish')
-  const per1 = (BUILDINGS.house.levels[0].work - one.fullP) / 1
-  const per3 = (BUILDINGS.house.levels[0].work - three.fullP) / 3
-  ok(Math.abs(per1 / per3 - 3) < 0.3, `after everyone arrives: 1 Mano needs ${per1.toFixed(1)} s, 3 Manos ${per3.toFixed(1)} s of work (×${(per1 / per3).toFixed(2)})`)
+  // work done per second once the whole crew is hammering
+  const rate1 = (BUILDINGS.house.levels[0].work - one.fullP) / (one.end - one.full)
+  const rate3 = (BUILDINGS.house.levels[0].work - three.fullP) / (three.end - three.full)
+  ok(Math.abs(rate3 / rate1 - 3) < 0.3, `after everyone arrives: 1 Mano builds ${rate1.toFixed(2)}/s, 3 Manos ${rate3.toFixed(2)}/s (×${(rate3 / rate1).toFixed(2)})`)
   ok(one.working > three.working * 2, `time with someone hammering: ${one.working.toFixed(1)} s vs ${three.working.toFixed(1)} s`)
   const [s, w] = fresh(rich)
   const b = sim.build(s, w, 'house', 52, 46).building
