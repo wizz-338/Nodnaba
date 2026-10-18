@@ -15,6 +15,11 @@ import { ACTS, DECOR, NODES, PLAY, RESOURCES } from './config.js'
 import { findPath, idx, inMap, nodeOf, walkable } from './world.js'
 import { caps, carryOf, findSeat, rand, setPath } from './sim.js'
 
+// runtime-only parts of the state; rebuilt whenever missing (or not what
+// they should be, e.g. after the state was copied as plain JSON)
+const spots = (s) => (s._spots instanceof Set ? s._spots : (s._spots = new Set()))
+const crowd = (s) => (s._crowd instanceof Map ? s._crowd : (s._crowd = new Map()))
+
 const FLOWERS = new Set(['flowerbed', 'lavender', 'bush_flower', 'planter', 'flower_arch', 'sakura', 'flower_cart', 'flower_rock'])
 const now = (s) => s._time || 0
 const between = (s, [a, b]) => a + rand(s) * (b - a)
@@ -33,8 +38,8 @@ function roomy(s, world, x, y) {
 
 // no one else plays on this tile or right next to it
 function apart(s, x, y) {
-  if (!s._spots) return true
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (s._spots.has(idx(x + dx, y + dy))) return false
+  const taken = spots(s)
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (taken.has(idx(x + dx, y + dy))) return false
   return true
 }
 
@@ -58,11 +63,12 @@ function flowerSpot(s, world, m) {
     if (!FLOWERS.has(d.type)) continue
     const dist = (d.x - m.x) ** 2 + (d.y - m.y) ** 2
     if (dist > 8 * 8 || (best && dist >= best.dist)) continue
-    if (((s._crowd && s._crowd.get(d.id)) || 0) >= PLAY.crowd) continue
+    if ((crowd(s).get(d.id) || 0) >= PLAY.crowd) continue
     const [w, h] = DECOR[d.type].size || [1, 1]
+    // only the two sides facing the viewer, so the flowers never hide the Mano
     const ring = []
-    for (let x = d.x - 1; x <= d.x + w; x++) ring.push([x, d.y + h], [x, d.y - 1])
-    for (let y = d.y; y < d.y + h; y++) ring.push([d.x - 1, y], [d.x + w, y])
+    for (let x = d.x; x <= d.x + w; x++) ring.push([x, d.y + h])
+    for (let y = d.y; y < d.y + h; y++) ring.push([d.x + w, y])
     const free = ring.filter(([x, y]) => walkable(world, x, y) && !world.floor[idx(x, y)] && apart(s, x, y))
     if (free.length) best = { d, spot: free[Math.floor(rand(s) * free.length)], dist }
   }
@@ -181,17 +187,13 @@ function standBeside(world, d) {
 }
 
 function reserve(s, t) {
-  s._spots = s._spots || new Set()
-  s._spots.add(idx(t.spot[0], t.spot[1]))
-  if (t.decor) {
-    s._crowd = s._crowd || new Map()
-    s._crowd.set(t.decor, (s._crowd.get(t.decor) || 0) + 1)
-  }
+  spots(s).add(idx(t.spot[0], t.spot[1]))
+  if (t.decor) crowd(s).set(t.decor, (crowd(s).get(t.decor) || 0) + 1)
 }
 
 function unreserve(s, t) {
-  if (t.spot && s._spots) s._spots.delete(idx(t.spot[0], t.spot[1]))
-  if (t.decor && s._crowd) s._crowd.set(t.decor, Math.max(0, (s._crowd.get(t.decor) || 0) - 1))
+  if (t.spot) spots(s).delete(idx(t.spot[0], t.spot[1]))
+  if (t.decor) crowd(s).set(t.decor, Math.max(0, (crowd(s).get(t.decor) || 0) - 1))
 }
 
 // reached the spot: settle in (on the bench, if it is a bench play)
@@ -229,7 +231,7 @@ export function endPlay(s, world, m) {
 
 // ── two friends ─────────────────────────────────────────────────────────────
 
-const joints = (s) => (s._joints = s._joints || [])
+const joints = (s) => (Array.isArray(s._joints) ? s._joints : (s._joints = []))
 
 // residents free to be asked to play: resting on the grass or strolling, not
 // carrying, not just back from another pair play
@@ -242,7 +244,7 @@ function freeForPair(s, o) {
 // who is free where: rebuilt once a second, so finding a friend never scans
 // every resident
 function freeGrid(s) {
-  if (s._gridAt !== undefined && now(s) - s._gridAt < PLAY.scanEvery && s._grid) return s._grid
+  if (s._gridAt !== undefined && now(s) - s._gridAt < PLAY.scanEvery && s._grid instanceof Map) return s._grid
   const g = new Map()
   for (const o of s.manos) {
     if (!freeForPair(s, o)) continue

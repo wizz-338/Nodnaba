@@ -19,6 +19,27 @@ exactly as delivered (never edited):
 | `ui-icons.png` | resource, building, action and menu icons |
 | `terrain-edges.png` | water edge pieces — kept, but not used (the game draws its own shorelines) |
 
+`originals-play/` holds the seven play and rest sheets, as delivered (one row
+= one action, four frames, left to right; listed in `manifest-play.json`):
+
+| file | rows (actions) |
+| --- | --- |
+| `solo-roll.png` | waving limbs on the back · rolling over · flopping back from sitting · on the belly kicking feet |
+| `solo-play.png` | dancing · hopping · chasing the tail · watching a butterfly |
+| `duo-tussle.png` (two Manos) | playful pawing · pushing, then sitting down laughing · peekaboo |
+| `duo-play.png` (two Manos) | high five · rolling a ball · dancing hand in hand |
+| `solo-rest.png` | yawning and stretching · curled-up nap · eating a cookie · blowing bubbles |
+| `duo-rest.png` (two Manos) | dozing on a shoulder · patting a head · sharing cookies |
+| `solo-garden.png` | smelling a flower · throwing petals · stacking stones (they topple) · sitting and swinging the feet |
+
+These sheets are not on an exact grid: frames are found where they are drawn
+(row bands from the drawn lines; between frames that touch, the cut goes along
+the emptiest column). Each sheet gets one scale that matches the hood width of
+the walking Mano, so no pose is stretched and no frame changes size; frames
+stand on their lowest body pixel (or on one ground line for a whole row when
+the action leaves the ground, like hopping). Two-Mano frames are kept as one
+picture of the pair: the game shows it for two real residents playing together.
+
 `originals/` holds the nine sheets of the first, top-down version; they are kept
 as delivered and no longer used.
 
@@ -42,5 +63,5 @@ nothing from here):
 - everything is stored at 2× (sharp on phones) and packed into atlases with a
   JSON file of frame rectangles, anchors and scale.
 
-Re-run after changing the manifest: `python3 scripts/colony-assets.py`
+Re-run after changing a manifest: `python3 scripts/colony-assets.py`
 (needs Python 3 with Pillow, numpy and scipy).
