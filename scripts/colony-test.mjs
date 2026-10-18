@@ -361,5 +361,46 @@ function v2save() {
   ok(p1.ok && p1.data.buildings.length === 1 && p1.data.manos.length === 4, 'v1 save migrates through v2 to v3')
 }
 
+// ── up to 200 residents ─────────────────────────────────────────────────────
+{
+  const [s, w] = fresh(rich)
+  for (const z of ['W', 'E', 'N', 'S', 'NW', 'NE', 'SW', 'SE']) s.zones[z] = true
+  const W = worldFor(s)
+  s.res = { wood: 1e6, stone: 1e6, stardust: 1e5 }
+  for (let y = 4; y < 92 && s.buildings.length < 40; y += 4) for (let x = 4; x < 92 && s.buildings.length < 40; x += 4) {
+    const r = sim.build(s, W, 'house', x, y)
+    if (r.ok) { r.building.level = 3; r.building.build = null }
+  }
+  ok(homes(s) === 200, `homes stop at 200 however many houses (${s.buildings.length} houses → ${homes(s)})`)
+  s.res = { wood: 0, stone: 0, stardust: 0 }
+  while (s.manos.length < 30) s.manos.push({ id: s.nextId++, x: 47.5, y: 50.5, carry: null, task: null })
+  const W2 = worldFor(s)
+  const ev = run(s, W2, MANO.arriveEvery * 3 + 1)
+  ok(s.manos.length === 33 && ev.filter((e) => e.type === 'arrive').length === 3, 'past 30 residents new Manos keep moving in (30 → 33)')
+  while (s.manos.length < 199) s.manos.push({ id: s.nextId++, x: 47.5, y: 50.5, carry: null, task: null })
+  run(s, W2, MANO.arriveEvery * 3 + 1)
+  ok(s.manos.length === 200, `arrivals stop exactly at 200 (${s.manos.length})`)
+  // everyone gets a job within a few seconds, and no single tick spikes
+  for (const m of s.manos) { m.task = null; m._path = m._goal = null }
+  let worst = 0
+  for (let i = 0; i < 60; i++) { const a = performance.now(); tick(s, W2, 0.05); worst = Math.max(worst, performance.now() - a) }
+  ok(s.manos.every((m) => m.task), `200 Manos all have a job after 3 s (no one left standing)`)
+  ok(worst < 60, `choosing jobs is spread over ticks: worst tick ${worst.toFixed(1)} ms with 200 at once`)
+  run(s, W2, 30)
+  ok(s.stats.gathered.wood > 0 && s.stats.gathered.stone > 0, 'with 200 residents resources still come in')
+  // a save with 200 residents loads back
+  const mem = new Mem()
+  const st = createStore(mem)
+  const back = st.save(s, 7).ok && st.load()
+  ok(back && back.data && back.data.manos.length === 200, `a save with 200 residents loads back (${(mem.getItem(KEYS.save).length / 1024).toFixed(1)} KB)`)
+  // a Mano a house was built on top of walks out instead of being stuck
+  const [s2, w2] = fresh(rich)
+  const m = s2.manos[0]
+  m.x = 53.5; m.y = 43.5; m.task = null
+  sim.build(s2, w2, 'house', 52, 42)
+  run(s2, w2, 2)
+  ok(walkable(w2, Math.floor(m.x), Math.floor(m.y)) && m.task, 'a Mano a building was placed on steps out and gets a job')
+}
+
 console.log(fails ? `\n${fails} FAILED` : '\nall passed')
 process.exit(fails ? 1 : 0)

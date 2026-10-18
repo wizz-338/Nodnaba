@@ -22,7 +22,7 @@ export const START = {
   camp: { x: 47, y: 47 }, // 2×2 stockpile crate: everyone can drop off here
 }
 export const CAMP_SIZE = [2, 2]
-export const MAX_MANOS = 30
+export const MAX_MANOS = 200
 
 // ── Mano ─────────────────────────────────────────────────────────────────────
 export const MANO = {

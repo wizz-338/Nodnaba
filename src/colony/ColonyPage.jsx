@@ -250,6 +250,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
       store,
       tabId: Math.random().toString(36).slice(2) + Date.now().toString(36),
       active: false,
+      perf: { tick: 0, draw: 0, frames: 0 }, // time spent per part (read by browser tests)
       lastSave: 0,
       wasFull: false,
       fullToast: {},
@@ -425,7 +426,9 @@ export default function ColonyPage({ exitHref = '#/' }) {
         if (el.seconds >= OFFLINE.minNotice) pushModal({ kind: 'offline', rep, capped: el.capped, full: !hasNews(rep) && RESOURCES.every((r) => s.res[r] >= caps(s)[r] - 1) })
         g.save()
       } else if (gap > 0) {
+        const t0 = performance.now()
         for (let left = gap; left > 1e-6; left -= 0.05) tick(s, g.world, Math.min(0.05, left), events)
+        g.perf.tick += performance.now() - t0
         s.clock.simAt = now
       } else s.clock.simAt = now // clock went back: carry on from here, nothing negative
       const dt = Math.min(0.1, (pnow - last) / 1000)
@@ -439,7 +442,10 @@ export default function ColonyPage({ exitHref = '#/' }) {
         view.cells = p.cells
         view.ghost = p.ghost
       }
+      const t1 = performance.now()
       R.draw(s, g.world, view, dt)
+      g.perf.draw += performance.now() - t1
+      g.perf.frames++
       hudT += dt
       if (hudT > 0.25) {
         hudT = 0
@@ -651,6 +657,7 @@ export default function ColonyPage({ exitHref = '#/' }) {
         },
         store: g.store,
         save: g.save,
+        perf: g.perf,
         sim,
         R,
         fast(sec) {

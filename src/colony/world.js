@@ -324,17 +324,32 @@ export const stats = { searches: 0, expanded: 0, failed: 0 }
 // be blocked (something was just built around a Mano). Gives up after
 // `limit` expanded tiles instead of searching the whole map forever.
 export function findPath(world, sx, sy, gx, gy, limit = 7000) {
+  const r = findPathAny(world, sx, sy, [[gx, gy]], limit)
+  return r ? r.path : null
+}
+
+// One search toward several goal tiles at once (the stand spots around a
+// tree, a site or a drop-off): returns the nearest one reached as
+// { path, goal: [x, y] }, or null. One search instead of one per spot.
+export function findPathAny(world, sx, sy, goals, limit = 7000) {
   stats.searches++
-  if (!inMap(sx, sy) || !walkable(world, gx, gy)) return null
-  if (sx === gx && sy === gy) return []
+  if (!inMap(sx, sy)) return null
+  const gs = goals.filter(([x, y]) => walkable(world, x, y))
+  if (!gs.length) return null
+  for (const [x, y] of gs) if (x === sx && y === sy) return { path: [], goal: [x, y] }
   gen++
   heap.length = 0
   const s = idx(sx, sy)
-  const goal = idx(gx, gy)
+  const isGoal = new Set(gs.map(([x, y]) => idx(x, y)))
   const h = (x, y) => {
-    const dx = Math.abs(x - gx)
-    const dy = Math.abs(y - gy)
-    return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * PATH_COST
+    let best = Infinity
+    for (const [gx, gy] of gs) {
+      const dx = Math.abs(x - gx)
+      const dy = Math.abs(y - gy)
+      const d = dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)
+      if (d < best) best = d
+    }
+    return best * PATH_COST
   }
   stamp[s] = gen
   g[s] = 0
@@ -342,9 +357,13 @@ export function findPath(world, sx, sy, gx, gy, limit = 7000) {
   from[s] = -1
   push(s)
   let n = 0
+  let goal = -1
   while (heap.length) {
     const cur = pop()
-    if (cur === goal) break
+    if (isGoal.has(cur)) {
+      goal = cur
+      break
+    }
     if (closed[cur] === gen) continue
     closed[cur] = gen
     if (++n > limit) break
@@ -366,13 +385,15 @@ export function findPath(world, sx, sy, gx, gy, limit = 7000) {
     }
   }
   stats.expanded += n
-  if (stamp[goal] !== gen) {
+  // out of budget: a goal already seen is still a usable (if not shortest) way
+  if (goal < 0) for (const i of isGoal) if (stamp[i] === gen && (goal < 0 || g[i] < g[goal])) goal = i
+  if (goal < 0) {
     stats.failed++
     return null
   }
   const out = []
   for (let i = goal; i !== s; i = from[i]) out.push([i % MAP, (i / MAP) | 0])
-  return out.reverse()
+  return { path: out.reverse(), goal: [goal % MAP, (goal / MAP) | 0] }
 }
 
 export function pathLength(path) {
