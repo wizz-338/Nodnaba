@@ -1,0 +1,568 @@
+{
+  "_about": [
+    "MANO COLONY v2 asset list (the 13 sheets in ./originals-v2, never edited).",
+    "scripts/colony-assets.py cleans each sheet without hardening it (solid insides stay, soft",
+    "edges keep their alpha, only noise away from the drawings is removed), cuts every object",
+    "by its own pixels and the grid cell its centre falls in (or an explicit box where two",
+    "drawings touch), and packs one atlas per sheet into src/colony/assets/.",
+    "w: width of the drawing in the game, in world px (1 floor tile = 64 x 32).",
+    "anchor: 'feet' = bottom of the drawing, centred on the head (Mano frames);",
+    "'base' = bottom centre; [x, y] = an exact source pixel (e.g. a fence post's foot)."
+  ],
+  "sheets": {
+    "mano-move": {
+      "file": "mano-move.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "mano",
+      "kind": "character",
+      "_note": "rows 2-3 (walking away) are replaced by mano-back, which draws the back properly",
+      "cells": {
+        "0,0": "walk_se_0",
+        "0,1": "walk_se_1",
+        "0,2": "walk_se_2",
+        "0,3": "walk_se_3",
+        "1,0": "walk_sw_0",
+        "1,1": "walk_sw_1",
+        "1,2": "walk_sw_2",
+        "1,3": "walk_sw_3"
+      },
+      "normalize": [
+        "0,0",
+        "0,1",
+        "0,2",
+        "0,3"
+      ]
+    },
+    "mano-back": {
+      "file": "mano-back.png",
+      "grid": [
+        2,
+        4
+      ],
+      "atlas": "mano",
+      "kind": "character",
+      "cells": {
+        "0,0": "walk_ne_0",
+        "0,1": "walk_ne_1",
+        "0,2": "walk_ne_2",
+        "0,3": "walk_ne_3",
+        "1,0": "walk_nw_0",
+        "1,1": "walk_nw_1",
+        "1,2": "walk_nw_2",
+        "1,3": "walk_nw_3"
+      },
+      "normalize": [
+        "0,0",
+        "0,1",
+        "0,2",
+        "0,3"
+      ]
+    },
+    "mano-work": {
+      "file": "mano-work.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "mano",
+      "kind": "character",
+      "cells": {
+        "0,0": "chop_0",
+        "0,1": "chop_1",
+        "0,2": "chop_2",
+        "0,3": "chop_3",
+        "1,0": "pick_0",
+        "1,1": "pick_1",
+        "1,2": "pick_2",
+        "1,3": "pick_3",
+        "2,0": "hammer_0",
+        "2,1": "hammer_1",
+        "2,2": "hammer_2",
+        "2,3": "hammer_3",
+        "3,0": "gather_star_0",
+        "3,1": "gather_star_1",
+        "3,2": "gather_star_2",
+        "3,3": "gather_star_3"
+      },
+      "normalize": [
+        "3,0",
+        "3,3"
+      ]
+    },
+    "mano-carry-rest": {
+      "file": "mano-carry-rest.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "mano",
+      "kind": "character",
+      "cells": {
+        "0,0": "carry_wood_0",
+        "0,1": "carry_wood_1",
+        "0,2": "carry_wood_2",
+        "0,3": "carry_wood_3",
+        "1,0": "carry_stone_0",
+        "1,1": "carry_stone_1",
+        "1,2": "carry_stone_2",
+        "1,3": "carry_stone_3",
+        "2,0": "carry_stardust_0",
+        "2,1": "carry_stardust_1",
+        "2,2": "carry_stardust_2",
+        "2,3": "carry_stardust_3",
+        "3,0": "stand",
+        "3,1": "sit",
+        "3,2": "sleep",
+        "3,3": "sit_happy"
+      },
+      "normalize": [
+        "3,0"
+      ]
+    },
+    "buildings": {
+      "file": "buildings.png",
+      "grid": [
+        4,
+        3
+      ],
+      "atlas": "buildings",
+      "kind": "object",
+      "k": 1.8,
+      "cells": {
+        "0,0": "house_1",
+        "0,1": "house_2",
+        "0,2": "house_3",
+        "1,0": "lumber_1",
+        "1,1": "lumber_2",
+        "1,2": "lumber_3",
+        "2,0": "quarry_1",
+        "2,1": "quarry_2",
+        "2,2": "quarry_3",
+        "3,0": "storage_1",
+        "3,1": "storage_2",
+        "3,2": "storage_3"
+      }
+    },
+    "nature": {
+      "file": "nature.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "nature",
+      "kind": "object",
+      "k": 2.6,
+      "cells": {
+        "0,0": {
+          "name": "oak",
+          "k": 3.0
+        },
+        "0,1": {
+          "name": "pine",
+          "k": 3.0
+        },
+        "0,2": {
+          "name": "sakura",
+          "k": 3.0
+        },
+        "0,3": {
+          "name": "sapling",
+          "k": 3.2
+        },
+        "1,0": {
+          "name": "bush",
+          "k": 4.5
+        },
+        "1,1": {
+          "name": "bush_flower",
+          "k": 4.2
+        },
+        "1,2": {
+          "name": "stump",
+          "k": 3.8
+        },
+        "1,3": {
+          "name": "logs",
+          "k": 3.8
+        },
+        "2,0": {
+          "name": "rock_3",
+          "k": 4.2
+        },
+        "2,1": {
+          "name": "rock_2",
+          "k": 4.2
+        },
+        "2,2": {
+          "name": "rock_1",
+          "k": 4.2
+        },
+        "2,3": {
+          "name": "camp_crate",
+          "k": 2.5
+        },
+        "3,0": {
+          "name": "crystal_3",
+          "k": 4.2
+        },
+        "3,1": {
+          "name": "crystal_2",
+          "k": 4.2
+        },
+        "3,2": {
+          "name": "crystal_1",
+          "k": 4.2
+        },
+        "3,3": {
+          "name": "stardust_bag",
+          "k": 4.6
+        }
+      }
+    },
+    "street-props": {
+      "file": "street-props.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "street",
+      "kind": "object",
+      "k": 3.4,
+      "cells": {
+        "0,0": {
+          "name": "fence_seg",
+          "box": [
+            56,
+            80,
+            190,
+            272
+          ],
+          "anchor": [
+            80,
+            212
+          ],
+          "k": 5.1
+        },
+        "0,2": {
+          "name": "fence_corner"
+        },
+        "0,3": {
+          "name": "fence_post",
+          "k": 5.1
+        },
+        "1,0": {
+          "name": "gate",
+          "k": 5.9,
+          "anchor": [
+            75,
+            526
+          ]
+        },
+        "1,2": {
+          "name": "hedge_a",
+          "k": 4.1
+        },
+        "1,3": {
+          "name": "hedge_b",
+          "k": 4.1
+        },
+        "2,0": {
+          "name": "bench_ne",
+          "k": 3.9
+        },
+        "2,1": {
+          "name": "bench_nw",
+          "k": 3.9
+        },
+        "2,2": {
+          "name": "lamp_post"
+        },
+        "2,3": {
+          "name": "lamp_small"
+        },
+        "3,0": {
+          "name": "signpost"
+        },
+        "3,1": {
+          "name": "board",
+          "k": 3.9
+        },
+        "3,2": {
+          "name": "banner"
+        },
+        "3,3": {
+          "name": "barrel_crate",
+          "k": 4.4
+        }
+      }
+    },
+    "garden-props": {
+      "file": "garden-props.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "garden",
+      "kind": "object",
+      "k": 2.7,
+      "cells": {
+        "0,0": {
+          "name": "planter_a",
+          "k": 3.8
+        },
+        "0,1": {
+          "name": "planter_b",
+          "k": 3.8
+        },
+        "0,2": {
+          "name": "flowerbed_round",
+          "k": 2.25
+        },
+        "0,3": {
+          "name": "lavender",
+          "k": 3.8
+        },
+        "1,0": {
+          "name": "fountain",
+          "k": 2.35
+        },
+        "1,1": {
+          "name": "cat_statue",
+          "k": 2.4
+        },
+        "1,2": {
+          "name": "flower_arch",
+          "k": 3.5
+        },
+        "1,3": {
+          "name": "pergola",
+          "k": 2.4
+        },
+        "2,0": {
+          "name": "picnic_table",
+          "k": 3.6
+        },
+        "2,1": {
+          "name": "picnic_blanket",
+          "k": 2.7
+        },
+        "2,2": {
+          "name": "flower_cart",
+          "k": 3.8
+        },
+        "2,3": {
+          "name": "well",
+          "k": 3.5
+        },
+        "3,0": {
+          "name": "flower_rock",
+          "k": 3.8
+        },
+        "3,1": {
+          "name": "grass_tufts",
+          "k": 4.4
+        },
+        "3,2": {
+          "name": "petals",
+          "k": 4.0
+        },
+        "3,3": {
+          "name": "stepping_stones",
+          "k": 4.4
+        }
+      }
+    },
+    "water-construction": {
+      "file": "water-construction.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "water",
+      "kind": "object",
+      "k": 2.4,
+      "cells": {
+        "0,0": {
+          "name": "bridge_lamp"
+        },
+        "0,1": {
+          "name": "bridge"
+        },
+        "0,2": {
+          "name": "dock_barrel"
+        },
+        "0,3": {
+          "name": "dock"
+        },
+        "1,0": {
+          "name": "cattails",
+          "k": 4.1
+        },
+        "1,1": {
+          "name": "lily_pond",
+          "k": 4.0
+        },
+        "1,2": {
+          "name": "rocks_deco",
+          "k": 4.1
+        },
+        "1,3": {
+          "name": "boat",
+          "k": 3.2
+        },
+        "2,0": {
+          "name": "site_plot",
+          "box": [
+            0,
+            640,
+            338,
+            960
+          ],
+          "k": 1.75
+        },
+        "2,1": {
+          "name": "site_frame",
+          "box": [
+            338,
+            640,
+            700,
+            960
+          ],
+          "k": 1.95
+        },
+        "2,2": {
+          "name": "scaffold",
+          "k": 3.0
+        },
+        "2,3": {
+          "name": "lumber_pile",
+          "k": 4.2
+        },
+        "3,0": {
+          "name": "wheelbarrow",
+          "k": 4.2
+        },
+        "3,1": {
+          "name": "stone_cart",
+          "k": 4.1
+        },
+        "3,2": {
+          "name": "log_rack",
+          "k": 3.9
+        },
+        "3,3": {
+          "name": "berry_patch",
+          "k": 4.4
+        }
+      }
+    },
+    "effects": {
+      "file": "effects.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "effects",
+      "kind": "object",
+      "k": 3.2,
+      "minCore": 30,
+      "cells": {
+        "0,0": "poof_0",
+        "0,1": "poof_1",
+        "0,2": "poof_2",
+        "0,3": "poof_3",
+        "1,0": "sparkle_0",
+        "1,1": "sparkle_1",
+        "1,2": "sparkle_2",
+        "1,3": "sparkle_3",
+        "2,0": "dust_0",
+        "2,1": "dust_1",
+        "2,2": "dust_2",
+        "2,3": "dust_3",
+        "3,0": "hearts_0",
+        "3,1": "hearts_1",
+        "3,2": "hearts_2",
+        "3,3": "hearts_3"
+      }
+    },
+    "terrain-edges": {
+      "file": "terrain-edges.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "edges",
+      "kind": "object",
+      "k": 2.6,
+      "cells": {
+        "2,0": "bank_ne_0",
+        "2,1": "bank_nw_0",
+        "2,2": "bank_ne_1",
+        "2,3": "bank_nw_1",
+        "3,0": "bank_n_0",
+        "3,1": "bank_n_1",
+        "3,2": "bank_e_0",
+        "3,3": "bank_w_0"
+      },
+      "_note": "not used in the game: its bank strips are separate pieces, not a tile set that joins along a winding creek. The game draws its own sand rims on water tiles instead. Kept for reference.",
+      "skip": true
+    },
+    "iso-tiles": {
+      "file": "iso-tiles.png",
+      "grid": [
+        4,
+        4
+      ],
+      "atlas": "tiles",
+      "kind": "tile",
+      "cells": {
+        "0,0": "grass_0",
+        "0,1": "grass_1",
+        "0,2": "grass_2",
+        "0,3": "grass_3",
+        "1,0": "sand_0",
+        "1,1": "sand_1",
+        "1,2": "sand_2",
+        "1,3": "sand_3",
+        "2,0": "cobble",
+        "2,1": "brick",
+        "2,2": "planks",
+        "2,3": "soil",
+        "3,0": "water_0",
+        "3,1": "water_1",
+        "3,2": "water_2",
+        "3,3": "water_3"
+      }
+    },
+    "ui-icons": {
+      "file": "ui-icons.png",
+      "grid": [
+        4,
+        4
+      ],
+      "kind": "icon",
+      "size": 64,
+      "cells": {
+        "0,0": "wood",
+        "0,1": "stone",
+        "0,2": "stardust",
+        "0,3": "mano",
+        "1,0": "build",
+        "1,1": "upgrade",
+        "1,2": "move",
+        "1,3": "demolish",
+        "2,0": "cat_flowers",
+        "2,1": "cat_floor",
+        "2,2": "cat_fence",
+        "2,3": "cat_tree",
+        "3,0": "storage",
+        "3,1": "settings",
+        "3,2": "save",
+        "3,3": "clock"
+      }
+    }
+  }
+}

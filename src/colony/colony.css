@@ -172,12 +172,13 @@
 .mc-toasts {
   position: absolute;
   top: 8px;
-  left: 50%;
+  left: max(10px, env(safe-area-inset-left));
+  right: 64px;
   z-index: 3;
   display: grid;
   gap: 6px;
-  width: min(92%, 420px);
-  transform: translateX(-50%);
+  max-width: 420px;
+  margin: 0 auto;
   pointer-events: none;
 }
 
@@ -207,8 +208,7 @@
   from { transform: translateY(-6px); opacity: 0; }
 }
 
-.mc-tutorial,
-.mc-place {
+.mc-tutorial {
   position: absolute;
   left: 50%;
   bottom: 10px;
@@ -221,9 +221,9 @@
   box-shadow: 0 0 0 2px var(--wood), 0 4px 0 2px var(--wood-d);
 }
 
-.mc-tutorial p,
-.mc-place p {
+.mc-tutorial p {
   margin: 0 0 8px;
+  word-break: keep-all;
 }
 
 .mc-tutorial__n {
@@ -232,22 +232,222 @@
   color: #a07c62;
 }
 
-.mc-place__head {
-  display: flex;
-  align-items: center;
+.mc-chip.is-over {
+  background: #fde3e2;
+  box-shadow: inset 0 0 0 1.5px var(--bad);
+}
+
+.mc-chip.is-over b {
+  color: var(--bad);
+}
+
+/* zoom and "back to the village" */
+.mc-zoom {
+  position: absolute;
+  top: 10px;
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 2;
+  display: grid;
   gap: 8px;
 }
 
-.mc-place__head img {
-  width: 26px;
-  height: 26px;
+.mc-round {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 2px var(--wood), 0 3px 0 var(--wood-d);
+  color: var(--wood-d);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-.mc-place__fx {
+.mc-round:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px var(--wood), 0 1px 0 var(--wood-d);
+}
+
+.mc-round:disabled {
+  opacity: 0.4;
+}
+
+.mc-round--home {
+  font-size: 18px;
+}
+
+.mc-round--small {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+}
+
+.mc-stage.is-editing .mc-canvas {
+  cursor: crosshair;
+}
+
+/* the bar shown while placing, moving or drawing */
+.mc-mode,
+.mc-sel {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 3;
+  width: min(calc(100% - 20px), 460px);
+  transform: translateX(-50%);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cream);
+  box-shadow: 0 0 0 2px var(--wood), 0 4px 0 2px var(--wood-d);
+  display: grid;
+  gap: 6px;
+}
+
+.mc-mode p,
+.mc-sel p {
+  margin: 0;
+}
+
+.mc-mode__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.mc-mode__head b {
+  font-weight: 400;
+  color: var(--slate);
+  font-size: 14px;
+}
+
+.mc-okline {
+  font-size: 12px;
+  color: var(--good);
+  word-break: keep-all;
+}
+
+.mc-row--wrap {
+  justify-content: flex-start;
+}
+
+.mc-seg {
+  display: inline-flex;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px rgba(139, 90, 60, 0.5);
+  overflow: hidden;
+}
+
+.mc-seg button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mc-seg button.is-on {
+  background: var(--slate);
+  color: var(--cream);
+}
+
+/* what is selected on the map */
+.mc-sel {
+  padding-right: 52px;
+}
+
+.mc-sel__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.mc-sel__title {
+  font-size: 15px;
   color: var(--slate);
 }
 
-/* ───────── sheets (panels over the village) ───────── */
+.mc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-right: -40px;
+}
+
+.mc-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px var(--wood), 0 3px 0 var(--wood-d);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mc-act img {
+  width: 22px;
+  height: 22px;
+}
+
+.mc-act:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mc-act--primary {
+  background: var(--pink);
+  color: #fff;
+  box-shadow: inset 0 0 0 2px var(--pink-d), 0 3px 0 #b44a6c;
+}
+
+.mc-act--danger {
+  background: #fde3e2;
+  color: var(--bad);
+  box-shadow: inset 0 0 0 2px var(--bad), 0 3px 0 #96303a;
+}
+
+.mc-upline {
+  display: grid;
+  gap: 2px;
+}
+
+.mc-small {
+  font-size: 11px;
+  word-break: keep-all;
+}
+
+.mc-site {
+  display: grid;
+  gap: 4px;
+}
+
+.mc-crew {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mc-crew__n {
+  min-width: 128px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────── panels over the village (fold to see the map) ───────── */
 
 .mc-sheet {
   position: absolute;
@@ -255,10 +455,9 @@
   right: 0;
   bottom: 0;
   z-index: 4;
-  max-height: 68%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 14px max(14px, env(safe-area-inset-right)) 16px max(14px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  max-height: 64%;
   border-radius: 16px 16px 0 0;
   background: var(--cream);
   box-shadow: 0 -3px 0 var(--wood), 0 -6px 0 var(--wood-d);
@@ -273,33 +472,162 @@
   .mc-sheet {
     left: 50%;
     right: auto;
-    width: 560px;
+    width: 600px;
     transform: translateX(-50%);
     animation: none;
   }
 }
 
-.mc-sheet__close {
-  position: absolute;
-  top: 8px;
-  right: max(8px, env(safe-area-inset-right));
-  width: 40px;
-  height: 40px;
+.mc-sheet__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px max(10px, env(safe-area-inset-right)) 6px max(14px, env(safe-area-inset-left));
+}
+
+.mc-sheet__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(14px, env(safe-area-inset-right)) 16px max(14px, env(safe-area-inset-left));
+}
+
+.mc-iconbtn {
+  flex: none;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 10px;
   background: var(--paper);
   color: var(--wood-d);
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
-  z-index: 1;
+  touch-action: manipulation;
 }
 
 .mc-sheet__title {
-  margin: 0 44px 10px 0;
-  font-size: 17px;
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
   font-weight: 400;
   color: var(--slate);
+}
+
+.mc-pad {
+  margin: 4px 0 10px;
+}
+
+/* category chips, scrolling sideways */
+.mc-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 -14px 10px;
+  padding: 2px 14px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mc-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.mc-catchip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px rgba(139, 90, 60, 0.45);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mc-catchip img {
+  width: 24px;
+  height: 24px;
+}
+
+.mc-catchip.is-on {
+  background: #ffe1ea;
+  box-shadow: inset 0 0 0 2px var(--pink-d);
+}
+
+.mc-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mc-item__btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px rgba(139, 90, 60, 0.35);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mc-item__btn:active {
+  box-shadow: inset 0 0 0 2px var(--pink-d);
+}
+
+.mc-thumb {
+  flex: none;
+}
+
+.mc-item__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mc-item__name {
+  font-size: 13px;
+  color: var(--slate);
+}
+
+.mc-item__text {
+  font-size: 11px;
+  color: #6d5443;
+  word-break: keep-all;
+}
+
+.mc-badge {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--good);
+  color: #fff;
+  font-style: normal;
+  font-size: 10px;
+}
+
+.mc-free {
+  color: var(--good);
+  font-size: 12px;
 }
 
 .mc-sheet__sub {
@@ -319,7 +647,7 @@
 
 .mc-card {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 10px;
@@ -435,8 +763,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-height: 44px;
   padding: 6px 4px;
+  border: 0;
   border-bottom: 1px dashed rgba(139, 90, 60, 0.3);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .mc-mano b {
@@ -485,6 +821,29 @@
 
 .mc-savebox.is-bad .mc-card__name {
   color: var(--bad);
+}
+
+.mc-notice {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff1d6;
+  box-shadow: inset 0 0 0 1.5px var(--warn);
+}
+
+.mc-notice p,
+.mc-notice__text {
+  margin: 0;
+  font-size: 13px;
+  word-break: keep-all;
+}
+
+.mc-notes {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  word-break: keep-all;
 }
 
 /* ───────── buttons ───────── */
@@ -681,19 +1040,56 @@
     padding: 0 8px;
   }
   .mc-card {
-    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
-  .mc-card > .mc-btn {
-    grid-column: 1 / -1;
+  .mc-act {
+    padding: 0 8px;
   }
-  .mc-card__icon {
-    width: 32px;
-    height: 32px;
+  .mc-seg button {
+    padding: 0 9px;
+  }
+}
+
+/* phone turned sideways: one slim bar on top, slim buttons below */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mc-top {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding-top: calc(4px + env(safe-area-inset-top));
+    padding-bottom: 4px;
+  }
+  .mc-title {
+    display: none;
+  }
+  .mc-bar {
+    padding-top: 4px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+  .mc-bar__btn {
+    grid-auto-flow: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 2px;
+  }
+  .mc-bar__btn img {
+    width: 24px;
+    height: 24px;
+  }
+  .mc-sheet {
+    max-height: 86%;
+  }
+  .mc-zoom {
+    gap: 4px;
+    top: 6px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mc-sheet,
+  .mc-mode,
   .mc-toast {
     animation: none;
   }
