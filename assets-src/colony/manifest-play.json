@@ -1,0 +1,19 @@
+{
+  "_about": "Play and rest sheets (originals-play/). Each row is one action, four frames, read left to right. 'pair' sheets draw two Manos in every frame: the game plays them as one shared animation of two real residents. 'scale' lists frames where the head is upright, used to match the hood width of the walking Mano. anchor: 'head' = horizontal centre of the hood, 'body' = centre of the body (lying poses), 'pair' = centre of both bodies. base: 'frame' = each frame stands on its own lowest body pixel, 'row' = one ground line for the whole row (keeps hops and kicks in the air).",
+  "sheets": {
+    "solo-roll": { "file": "solo-roll.png", "rows": 4, "atlas": "play", "scale": ["2,0", "2,3"],
+      "acts": [["roll_wiggle", "body", "frame"], ["roll_side", "body", "frame"], ["roll_flop", "body", "frame"], ["roll_belly", "body", "frame"]] },
+    "solo-play": { "file": "solo-play.png", "rows": 4, "atlas": "play", "scale": ["0,3", "2,3"],
+      "acts": [["dance", "head", "row"], ["hop", "head", "row"], ["tail_chase", "body", "frame"], ["butterfly", "head", "frame"]] },
+    "solo-rest": { "file": "solo-rest.png", "rows": 4, "atlas": "play", "scale": ["2,0", "2,3", "3,0"],
+      "acts": [["yawn", "head", "frame"], ["nap", "body", "frame"], ["cookie", "head", "frame"], ["bubbles", "head", "frame"]] },
+    "solo-garden": { "file": "solo-garden.png", "rows": 4, "atlas": "play", "scale": ["3,0", "3,1", "3,2", "3,3"],
+      "acts": [["smell", "head", "frame"], ["petals", "head", "frame"], ["stones", "head", "frame"], ["swing", "head", "frame"]] },
+    "duo-tussle": { "file": "duo-tussle.png", "rows": 3, "atlas": "duo", "pair": true, "scale": ["2,1", "1,3"],
+      "acts": [["tap", "pair", "frame"], ["push", "pair", "frame"], ["peekaboo", "pair", "frame"]] },
+    "duo-play": { "file": "duo-play.png", "rows": 3, "atlas": "duo", "pair": true, "scale": ["1,0", "1,1"],
+      "acts": [["highfive", "pair", "row"], ["ball", "pair", "frame"], ["handdance", "pair", "row"]] },
+    "duo-rest": { "file": "duo-rest.png", "rows": 3, "atlas": "duo", "pair": true, "scale": ["0,0", "1,3"],
+      "acts": [["lean", "pair", "frame"], ["pat", "pair", "frame"], ["share", "pair", "frame"]] }
+  }
+}

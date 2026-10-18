@@ -204,6 +204,69 @@ export const ZONES = {
 }
 export const ZONE_IDS = Object.keys(ZONES)
 
+// ── play and rest ────────────────────────────────────────────────────────────
+// What idle Manos do when there is no work: small things all over the village.
+// Times in seconds. Work always comes first: plays end early when work turns
+// up, and a resident playing never counts as working.
+export const PLAY = {
+  short: [2, 4], // a quick reaction (a stretch after work)
+  normal: [5, 12], // most plays
+  nap: [12, 25], // naps, dozing on a friend's shoulder
+  repeat: [20, 45], // the same action again only after this long (per Mano)
+  pairAgain: [15, 30], // a Mano joins another two-Mano play only after this long
+  maxPairs: 8, // two-Mano plays at the same time
+  meetTimeout: 12, // both must reach the meeting spot within this
+  friendRadius: 8, // tiles: how far a friend can be
+  scanEvery: 1, // how often the "who is free nearby" map is rebuilt
+  playChance: 0.75, // an idle Mano plays (else walks, sits or rests as before)
+  pairChance: 0.35, // of those plays, how often two friends play together
+  afterWork: 0.12, // after delivering, now and then a quick stretch
+  sameStart: 3, // an action someone else just started is picked less for this long
+  crowd: 2, // most players around the same flower bed at once
+  wakeAfter: 1.2, // when work turns up, a play wraps up within this
+  seatLift: 11, // game px a Mano sits above the ground on a bench
+}
+
+// The 25 actions. where: open = a free patch of grass (not on paths, not by
+// doors or building sites), flower = next to a flower decoration, bench = on
+// a bench seat (else on the grass), here = right where the Mano is.
+// len: which of PLAY's time ranges. pair: two real residents in one drawing.
+export const ACTS = {
+  // 01 rolling about (alone)
+  roll_wiggle: { label: '뒹굴거리는 중', where: 'open', len: 'normal', w: 1 },
+  roll_side: { label: '데굴데굴 구르는 중', where: 'open', len: 'normal', w: 1 },
+  roll_flop: { label: '발라당 넘어가는 중', where: 'open', len: 'normal', w: 1 },
+  roll_belly: { label: '엎드려 발 까딱이는 중', where: 'open', len: 'normal', w: 1 },
+  // 02 playing alone
+  dance: { label: '춤추는 중', where: 'open', len: 'normal', w: 1 },
+  hop: { label: '폴짝폴짝 뛰는 중', where: 'open', len: 'normal', w: 1 },
+  tail_chase: { label: '꼬리 쫓는 중', where: 'open', len: 'normal', w: 0.8 },
+  butterfly: { label: '나비 구경 중', where: 'open', len: 'normal', w: 0.8, flowers: 2 },
+  // 03 tussling (two friends)
+  tap: { label: '친구와 장난치는 중', pair: true, len: 'normal', w: 1 },
+  push: { label: '친구와 밀치기 놀이 중', pair: true, len: 'normal', w: 0.8 },
+  peekaboo: { label: '친구와 까꿍 놀이 중', pair: true, len: 'normal', w: 1 },
+  // 04 playing together
+  highfive: { label: '친구와 하이파이브 중', pair: true, len: 'short', w: 1, cheer: true },
+  ball: { label: '친구와 공놀이 중', pair: true, len: 'normal', w: 1 },
+  handdance: { label: '친구와 손잡고 춤추는 중', pair: true, len: 'normal', w: 1 },
+  // 05 lazy rest (alone)
+  yawn: { label: '기지개 켜는 중', where: 'here', len: 'short', w: 0.7, rest: true },
+  nap: { label: '낮잠 자는 중', where: 'here', len: 'nap', w: 0.6, rest: true },
+  cookie: { label: '과자 먹는 중', where: 'here', len: 'normal', w: 0.8, rest: true },
+  bubbles: { label: '비눗방울 부는 중', where: 'open', len: 'normal', w: 0.8, rest: true },
+  // 06 resting with a friend
+  lean: { label: '친구에게 기대어 조는 중', pair: true, len: 'nap', w: 0.8, rest: true },
+  pat: { label: '친구 머리 쓰다듬는 중', pair: true, len: 'normal', w: 0.8, rest: true, cheer: true },
+  share: { label: '친구와 과자 나눠 먹는 중', pair: true, len: 'normal', w: 0.8, rest: true },
+  // 07 garden play (alone)
+  smell: { label: '꽃 구경 중', where: 'flower', len: 'normal', w: 1 },
+  petals: { label: '꽃잎 뿌리는 중', where: 'flower', len: 'normal', w: 1 },
+  stones: { label: '돌 쌓는 중', where: 'open', len: 'normal', w: 0.7 },
+  swing: { label: '발 흔드는 중', where: 'bench', len: 'normal', w: 0.8 },
+}
+export const ACT_IDS = Object.keys(ACTS)
+
 // ── texts ────────────────────────────────────────────────────────────────────
 export const STORAGE_NOTICE =
   '진행 상황은 현재 기기와 브라우저에만 저장됩니다. 다른 기기·브라우저에서는 자동으로 이어지지 않습니다. 브라우저 데이터 삭제 전 백업을 내보내세요.'

@@ -12,6 +12,7 @@
 import { MANO, NODES, OFFLINE, RESOURCES } from './config.js'
 import { findPathAny, idx, nodeOf, pathLength, refresh } from './world.js'
 import { buildWork, caps, carryOf, drops, workOf } from './sim.js'
+import { settle } from './play.js'
 
 export function elapsed(simAt, now) {
   if (!Number.isFinite(simAt) || !Number.isFinite(now)) return { seconds: 0, capped: false }
@@ -38,6 +39,7 @@ export function applyOffline(s, world, seconds) {
   const report = { seconds, gains: { wood: 0, stone: 0, stardust: 0 }, built: [], progressed: 0 }
   if (!(seconds > 0)) return report
   refresh(world, s)
+  settle(s, world) // plays in progress simply end; they are not replayed
 
   // 1. construction: only the Manos hammering at the site when it stopped
   for (const b of s.buildings) {

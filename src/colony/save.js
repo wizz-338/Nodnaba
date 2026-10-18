@@ -67,7 +67,8 @@ export function serialize(s) {
       x: num(m.x),
       y: num(m.y),
       carry: m.carry ? { res: m.carry.res, n: m.carry.n } : null,
-      task: m.task ? cleanTask(m.task) : null,
+      // plays are never saved: after loading, everyone simply picks a job again
+      task: m.task && m.task.kind !== 'play' && m.task.kind !== 'duo' ? cleanTask(m.task) : null,
       resume: m.resume || null,
     })),
     zones: { ...s.zones },

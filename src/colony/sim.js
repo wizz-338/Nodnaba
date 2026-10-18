@@ -17,6 +17,8 @@ import {
   MANO,
   MAX_MANOS,
   NODES,
+  PLAY,
+  ACTS,
   RESOURCES,
   START,
   STARDUST_SHARE,
@@ -39,6 +41,7 @@ import {
   zoneAt,
 } from './world.js'
 import { josa } from './text.js'
+import { arriveDuo, arrivePlay, jointOf, leave, startPlay, stepJoints, stepPlay } from './play.js'
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -372,7 +375,7 @@ export function stow(s, world, id) {
   if (!d) return { ok: false, reason: '장식을 찾을 수 없어요.' }
   s.decor = s.decor.filter((x) => x !== d)
   s.inventory[d.type] = owned(s, d.type) + 1
-  release(s, (t) => t.seat === id)
+  release(s, (t) => t.seat === id || t.decor === id, world)
   changed(s, world)
   return { ok: true, type: d.type }
 }
@@ -518,7 +521,7 @@ export function move(s, world, id, x, y, dir = null) {
   o.x = x
   o.y = y
   if (dir !== null && o.dir !== undefined && DECOR[o.type] && DECOR[o.type].dirs) o.dir = dir % DECOR[o.type].dirs.length
-  release(s, (t) => t.seat === id)
+  release(s, (t) => t.seat === id || t.decor === id, world)
   changed(s, world)
   return { ok: true }
 }
@@ -565,8 +568,9 @@ function changed(s, world) {
 }
 
 // cancel tasks matching pred (their Mano picks a new job next tick)
-function release(s, pred) {
+function release(s, pred, world = null) {
   for (const m of s.manos) if (m.task && pred(m.task)) {
+    if (world && (m.task.kind === 'play' || m.task.kind === 'duo')) leave(s, world, m)
     m.task = null
     m._path = m._goal = null
   }
@@ -597,7 +601,7 @@ const recentlyFailed = (s, m, key) => m._fail && m._fail[key] !== undefined && (
 
 const tasksOf = (s, pred, except) => s.manos.filter((o) => o !== except && o.task && pred(o.task))
 
-function setPath(m, stand, path) {
+export function setPath(m, stand, path) {
   m._path = path || []
   const j = ((m.id * 37) % 7) / 20 - 0.15
   const k = ((m.id * 53) % 5) / 20 - 0.1
@@ -678,13 +682,13 @@ function startDeliver(s, world, m) {
   setPath(m, r.stand, r.path)
 }
 
-// a free seat on a bench / picnic spot near Mano
-function findSeat(s, world, m) {
+// a free seat on a bench / picnic spot near Mano (benches = only real benches)
+export function findSeat(s, world, m, benches = false) {
   const busy = new Set(s.manos.filter((o) => o !== m && o.task && o.task.seat).map((o) => o.task.seat + ':' + o.task.si))
   let best = null
   for (const d of s.decor) {
     const def = DECOR[d.type]
-    if (!def.seats || recentlyFailed(s, m, d.id)) continue
+    if (!def.seats || recentlyFailed(s, m, d.id) || (benches && d.type !== 'bench')) continue
     const dist = d2(m, d.x, d.y)
     if (dist > 22 * 22) continue
     def.seats.forEach((_, si) => {
@@ -721,6 +725,7 @@ function stepOut(world, m) {
 }
 
 export function decide(s, world, m, out) {
+  leave(s, world, m) // a play in hand ends cleanly (spot and seat freed)
   stepOut(world, m)
   if (m.task && m.task.node) m._lastNode = m.task.node
   m.task = null
@@ -733,10 +738,13 @@ export function decide(s, world, m, out) {
     setPath(m, job.stand, job.path)
     return
   }
+  m._noWorkAt = s._time || 0
   idle(s, world, m)
 }
 
 function idle(s, world, m) {
+  // most of the time: play (alone or with a friend nearby), see play.js
+  if (startPlay(s, world, m)) return
   const r = rand(s)
   if (r < 0.5) {
     const seat = findSeat(s, world, m)
@@ -808,6 +816,7 @@ function staffSites(s, world) {
       }
       // remember the job, to go back to it when the site is done
       if (m.task && m.task.kind === 'gather') m.resume = m.task.node
+      leave(s, world, m) // called from play: the play (and a friend's) ends cleanly
       m.task = { kind: 'build', b: b.id, phase: 'go', spot: r.stand, t: 0 }
       setPath(m, r.stand, r.path)
       free.splice(free.findIndex(([x, y]) => x === r.stand[0] && y === r.stand[1]), 1)
@@ -817,7 +826,7 @@ function staffSites(s, world) {
   }
 }
 // idle first, then gatherers not carrying, carriers last
-const rank = (m) => (!m.task || ['rest', 'wander', 'sit'].includes(m.task.kind) ? 0 : m.carry ? 2 : 1)
+const rank = (m) => (!m.task || ['rest', 'wander', 'sit', 'play', 'duo'].includes(m.task.kind) ? 0 : m.carry ? 2 : 1)
 
 // ── per-frame update ────────────────────────────────────────────────────────
 
@@ -906,6 +915,7 @@ export function tick(s, world, dt, out = []) {
   const n = s.manos.length
   const first = n ? (s._turn = ((s._turn || 0) + 1) % n) : 0
   for (let i = 0; i < n; i++) step(s, world, s.manos[(first + i) % n], dt, out)
+  stepJoints(s, world, dt, out)
   s.cap = caps(s)
 }
 
@@ -915,6 +925,7 @@ function next(s, world, m, out) {
     s._budget--
     return decide(s, world, m, out)
   }
+  leave(s, world, m)
   if (m.task && m.task.node) m._lastNode = m.task.node
   m.task = null
   m._path = m._goal = null
@@ -923,6 +934,15 @@ function next(s, world, m, out) {
 function step(s, world, m, dt, out) {
   const t = m.task
   if (!t) return next(s, world, m, out)
+
+  if (t.kind === 'play' && t.phase === 'play') {
+    if (stepPlay(s, world, m, dt)) next(s, world, m, out)
+    return
+  }
+  if (t.kind === 'duo') {
+    if (!jointOf(s, m)) return next(s, world, m, out) // its joint was called off
+    if (t.phase !== 'go') return // waiting for the friend, or drawn together
+  }
 
   if (t.kind === 'rest') {
     t.t -= dt
@@ -947,7 +967,7 @@ function step(s, world, m, dt, out) {
       s._budget--
       if (!rePath(s, world, m) && t.spot) {
         if (t.b) failed(s, m, t.b)
-        return next(s, world, m, out)
+        return next(s, world, m, out) // (a play is called off cleanly there)
       }
     }
     if (t.kind === 'build' && !s.buildings.some((b) => b.id === t.b && b.build)) return next(s, world, m, out)
@@ -957,6 +977,8 @@ function step(s, world, m, dt, out) {
       m.task = { kind: 'rest', pose: rand(s) < 0.5 ? 'sit' : 'stand', t: 1.5 + rand(s) * 3 }
       return
     }
+    if (t.kind === 'play') return arrivePlay(s, world, m)
+    if (t.kind === 'duo') return arriveDuo(m)
     if (t.kind === 'sit') {
       const d = s.decor.find((x) => x.id === t.seat)
       if (!d) return next(s, world, m, out)
@@ -978,7 +1000,8 @@ function step(s, world, m, dt, out) {
     s.stats.gathered[res] += put
     out.push({ type: 'deliver', res, n: put, lost: n - put, x: m.x, y: m.y })
     m.carry = null
-    // now and then a short break on a bench, never for long
+    // now and then a quick stretch or a short break on a bench, never for long
+    if (rand(s) < PLAY.afterWork && startPlay(s, world, m, { afterWork: true })) return
     if (rand(s) < MANO.breakChance) {
       const seat = findSeat(s, world, m)
       if (seat && goSit(s, world, m, seat)) return
@@ -1048,6 +1071,8 @@ export function activity(s, world, m) {
     const b = s.buildings.find((x) => x.id === t.b)
     return `${b ? BUILDINGS[b.type].name : '건물'} ${t.phase === 'work' ? '짓는 중' : '공사장으로 가는 중'}`
   }
+  if (t.kind === 'play') return t.phase === 'play' ? ACTS[t.act].label : '놀 곳으로 가는 중'
+  if (t.kind === 'duo') return t.phase === 'go' ? '친구 만나러 가는 중' : t.phase === 'wait' ? '친구 기다리는 중' : ACTS[jointOf(s, m) ? jointOf(s, m).act : 'tap'].label
   if (t.kind === 'sit') return '쉬러 가는 중'
   if (t.kind === 'wander') return '산책 중'
   if (t.kind === 'rest') return t.seat ? '벤치에서 쉬는 중' : t.pose === 'sleep' ? '꾸벅꾸벅 조는 중' : t.pose === 'happy' ? '신난 중' : '쉬는 중'
