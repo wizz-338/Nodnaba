@@ -232,10 +232,10 @@
   .news-mano__sprite img { transform: translateX(calc(var(--n) * -100px)); }
 }
 
-/* a news item's picture: shown whole (portrait), never stretched */
+/* a news item's picture: shown whole in its own shape, never stretched */
 .news-item__img {
   display: block;
-  width: min(100%, 160px);
+  width: min(100%, var(--img-w, 160px));
   height: auto;
   border: 1px solid var(--line);
 }
