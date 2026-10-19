@@ -106,7 +106,7 @@ export default function Header({ page = 'main' }) {
                 </a>
                 <a href={GAMES.survivor.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
                   <span className="menu__n mono">└</span>
-                  <span className="menu__colony menu__colony--long">
+                  <span className="menu__colony">
                     <span className="glitch" data-text={GAMES.survivor.title}>
                       {GAMES.survivor.title}
                     </span>
