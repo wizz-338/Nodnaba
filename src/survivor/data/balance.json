@@ -276,26 +276,26 @@
   },
   "drops": {
     "coinChance": 0.12,
-    "coinAmount": 1,
+    "coinAmount": 2,
     "healChance": 0.005,
     "healAmount": 20
   },
   "rewards": {
     "elite1": {
       "chests": 1,
-      "coins": 30
+      "coins": 90
     },
     "elite2": {
       "chests": 1,
-      "coins": 50
+      "coins": 150
     },
     "boss": {
       "chests": 2,
-      "coins": 80
+      "coins": 240
     },
     "clear": {
       "chests": 2,
-      "coins": 100
+      "coins": 300
     },
     "firstClear": {
       "chests": 2
@@ -304,13 +304,13 @@
       "2": "C",
       "4": "C"
     },
-    "coinsPerChapter": 0.25,
-    "note": "reward coins × (1 + coinsPerChapter × (chapter − 1)) × the coin stat; first clear with both elites = 8 chests, a repeat clear = 6"
+    "note": "every coin of chapter N (rewards, coins on the field, coins in its chests) is worth coinGrowth^(N−1), times the coin stat — the same pace as the monsters' HP past chapter 5. First clear with both elites = 8 chests, a repeat clear = 6",
+    "coinGrowth": 1.55
   },
   "chest": {
     "rollsPerChest": 1,
     "rollsWhenFourWeapons": 3,
-    "coinsPerChest": 15,
+    "coinsPerChest": 30,
     "gradeWeights": {
       "D": 85,
       "C": 12,
@@ -350,17 +350,17 @@
     }
   ],
   "perma": {
-    "priceGrowth": 1.35,
+    "priceGrowth": 1.2,
     "stats": {
       "hp": {
         "name": "최대 체력",
         "price": 100,
-        "mul": 1.08
+        "mul": 1.1
       },
       "damage": {
         "name": "공격 피해",
         "price": 150,
-        "mul": 1.04
+        "mul": 1.08
       },
       "move": {
         "name": "이동 속도",
@@ -382,7 +382,7 @@
       "coins": {
         "name": "코인 획득량",
         "price": 220,
-        "mul": 1.04
+        "mul": 1.05
       }
     },
     "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L). Caps here are game rules for permanent stats, shown in the shop."

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
 import { createRun, step, choose, applyPreview, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
-import { browserStorage, canFuse, createProgress, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
-import { createRenderer } from './render.js'
+import { browserStorage, canFuse, createProgress, fuseAllPreview, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
+import { createRenderer, short } from './render.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
 import './survivor.css'
@@ -26,6 +26,8 @@ const effectTag = (id) => {
   if (id === 'critDamage') return `+${e.add}배`
   return `×${e.mul}`
 }
+// coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
+const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
 const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
 function change(run, id) {
   const w = run.weapon
@@ -144,6 +146,10 @@ function groupInventory(save) {
 }
 
 // what a coin stat shows: its value now and after one more level
+// a multiplier that can grow without end: ×1.082, then ×1,234, then ×1.23e6
+const times = (x) => `×${x < 1000 ? fmt(x, 3) : big(x)}`
+const secs = (x) => `${x >= 0.001 ? fmt(x, 3) : x.toExponential(1)}초`
+
 function statText(stat, L) {
   const s = D.balance.perma.stats[stat]
   const v = (l) => statValue(D, stat, l)
@@ -151,17 +157,17 @@ function statText(stat, L) {
   const w = D.weapons.registry[0].base
   switch (stat) {
     case 'hp':
-      return [`${Math.round(P.hp * v(L))}`, `${Math.round(P.hp * v(L + 1))}`]
+      return [big(P.hp * v(L)), big(P.hp * v(L + 1))]
     case 'damage':
-      return [`×${fmt(v(L), 3)}`, `×${fmt(v(L + 1), 3)}`]
+      return [times(v(L)), times(v(L + 1))]
     case 'move':
       return [`${fmt(P.speed * v(L))}`, `${fmt(P.speed * v(L + 1))}`]
     case 'interval':
-      return [`${fmt(w.interval * v(L), 3)}초`, `${fmt(w.interval * v(L + 1), 3)}초`]
+      return [secs(w.interval * v(L)), secs(w.interval * v(L + 1))]
     case 'crit':
       return [pctOf(v(L)), pctOf(Math.min(s.max, v(L + 1)))]
     case 'coins':
-      return [`×${fmt(v(L), 3)}`, `×${fmt(v(L + 1), 3)}`]
+      return [times(v(L)), times(v(L + 1))]
     default:
       return ['', '']
   }
@@ -267,6 +273,11 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           }}
           onStart={() => start()}
           onFusion={() => setScreen('fusion')}
+          onFuseAll={() => {
+            const r = P.current.fuseAll()
+            refresh()
+            return r
+          }}
           onChests={openChests}
           onBuy={(stat, level) => {
             const r = P.current.buyStat(stat, level)
@@ -324,7 +335,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
                     </span>
                   ))}
                   <span className="ms-loot__coins">
-                    <Sprite name="coin" size={14} /> +{r.coins}
+                    <Sprite name="coin" size={14} /> +{money(r.coins)}
                   </span>
                 </li>
               ))}
@@ -347,7 +358,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
 
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
-function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onChests, onBuy, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, exitHref, saveError }) {
   const tabs = [
     ['go', '출발'],
     ['gear', '장비'],
@@ -361,7 +372,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
         </a>
         <span className="ms-coins" aria-label={`코인 ${save.currency}`}>
           <Sprite name="coin" size={20} />
-          {save.currency.toLocaleString('ko-KR')}
+          {money(save.currency)}
         </span>
       </header>
       <h1 className="ms-title">{GAMES.survivor.title}</h1>
@@ -380,7 +391,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
       )}
       {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
       {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
-      {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onChests={onChests} />}
+      {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
       {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
     </div>
   )
@@ -437,8 +448,16 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
   )
 }
 
-function Gear({ save, equipped, onEquip, onFusion, onChests }) {
+// "C 9개 · B 3개 · A 1개", highest grade last
+const madeText = (made) =>
+  GRADES.filter((g) => made[g])
+    .map((g) => `${g} ${made[g]}개`)
+    .join(' · ')
+
+function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
   const groups = groupInventory(save)
+  const [fused, setFused] = useState(null)
+  const plan = fuseAllPreview(D, save)
   return (
     <>
       {save.chests.length > 0 && (
@@ -456,10 +475,30 @@ function Gear({ save, equipped, onEquip, onFusion, onChests }) {
       <section className="ms-panel">
         <div className="ms-row">
           <h3 className="ms-sub">보유 무기</h3>
-          <button type="button" className="ms-btn ms-btn--small" onClick={onFusion}>
-            합성
-          </button>
+          <span className="ms-row">
+            <button type="button" className="ms-btn ms-btn--small" onClick={onFusion}>
+              합성
+            </button>
+            <button
+              type="button"
+              className="ms-btn ms-btn--small ms-btn--primary"
+              disabled={!plan.ok}
+              onClick={() => {
+                // a second tap finds nothing left to fuse
+                const r = onFuseAll()
+                if (r.ok) setFused(r)
+              }}
+            >
+              모두 합성
+            </button>
+          </span>
         </div>
+        {plan.ok && <p className="ms-dim">모두 합성하면: {madeText(plan.made)}</p>}
+        {fused && (
+          <p className="ms-ok">
+            {madeText(fused.made)} 완성!{fused.equipped ? ` 장착 중: ${weaponName(fused.equipped.weaponId)} ${fused.equipped.grade}` : ''}
+          </p>
+        )}
         <ul className="ms-inv">
           {groups.map((g) => {
             const on = equipped && equipped.weaponId === g.weaponId && equipped.grade === g.grade
@@ -480,7 +519,7 @@ function Gear({ save, equipped, onEquip, onFusion, onChests }) {
             )
           })}
         </ul>
-        <p className="ms-dim">같은 무기·같은 등급 3개를 합성하면 다음 등급 1개가 돼요. 등급은 출발할 때의 기본 피해를 높여요 (D ×1 … EX ×{D.balance.gradeMultipliers[D.balance.gradeMultipliers.length - 1]}).</p>
+        <p className="ms-dim">같은 무기·같은 등급 3개를 합성하면 다음 등급 1개가 돼요. 모두 합성은 낮은 등급부터 3개씩 계속 합쳐 올려요. 등급은 출발할 때의 기본 피해를 높여요 (D ×1 … EX ×{D.balance.gradeMultipliers[D.balance.gradeMultipliers.length - 1]}).</p>
       </section>
     </>
   )
@@ -527,7 +566,7 @@ function Stats({ save, onBuy }) {
               >
                 {atMax ? '최대' : (
                   <>
-                    <Sprite name="coin" size={14} /> {price.toLocaleString('ko-KR')}
+                    <Sprite name="coin" size={14} /> {money(price)}
                   </>
                 )}
               </button>
@@ -757,7 +796,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         if (!r.already) {
           g.earned.chests += r.chests.length
           g.earned.coins += r.coins
-          say(`${key === 'boss' ? '해골 왕' : key === 'elite1' ? '보물 도둑' : '왕관 해골 짐승'} 처치! 상자 ${r.chests.length}개 · 코인 ${r.coins}`)
+          say(`${key === 'boss' ? '해골 왕' : key === 'elite1' ? '보물 도둑' : '왕관 해골 짐승'} 처치! 상자 ${r.chests.length}개 · 코인 ${money(r.coins)}`)
         }
         refresh()
       }
@@ -910,7 +949,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
           LV. {run.level}
         </div>
         <div className="ms-cur" style={box(H.currency)}>
-          <Sprite name="coin" size={13 * k} /> {run.coins}
+          <Sprite name="coin" size={13 * k} /> {money(run.coins)}
         </div>
         {big && (
           <div className="ms-bossbar" style={box(H.bossBar)}>
@@ -1065,7 +1104,7 @@ function Result({ run, reward, save, onRetry, onEquip, onChests }) {
             {rw.firstClear ? ' (첫 클리어 보너스 포함)' : ''}
           </p>
           <p>
-            <Sprite name="coin" size={16} /> 코인 +{coins.toLocaleString('ko-KR')}
+            <Sprite name="coin" size={16} /> 코인 +{money(coins)}
           </p>
           {rw.gift && (
             <p>
