@@ -231,3 +231,11 @@
   .news-mano { transform: translateX(calc(12% + 58px + var(--n) * 20%)); }
   .news-mano__sprite img { transform: translateX(calc(var(--n) * -100px)); }
 }
+
+/* a news item's picture: shown whole (portrait), never stretched */
+.news-item__img {
+  display: block;
+  width: min(100%, 160px);
+  height: auto;
+  border: 1px solid var(--line);
+}

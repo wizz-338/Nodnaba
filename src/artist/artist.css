@@ -120,6 +120,13 @@
   text-transform: none;
 }
 
+.artist-card__role {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+}
+
 .artist-card__links {
   display: flex;
   flex-wrap: wrap;
