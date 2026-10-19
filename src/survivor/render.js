@@ -12,6 +12,17 @@
 import { FRAMES, ART, animFrame } from './sprites.js'
 import { chargePath } from './game.js'
 
+// a damage number short enough to read over the fight: 9876, 12.3K, 456K, 7.8M …
+const UNITS = ['', 'K', 'M', 'B', 'T']
+export function short(n) {
+  n = Math.round(n)
+  if (n < 1e4) return String(n)
+  let u = 0
+  while (n >= 1000 && u < UNITS.length - 1) (n /= 1000), u++
+  if (n >= 1000) return n.toExponential(1).replace('+', '') + UNITS[u]
+  return (n < 100 ? n.toFixed(1).replace(/\.0$/, '') : String(Math.floor(n))) + UNITS[u]
+}
+
 const DIRS = ['S', 'SE', 'E', 'NE', 'N', 'SW', 'W', 'NW']
 const DIR_ANGLE = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: -135, N: -90, NE: -45 }
 const MANO_SCALE = 0.9 // a 50 px tall frame → 45 logical px
@@ -372,7 +383,7 @@ export function createRenderer(canvas, img, D) {
     for (const ev of run.events) {
       if (ev.type === 'hit') {
         if (fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
-        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: String(Math.round(ev.n)), t: 0, color: '#2f2537' })
+        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: '#2f2537' })
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
         if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })

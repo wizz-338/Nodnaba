@@ -7,14 +7,24 @@
 //  2. chests: the real save code opens the chests of four first clears and
 //     fuses; how often the chosen weapon reaches A. Today (the bouncy ball
 //     only, one roll a chest) and the planned four-weapon setup.
-//   node scripts/survivor-sims.mjs [runs=200000] [campaigns=20000]
+//   node scripts/survivor-sims.mjs [runs=200000] [campaigns=20000] [level-ups=18]
 import { D } from './survivor-data.mjs'
 import { drawChoices, rng32 } from '../src/survivor/game.js'
 import { createProgress } from '../src/survivor/progress.js'
 
 const N = +process.argv[2] || 200000
 const M = +process.argv[3] || 20000
-const LEVELS = 18
+const LEVELS = +process.argv[4] || 18
+// P(X ≥ k) for X ~ Binomial(n, p)
+const binomAtLeast = (n, p, k) => {
+  let c = 1
+  let sum = 0
+  for (let i = 0; i <= n; i++) {
+    if (i >= k) sum += c * p ** i * (1 - p) ** (n - i)
+    c = (c * (n - i)) / (i + 1)
+  }
+  return sum
+}
 const order = ['count', 'interval', 'damage', 'bounce']
 const H = (b) => 1 + 7 * (1 - Math.exp(-b / 7))
 const pool = [...D.weapons.registry[0].core, ...D.balance.upgrades.pool.filter((id) => !order.includes(id))]
@@ -41,7 +51,7 @@ console.log(`--- upgrades: ${N.toLocaleString()} runs × ${LEVELS} level-ups, 3 
 for (const p of [5, 25, 50, 75, 90, 95, 99]) console.log(`${String(p).padStart(2)}th percentile power index ${q(p).toFixed(1).padStart(8)}×`)
 const share = (f) => ((100 * Array.prototype.filter.call(P, f).length) / N).toFixed(1) + '%'
 console.log(`index ≥ 550: ${share((x) => x >= 550)} (×1.25: ${share((x) => x * 1.25 >= 550)}, ×1.5: ${share((x) => x * 1.5 >= 550)})`)
-console.log(`'count ×2' offered 6 or more times: ${((100 * offered.filter((x) => x >= 6).length) / N).toFixed(2)}% (binomial 18, 3/16: 10.42%)`)
+console.log(`'count ×2' offered 6 or more times: ${((100 * offered.filter((x) => x >= 6).length) / N).toFixed(2)}% (binomial ${LEVELS}, 3/16: ${(100 * binomAtLeast(LEVELS, 3 / 16, 6)).toFixed(2)}%)`)
 const dist = Array.from({ length: 9 }, (_, k) => ((100 * picked.count.filter((x) => x === k).length) / N).toFixed(1))
 console.log(`'count ×2' picked 0..8 times: ${dist.join(' / ')} %  → balls per volley 1 … 256`)
 

@@ -230,10 +230,12 @@ const still = { x: 0, y: 0 }
 {
   const run = newRun()
   run.spawnT = -1e9
-  ok(nextNeed(D, 10) === 15 && nextNeed(D, 15) === 21, 'XP needed: 10 → 15 → 21')
-  run.orbs.push({ kind: 'xp', x: run.player.x, y: run.player.y, v: 30, pull: false })
+  const n0 = B.xp.startThreshold
+  const n1 = nextNeed(D, n0)
+  ok(run.need === n0 && n1 === Math.round(n0 * B.xp.growth + B.xp.add), `XP needed: ${n0} → ${n1} → ${nextNeed(D, n1)}`)
+  run.orbs.push({ kind: 'xp', x: run.player.x, y: run.player.y, v: n0 + n1 + 1, pull: false })
   step(run, FIXED * 2, still)
-  ok(run.state === 'levelup' && run.pending === 2 && run.xp === 5 && run.level === 3 && run.coins === 0, '30 XP: two level-ups queued, 5 XP carried over, no coins')
+  ok(run.state === 'levelup' && run.pending === 2 && run.xp === 1 && run.level === 3 && run.coins === 0, `${n0 + n1 + 1} XP: two level-ups queued, 1 XP carried over, no coins`)
   const t0 = run.t
   const e = enemy(run, run.player.x + 40, run.player.y)
   e.speed = 50
@@ -247,6 +249,35 @@ const still = { x: 0, y: 0 }
   run.orbs.push({ kind: 'coin', x: run.player.x, y: run.player.y, v: 1, pull: false })
   step(run, FIXED * 2, still)
   ok(run.coins === 1 && run.xp === xp, 'a coin is a coin: it adds no XP')
+}
+// experience left lying comes by itself after a while; coins do not
+{
+  const run = newRun()
+  run.spawnT = -1e9
+  const p = run.player
+  const far = { x: p.x + 150, y: p.y + 150 }
+  run.orbs.push({ kind: 'xp', ...far, v: 1, pull: false }, { kind: 'coin', ...far, v: 1, pull: false })
+  for (let t = 0; t < B.xp.pullAfter - 0.2; t += FIXED) step(run, FIXED, still)
+  ok(run.orbs.length === 2 && run.orbs.every((o) => o.x === far.x), `before ${B.xp.pullAfter} s the experience stays where it fell`)
+  for (let t = 0; t < 1.5; t += FIXED) step(run, FIXED, still)
+  ok(run.xp === 1 && run.orbs.length === 1 && run.orbs[0].kind === 'coin' && run.coins === 0, 'then it flies to Mano by itself; the coin stays to be picked up')
+}
+
+// ── monsters come in packs ──────────────────────────────────────────────────
+{
+  const run = newRun({ seed: 5 })
+  run.nextEvent = 9 // no elites or boss
+  for (const ph of B.chapter.phases) {
+    run.t = ph.from + 0.01
+    run.enemies = []
+    run.spawnT = 1e3
+    step(run, FIXED, still)
+    const n = run.enemies.length
+    const one = run.enemies.every((e) => e.type === run.enemies[0].type)
+    const spread = Math.max(...run.enemies.map((e) => Math.hypot(e.x - run.enemies[0].x, e.y - run.enemies[0].y)))
+    const away = run.enemies.every((e) => Math.hypot(e.x - run.player.x, e.y - run.player.y) >= 60)
+    ok(n >= 1 && n <= ph.pack && one && spread < 120 && away, `from ${ph.from} s: a pack of up to ${ph.pack} of one kind, bunched, away from Mano (${n} ${run.enemies[0]?.type})`)
+  }
 }
 
 // ── contact damage, death ───────────────────────────────────────────────────
@@ -330,7 +361,7 @@ const still = { x: 0, y: 0 }
   run.nextEvent = 2
   step(run, FIXED * 2, still)
   const b = run.boss
-  ok(b && near(b.maxHp, B.enemies.boss.hp), `the boss comes with its own HP (${b && b.maxHp})`)
+  ok(b && near(b.maxHp, B.enemies.boss.hp * B.chapters[0].hp), `the boss comes with its own HP × the chapter's (${b && b.maxHp})`)
   for (let i = 0; i < 600 && b.mode !== 'windup'; i++) step(run, FIXED, still)
   const path = chargePath(run, b)
   const start = [b.x, b.y]
