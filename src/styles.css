@@ -498,7 +498,9 @@ main,
 .menu__sub a {
   padding: 4px 0 16px 26px;
   /* small enough on a 320px phone that "MANO COLONY" stays on one line */
-  font-size: clamp(17px, 5.4vw, 40px);
+  /* the longest title (MANO SURVIVOR) sets the size on narrow phones, so all
+     three stay the same size and none is cut */
+  font-size: clamp(15px, min(5.4vw, 6.9vw - 6.5px), 40px);
 }
 
 /* MANO COLONY in the menu font, then a small (DEMO) with Mano and her
@@ -859,9 +861,4 @@ main,
     font-size: 12px;
     letter-spacing: 0.04em;
   }
-}
-
-/* "MANO SURVIVOR" is two letters longer than "MANO COLONY": a touch smaller on narrow phones */
-.menu__colony--long > .glitch {
-  font-size: min(1em, 4.6vw);
 }
