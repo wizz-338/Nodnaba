@@ -1,5 +1,5 @@
 {
-  "status": "initial values, tuned with bot runs (scripts/survivor-balance.mjs); not measured with people",
+  "note": "balanceConfig — every number of MANO SURVIVOR in one place: difficulty per chapter, the chapter timeline, enemies, drops, rewards, chests, grades, fusion, coin stats and in-run upgrades. Starting values for experiments, tuned with bots (scripts/survivor-balance.mjs, survivor-campaign.mjs); not measured with people.",
   "logicalArena": {
     "width": 360,
     "height": 640,
@@ -15,119 +15,448 @@
     "speed": 105,
     "hitRadius": 9,
     "pickupRadius": 55,
-    "contactInvulnerability": 0.65
+    "contactInvulnerability": 0.65,
+    "critChance": 0,
+    "critMultiplier": 2
   },
   "xp": {
     "startThreshold": 10,
-    "nextFormula": "round(previous*1.18+3)"
+    "growth": 1.18,
+    "add": 3,
+    "note": "next = round(previous × growth + add)"
   },
   "enemies": {
-    "jaw": {
-      "hp": 22,
-      "speed": 27,
+    "imp": {
+      "behavior": "chase",
+      "art": "imp",
+      "hp": 20,
+      "speed": 44,
       "damage": 9,
       "xp": 3,
-      "radius": 11,
-      "drawHeight": 34
-    },
-    "hunter": {
-      "hp": 18,
-      "speed": 48,
-      "damage": 8,
-      "xp": 4,
       "radius": 10,
-      "drawHeight": 38
+      "scale": 0.6
     },
-    "armor": {
-      "hp": 90,
-      "speed": 20,
+    "spider": {
+      "behavior": "weave",
+      "art": "spider",
+      "hp": 13,
+      "speed": 64,
+      "damage": 7,
+      "xp": 3,
+      "radius": 10,
+      "scale": 0.62
+    },
+    "slime": {
+      "behavior": "chase",
+      "art": "slime",
+      "hp": 52,
+      "speed": 21,
+      "damage": 14,
+      "xp": 6,
+      "radius": 13,
+      "scale": 0.72
+    },
+    "bone_beast": {
+      "behavior": "line",
+      "art": "bone_beast",
+      "hp": 34,
+      "speed": 92,
+      "damage": 12,
+      "xp": 5,
+      "radius": 12,
+      "scale": 0.95,
+      "lineSeconds": 1.1,
+      "pauseSeconds": 0.35
+    },
+    "thief": {
+      "rank": "elite",
+      "name": "보물 도둑",
+      "behavior": "flee",
+      "art": "thief",
+      "hp": 320,
+      "speed": 58,
+      "damage": 6,
+      "xp": 20,
+      "radius": 15,
+      "scale": 0.62,
+      "staySeconds": 30
+    },
+    "brute": {
+      "rank": "elite",
+      "name": "왕관 해골 짐승",
+      "behavior": "boss",
+      "art": "boss",
+      "hp": 900,
+      "speed": 34,
+      "damage": 14,
+      "xp": 30,
+      "radius": 19,
+      "scale": 0.9,
+      "walkSeconds": 2.4,
+      "windupSeconds": 0.85,
+      "chargeSpeed": 300,
+      "chargeSeconds": 0.45,
+      "chargeDamage": 22,
+      "restSeconds": 0.6,
+      "downSeconds": 0.6,
+      "stomp": false
+    },
+    "boss": {
+      "rank": "boss",
+      "name": "해골 왕",
+      "behavior": "boss",
+      "art": "boss",
+      "hp": 2400,
+      "speed": 30,
       "damage": 18,
-      "xp": 10,
-      "radius": 21,
-      "drawHeight": 65
+      "xp": 60,
+      "radius": 24,
+      "scale": 1.2,
+      "walkSeconds": 2.0,
+      "windupSeconds": 0.8,
+      "chargeSpeed": 330,
+      "chargeSeconds": 0.5,
+      "chargeDamage": 30,
+      "restSeconds": 0.55,
+      "downSeconds": 1.1,
+      "stomp": true,
+      "stompRadius": 72,
+      "stompWindup": 0.9,
+      "stompDamage": 24
     }
   },
-  "waves": [
-    {
-      "seconds": 30,
-      "spawnInterval": 1.05,
-      "hpMultiplier": 1,
-      "speedMultiplier": 1,
-      "mix": {
-        "jaw": 1
+  "chapter": {
+    "seconds": 240,
+    "phases": [
+      {
+        "from": 0,
+        "spawnInterval": 1.35,
+        "hpMultiplier": 1,
+        "speedMultiplier": 1.0,
+        "mix": {
+          "imp": 1
+        }
+      },
+      {
+        "from": 35,
+        "spawnInterval": 1.15,
+        "hpMultiplier": 1.05,
+        "speedMultiplier": 1.0,
+        "mix": {
+          "imp": 0.7,
+          "spider": 0.3
+        }
+      },
+      {
+        "from": 70,
+        "spawnInterval": 1.0,
+        "hpMultiplier": 1.15,
+        "speedMultiplier": 1.05,
+        "mix": {
+          "imp": 0.5,
+          "spider": 0.3,
+          "slime": 0.2
+        }
+      },
+      {
+        "from": 110,
+        "spawnInterval": 0.88,
+        "hpMultiplier": 1.3,
+        "speedMultiplier": 1.1,
+        "mix": {
+          "imp": 0.4,
+          "spider": 0.25,
+          "slime": 0.15,
+          "bone_beast": 0.2
+        }
+      },
+      {
+        "from": 145,
+        "spawnInterval": 0.78,
+        "hpMultiplier": 1.45,
+        "speedMultiplier": 1.12,
+        "mix": {
+          "imp": 0.35,
+          "spider": 0.25,
+          "slime": 0.2,
+          "bone_beast": 0.2
+        }
+      },
+      {
+        "from": 180,
+        "spawnInterval": 0.7,
+        "hpMultiplier": 1.6,
+        "speedMultiplier": 1.15,
+        "mix": {
+          "imp": 0.35,
+          "spider": 0.25,
+          "slime": 0.2,
+          "bone_beast": 0.2
+        }
+      },
+      {
+        "from": 210,
+        "spawnInterval": 0.78,
+        "hpMultiplier": 1.8,
+        "speedMultiplier": 1.15,
+        "mix": {
+          "imp": 0.35,
+          "spider": 0.25,
+          "slime": 0.2,
+          "bone_beast": 0.2
+        }
       }
+    ],
+    "events": [
+      {
+        "at": 70,
+        "key": "elite1",
+        "enemy": "thief"
+      },
+      {
+        "at": 145,
+        "key": "elite2",
+        "enemy": "brute"
+      },
+      {
+        "at": 210,
+        "key": "boss",
+        "enemy": "boss"
+      }
+    ],
+    "eliteHeal": 20,
+    "overtime": {
+      "after": 240,
+      "every": 30,
+      "spawnFaster": 0.85,
+      "note": "the chapter is cleared only when the boss falls. Past 240 s with the boss alive the fight goes on (boss overtime): every 30 s monsters come 15% faster"
+    }
+  },
+  "chapters": [
+    {
+      "hp": 1.0,
+      "damage": 1.0,
+      "spawn": 1.0
     },
     {
-      "seconds": 30,
-      "spawnInterval": 0.8,
-      "hpMultiplier": 1.3,
-      "speedMultiplier": 1,
-      "mix": {
-        "jaw": 0.8,
-        "hunter": 0.2
-      }
+      "hp": 1.5,
+      "damage": 1.1,
+      "spawn": 1.08
     },
     {
-      "seconds": 35,
-      "spawnInterval": 0.62,
-      "hpMultiplier": 1.8,
-      "speedMultiplier": 1.05,
-      "mix": {
-        "jaw": 0.65,
-        "hunter": 0.25,
-        "armor": 0.1
-      }
+      "hp": 2.8,
+      "damage": 1.22,
+      "spawn": 1.16
     },
     {
-      "seconds": 35,
-      "spawnInterval": 0.48,
-      "hpMultiplier": 2.5,
-      "speedMultiplier": 1.1,
-      "mix": {
-        "jaw": 0.6,
-        "hunter": 0.25,
-        "armor": 0.15
-      }
+      "hp": 3.55,
+      "damage": 1.29,
+      "spawn": 1.21
     },
     {
-      "seconds": 40,
-      "spawnInterval": 0.36,
-      "hpMultiplier": 3.4,
-      "speedMultiplier": 1.15,
-      "mix": {
-        "jaw": 0.55,
-        "hunter": 0.25,
-        "armor": 0.2
-      }
-    },
-    {
-      "seconds": 40,
-      "spawnInterval": 0.29,
-      "hpMultiplier": 4.6,
-      "speedMultiplier": 1.2,
-      "mix": {
-        "jaw": 0.5,
-        "hunter": 0.25,
-        "armor": 0.25
-      }
+      "hp": 5.1,
+      "damage": 1.42,
+      "spawn": 1.3
     }
   ],
-  "waveHeal": 15,
-  "chapterScaling": {
-    "note": "per chapter after the first: enemy HP × hpPerChapter^(chapter-1), contact damage × damagePerChapter^(chapter-1), spawn interval ÷ (1 + spawnPerChapter × (chapter-1)). Package proposal was 1.35 / 1.12 / 0.10; lowered after bot runs (chapter 2 ended most average runs in wave 2).",
-    "hpPerChapter": 1.22,
-    "damagePerChapter": 1.08,
-    "spawnPerChapter": 0.06
+  "beyondLastChapter": {
+    "hp": 1.55,
+    "damage": 1.1,
+    "spawn": 1.05,
+    "note": "each chapter past the list multiplies the last one by these"
   },
   "drops": {
     "coinChance": 0.3,
-    "coinAmount": 1
+    "coinAmount": 1,
+    "healChance": 0.012,
+    "healAmount": 20
+  },
+  "rewards": {
+    "elite1": {
+      "chests": 1,
+      "coins": 30
+    },
+    "elite2": {
+      "chests": 1,
+      "coins": 50
+    },
+    "boss": {
+      "chests": 2,
+      "coins": 80
+    },
+    "clear": {
+      "chests": 2,
+      "coins": 100
+    },
+    "firstClear": {
+      "chests": 2
+    },
+    "firstClearWeapon": {
+      "2": "C",
+      "4": "C"
+    },
+    "coinsPerChapter": 0.25,
+    "note": "reward coins × (1 + coinsPerChapter × (chapter − 1)) × the coin stat; first clear with both elites = 8 chests, a repeat clear = 6"
+  },
+  "chest": {
+    "rollsPerChest": 1,
+    "rollsWhenFourWeapons": 3,
+    "coinsPerChest": 15,
+    "gradeWeights": {
+      "D": 85,
+      "C": 12,
+      "B": 3
+    },
+    "note": "only weapons that can really be played are rolled (today: the bouncy ball, one roll per chest plus coins)"
+  },
+  "grades": [
+    "D",
+    "C",
+    "B",
+    "A",
+    "S",
+    "SS",
+    "SSS",
+    "EX"
+  ],
+  "gradeMultipliers": [
+    1.0,
+    1.15,
+    1.35,
+    1.65,
+    2.15,
+    3.0,
+    4.5,
+    7.0
+  ],
+  "fusion": {
+    "inputs": 3,
+    "note": "three of the same weapon and grade make one of the next grade; EX cannot be fused"
+  },
+  "startingInventory": [
+    {
+      "weaponId": "bouncy_ball",
+      "grade": "D",
+      "count": 1
+    }
+  ],
+  "perma": {
+    "priceGrowth": 1.35,
+    "stats": {
+      "hp": {
+        "name": "최대 체력",
+        "price": 100,
+        "mul": 1.08
+      },
+      "damage": {
+        "name": "공격 피해",
+        "price": 150,
+        "mul": 1.04
+      },
+      "move": {
+        "name": "이동 속도",
+        "price": 120,
+        "mul": 1.015,
+        "maxLevel": 40
+      },
+      "interval": {
+        "name": "공격 주기",
+        "price": 180,
+        "mul": 0.98
+      },
+      "crit": {
+        "name": "치명타 확률",
+        "price": 200,
+        "add": 0.0075,
+        "max": 0.5
+      },
+      "coins": {
+        "name": "코인 획득량",
+        "price": 220,
+        "mul": 1.04
+      }
+    },
+    "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L). Caps here are game rules for permanent stats, shown in the shop."
+  },
+  "upgrades": {
+    "pool": [
+      "count",
+      "interval",
+      "damage",
+      "bounce",
+      "maxHp",
+      "move",
+      "crit",
+      "critDamage",
+      "ballSpeed",
+      "size",
+      "pickup",
+      "split",
+      "luck",
+      "regen",
+      "armor",
+      "xpGain"
+    ],
+    "equalWeights": true,
+    "effects": {
+      "count": {
+        "mul": 2
+      },
+      "interval": {
+        "mul": 0.7
+      },
+      "damage": {
+        "mul": 1.5
+      },
+      "bounce": {
+        "mul": 2
+      },
+      "maxHp": {
+        "mul": 1.12,
+        "healShare": 0.3
+      },
+      "move": {
+        "mul": 1.06
+      },
+      "crit": {
+        "add": 0.08
+      },
+      "critDamage": {
+        "add": 0.5
+      },
+      "ballSpeed": {
+        "mul": 1.12
+      },
+      "size": {
+        "mul": 1.12
+      },
+      "pickup": {
+        "mul": 1.25
+      },
+      "split": {
+        "add": 0.25
+      },
+      "luck": {
+        "mul": 1.2
+      },
+      "regen": {
+        "add": 0.6
+      },
+      "armor": {
+        "mul": 0.88
+      },
+      "xpGain": {
+        "mul": 1.15
+      }
+    },
+    "note": "in-run only, reset after every run; no cap and no hidden slow-down. The core four: balls per volley ×2, gap between volleys ×0.7, damage ×1.5, bounce limit ×2"
   },
   "performance": {
+    "ballBudget": 480,
+    "ballBudgetNote": "at most this many balls fly at once; a volley that would pass it fires fewer balls, each carrying the damage of those it stands for (the total never drops)",
     "visualDamageNumbers": 40,
     "cosmeticParticles": 80,
-    "enemySoftLimit": 140,
-    "projectileStressTarget": 200,
-    "doNotDeleteLiveDamageToMeetFxBudget": true
+    "trailsUpTo": 160,
+    "enemySoftLimit": 140
   }
 }

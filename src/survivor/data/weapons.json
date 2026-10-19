@@ -6,16 +6,18 @@
       "id": "bouncy_ball",
       "name": "탱탱볼",
       "behaviorId": "bounce_projectile",
-      "icon": "assets/icons/ball.png",
+      "icon": "weapon_ball",
       "base": {
-        "damage": 14,
-        "interval": 1.1,
+        "damage": 20,
+        "interval": 1.0,
         "count": 1,
-        "radius": 4.5,
+        "radius": 3.5,
         "speed": 260,
-        "bounces": 2,
+        "bounces": 1,
         "splitChance": 0,
-        "ttl": 3.2
+        "ttl": 3.2,
+        "ttlPerBounce": 0.15,
+        "ttlMax": 6
       },
       "split": {
         "trigger": "first enemy hit only",
@@ -24,18 +26,16 @@
         "childRadiusMultiplier": 0.75,
         "childBounces": 1,
         "childTtl": 1.4,
-        "childrenCanSplit": false
+        "generations": 1,
+        "generationsNote": "balls of generation < generations may split; children are one generation older, so they never split again"
       },
-      "upgradePool": [
+      "core": [
         "count",
+        "interval",
         "damage",
-        "bounce",
-        "split",
-        "haste",
-        "size",
-        "magnet",
-        "health"
-      ]
+        "bounce"
+      ],
+      "coreNote": "the four core upgrades of this weapon; another weapon names its own four"
     }
   ],
   "futureExtension": {

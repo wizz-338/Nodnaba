@@ -6,9 +6,6 @@ export const D = {
   balance: read('balance'),
   weapons: read('weapons'),
   upgrades: read('upgrades'),
-  progression: read('progression'),
-  mano: read('mano'),
   ui: read('ui'),
-  enemiesArt: read('enemies-art'),
-  icons: read('icons'),
+  art: read('assets-v3'),
 }
