@@ -64,6 +64,15 @@ function Runners() {
   )
 }
 
+// a news picture in its own shape: tall ones 160 px wide (as before), square
+// ones 220 px, wide ones 320 px (never wider than the column)
+function NewsImg({ n }) {
+  const w = n.imgW || 1024
+  const h = n.imgH || 1536
+  const shown = w < h * 0.9 ? 160 : w <= h * 1.1 ? 220 : 320
+  return <img className="news-item__img" src={n.img} alt="" width={w} height={h} style={{ '--img-w': `${shown}px` }} loading="lazy" decoding="async" />
+}
+
 function Item({ n, i }) {
   const external = /^https?:/.test(n.link || '')
   return (
@@ -74,7 +83,7 @@ function Item({ n, i }) {
         </time>
         <span className="news-item__cat">{n.category}</span>
       </p>
-      {n.img && <img className="news-item__img" src={n.img} alt="" width="1024" height="1536" loading="lazy" decoding="async" />}
+      {n.img && <NewsImg n={n} />}
       <h2 className="news-item__title">{n.title}</h2>
       <p className="news-item__desc">{n.description}</p>
       {n.link && (
