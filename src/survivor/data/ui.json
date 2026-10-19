@@ -11,13 +11,13 @@
     "stage": [
       12,
       8,
-      240,
+      200,
       18
     ],
     "timer": [
-      252,
+      212,
       8,
-      56,
+      94,
       18
     ],
     "pause": [
@@ -67,23 +67,28 @@
       90,
       200,
       26
+    ],
+    "track": [
+      0,
+      71,
+      360,
+      4
     ]
   },
   "joystick": {
-    "mode": "bottom-left, follows the thumb a little",
+    "mode": "anywhere: the stick appears where the finger lands (it rests faintly at the bottom left)",
     "center": [
       66,
       556
     ],
     "radius": 42,
     "knobRadius": 17,
-    "follow": 56,
     "deadzone": 0.12,
     "activationRegion": [
       0,
-      380,
-      250,
-      260
+      0,
+      360,
+      640
     ]
   },
   "modal": {

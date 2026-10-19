@@ -942,3 +942,39 @@
   pointer-events: none;
   word-break: keep-all;
 }
+
+/* how far the chapter has come: the clock to the boss, with the two elites
+   and the boss marked on it */
+.ms-track {
+  background: rgba(252, 235, 205, 0.15);
+  pointer-events: none;
+}
+
+.ms-track__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+}
+
+.ms-track__mark {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  translate: -50% -50%;
+}
+
+.ms-track__mark--elite {
+  background: var(--accent);
+}
+
+.ms-track__mark--boss {
+  translate: -100% -50%;
+  background: var(--hp);
+}
+
+.ms-track__mark.is-past {
+  opacity: 0.45;
+}
