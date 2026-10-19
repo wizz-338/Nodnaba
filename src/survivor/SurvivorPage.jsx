@@ -645,8 +645,9 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
     }
     fit()
 
-    // ── joystick: bottom left; one finger in that corner moves it a little
-    // toward where it landed and steers from there ──
+    // ── joystick: a finger anywhere on the battle (buttons aside) puts the
+    // stick right there and steers from it; at rest it waits, faint, at the
+    // bottom left ──
     const joy = { id: null, ox: 0, oy: 0 }
     const home = () => ({ x: JOY.center[0] * g.k, y: JOY.center[1] * g.k })
     const show = (on, x, y, kx = 0, ky = 0) => {
@@ -673,16 +674,12 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       const p = local(e)
       const [rx, ry, rw, rh] = JOY.activationRegion
       if (p.x / g.k < rx || p.x / g.k > rx + rw || p.y / g.k < ry || p.y / g.k > ry + rh) return
-      // the stick comes toward the finger, at most `follow` from its home
-      const h = home()
-      const dx = p.x - h.x
-      const dy = p.y - h.y
-      const d = Math.hypot(dx, dy)
-      const f = JOY.follow * g.k
-      const c = d > f ? f / d : 1
+      // the stick goes where the finger is, kept whole inside the screen
+      const R0 = JOY.radius * g.k
+      const r = stage.getBoundingClientRect()
       joy.id = e.pointerId
-      joy.ox = h.x + dx * c
-      joy.oy = h.y + dy * c
+      joy.ox = Math.max(R0, Math.min(r.width - R0, p.x))
+      joy.oy = Math.max(R0, Math.min(r.height - R0, p.y))
       stage.setPointerCapture?.(e.pointerId)
       e.preventDefault()
       onMove(e)
@@ -866,8 +863,16 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   // the elite or boss on the field, for its health bar
   const big = [run.boss, run.elites.elite2, run.elites.elite1].find((e) => e && e.state === 'live')
   const ot = overtime(run)
-  const mm = Math.floor(run.t / 60)
-  const ss = String(Math.floor(run.t % 60)).padStart(2, '0')
+  // where the chapter is: the waves before the boss (n/6), the time left
+  // until the boss comes, then the boss fight; a track with the elites and
+  // the boss on it
+  const C = D.balance.chapter
+  const bossAt = C.events.find((e) => e.key === 'boss').at
+  const waves = C.phases.filter((ph) => ph.from < bossAt)
+  const waveNo = waves.filter((ph) => ph.from <= run.t).length
+  const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
+  const stageText = run.boss ? (ot ? '보스전 연장' : '보스전') : `${waveNo}/${waves.length} 웨이브`
+  const timeText = run.boss ? clock(run.t) : `보스 ${clock(Math.max(0, Math.ceil(bossAt - run.t)))}`
   const R0 = JOY.radius * k
 
   return (
@@ -878,10 +883,16 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       <div className="ms-hud">
         <div className="ms-hudbar" style={{ height: pct(H.height / 640) }} />
         <div className="ms-stagename" style={box(H.stage)}>
-          {run.chapter}장{ot ? ' · 보스전 연장' : run.boss ? ' · 보스' : ''}
+          {run.chapter}장 · {stageText}
         </div>
         <div className="ms-time" style={box(H.timer)}>
-          {mm}:{ss}
+          {timeText}
+        </div>
+        <div className="ms-track" style={box(H.track)} aria-hidden="true">
+          <span className="ms-track__fill" style={{ width: pct(Math.min(1, run.t / bossAt)) }} />
+          {C.events.map((ev) => (
+            <span key={ev.key} className={`ms-track__mark ms-track__mark--${ev.key === 'boss' ? 'boss' : 'elite'} ${run.t >= ev.at ? 'is-past' : ''}`} style={{ left: pct(ev.at / bossAt) }} />
+          ))}
         </div>
         <button type="button" className="ms-pause" style={box(H.pause)} onClick={() => setModal({ kind: 'pause' })} aria-label="일시정지" disabled={run.state !== 'play' || !!modal}>
           <Sprite name="pause" size={H.pause[2] * k} />
@@ -916,7 +927,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         </div>
       </div>
       {toast && <p className="ms-toast">{toast}</p>}
-      {hint && <p className="ms-hint">왼쪽 아래를 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.</p>}
+      {hint && <p className="ms-hint">화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.</p>}
       <div className="ms-joy" ref={joyRef} aria-hidden="true">
         <span className="ms-joy__base">
           <Sprite name="joystick_base" size={R0 * 2} />
