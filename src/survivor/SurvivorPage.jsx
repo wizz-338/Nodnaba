@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
 import { createRun, step, choose, applyPreview, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
-import { browserStorage, canFuse, createProgress, fuseAllPreview, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
 import './survivor.css'
+import saveIcon from '../colony/assets/ui/save.png'
 
 // the weapon's picture in the sheet (data/weapons.json names it)
 const weaponIcon = (id) => (weaponDef(D, id) || {}).icon || 'weapon_ball'
@@ -278,6 +279,11 @@ export default function SurvivorPage({ exitHref = '#/' }) {
             refresh()
             return r
           }}
+          P={P.current}
+          onImported={(data) => {
+            setSave(data)
+            setChapter(Math.max(1, Math.min(data.unlockedChapter, 99)))
+          }}
           onChests={openChests}
           onBuy={(stat, level) => {
             const r = P.current.buyStat(stat, level)
@@ -358,11 +364,12 @@ export default function SurvivorPage({ exitHref = '#/' }) {
 
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
-function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, exitHref, saveError }) {
   const tabs = [
     ['go', '출발'],
     ['gear', '장비'],
     ['stats', '마노 강화'],
+    ['settings', '설정'],
   ]
   return (
     <div className="ms-page">
@@ -393,6 +400,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
       {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
       {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
       {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
+      {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} />}
     </div>
   )
 }
@@ -520,6 +528,114 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
           })}
         </ul>
         <p className="ms-dim">같은 무기·같은 등급 3개를 합성하면 다음 등급 1개가 돼요. 모두 합성은 낮은 등급부터 3개씩 계속 합쳐 올려요. 등급은 출발할 때의 기본 피해를 높여요 (D ×1 … EX ×{D.balance.gradeMultipliers[D.balance.gradeMultipliers.length - 1]}).</p>
+      </section>
+    </>
+  )
+}
+
+// ── settings: when it last saved, backup files ──────────────────────────────
+
+const STORAGE_NOTICE =
+  '진행 상황은 현재 기기와 브라우저에만 저장됩니다. 다른 기기·브라우저에서는 자동으로 이어지지 않습니다. 브라우저 데이터 삭제 전 백업을 내보내세요.'
+const SAVE_ERRORS = {
+  unavailable: '이 브라우저에서는 저장할 수 없어요 (사생활 보호 모드이거나 저장이 막혀 있어요).',
+  full: '브라우저 저장 공간이 가득 차서 저장하지 못했어요.',
+  blocked: '브라우저가 저장을 막았어요.',
+}
+const clock = (t) => new Date(t).toLocaleTimeString('ko-KR')
+
+function download(text, name) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+
+function Settings({ save, P, onImported }) {
+  const file = useRef(null)
+  const [msg, setMsg] = useState(null) // { text, bad }
+  const [pending, setPending] = useState(null) // a checked backup waiting for "불러오기"
+  const err = P.error()
+  const at = P.savedAt()
+  const onFile = async (e) => {
+    const f = e.target.files && e.target.files[0]
+    e.target.value = ''
+    if (!f) return
+    let text = ''
+    try {
+      text = await f.text()
+    } catch {
+      return setMsg({ text: '파일을 읽지 못했어요.', bad: true })
+    }
+    const r = parseBackup(D, text)
+    setPending(r.ok ? r : null)
+    setMsg(r.ok ? null : { text: r.error, bad: true })
+  }
+  return (
+    <>
+      <section className={`ms-panel ms-savebox ${err ? 'is-bad' : ''}`}>
+        <img src={saveIcon} alt="" />
+        <div>
+          <p className="ms-sub">{err ? '저장 불가' : at ? `자동 저장됨 · ${clock(at)}` : '자동 저장'}</p>
+          <p className="ms-dim">
+            {err
+              ? `${SAVE_ERRORS[err] || '저장하지 못했어요.'} 진행을 잃지 않도록 백업 파일을 내보내 두세요.`
+              : '보상·상자·합성·강화·장착 직후에 바로 저장해요.'}
+          </p>
+        </div>
+      </section>
+      <section className="ms-panel">
+        <p className="ms-text">{STORAGE_NOTICE}</p>
+        <div className="ms-row ms-row--two">
+          <button
+            type="button"
+            className="ms-btn ms-btn--primary"
+            onClick={() => {
+              download(P.exportText(), exportName())
+              setMsg({ text: '백업 파일을 내보냈어요.' })
+            }}
+          >
+            백업 내보내기
+          </button>
+          <button type="button" className="ms-btn" onClick={() => file.current && file.current.click()}>
+            백업 불러오기
+          </button>
+        </div>
+        <input ref={file} type="file" accept=".json,application/json" hidden onChange={onFile} />
+        {pending && (
+          <div className="ms-confirm">
+            <p className="ms-sub">이 백업을 불러올까요?</p>
+            <p className="ms-dim">
+              {pending.exportedAt ? `${new Date(pending.exportedAt).toLocaleString('ko-KR')}에 내보낸 백업 · ` : ''}
+              코인 {money(pending.summary.coins)} · {pending.summary.chapter}장까지 · 무기 {pending.summary.weapons}개 (최고 {pending.summary.best}) · 상자 {pending.summary.chests}개
+            </p>
+            <p className="ms-dim">
+              지금 진행(코인 {money(save.currency)} · {save.unlockedChapter}장까지)은 이 백업으로 바뀌어요. 지금 진행은 브라우저에 따로 보관해 둬요.
+            </p>
+            <div className="ms-row ms-row--two">
+              <button type="button" className="ms-btn" onClick={() => setPending(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="ms-btn ms-btn--primary"
+                onClick={() => {
+                  const ok = P.importBackup(pending.data)
+                  setPending(null)
+                  onImported(P.get())
+                  setMsg(ok ? { text: '백업을 불러왔어요.' } : { text: '불러왔지만 저장하지 못했어요. 이 브라우저에서는 저장이 막혀 있어요.', bad: true })
+                }}
+              >
+                불러오기
+              </button>
+            </div>
+          </div>
+        )}
+        {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
       </section>
     </>
   )

@@ -3,7 +3,7 @@
 import { D } from './survivor-data.mjs'
 import { createRun, step, choose, drawChoices, chapterCoins, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
-import { createProgress, canFuse, fuseAllPreview, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
+import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun } from './survivor-bot.mjs'
 
 let fails = 0
@@ -515,6 +515,38 @@ const still = { x: 0, y: 0 }
   const ex = { ...after, inventory: [1, 2, 3].map((i) => ({ id: 'x' + i, weaponId: 'bouncy_ball', grade: 'EX' })) }
   ok(!canFuse(D, ex, ['x1', 'x2', 'x3']).ok, 'EX cannot be fused')
 }
+// backup files: export, check, import
+{
+  const mem = new Mem()
+  mem.setItem('nodnaba:colony:save', 'COLONY')
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.currency = 4321
+  d.unlockedChapter = 7
+  d.inventory.push({ id: 'w2', weaponId: 'bouncy_ball', grade: 'A' })
+  d.nextSeq = 3
+  d.perma.damage = 5
+  mem.setItem(KEY, JSON.stringify(d))
+  const text = P.exportText(Date.UTC(2026, 9, 19))
+  const r = parseBackup(D, text)
+  ok(r.ok && r.summary.coins === 4321 && r.summary.chapter === 7 && r.summary.weapons === 2 && r.summary.best === 'A' && r.data.perma.damage === 5, `an exported backup reads back whole (${JSON.stringify(r.summary)})`)
+  ok(/^mano-survivor-backup-\d{8}-\d{4}\.json$/.test(exportName()), `file name ${exportName()}`)
+  ok(!parseBackup(D, 'not json').ok && !parseBackup(D, '{"game":"mano-colony","save":{}}').ok && !parseBackup(D, '{"hello":1}').ok, 'broken text, another game\'s backup and other JSON are refused')
+  ok(/새로운 버전/.test(parseBackup(D, JSON.stringify({ game: 'mano-survivor', save: { ...d, schemaVersion: 99 } })).error), 'a backup from a newer version is refused with its reason')
+  ok(parseBackup(D, JSON.stringify(d)).ok, 'a bare save (no envelope) is accepted too')
+  // import into a different progress: what it replaces is kept aside
+  const mem2 = new Mem()
+  const P2 = createProgress(D, mem2)
+  P2.boot()
+  P2.startRun(1)
+  const before = mem2.getItem(KEY)
+  ok(P2.importBackup(r.data) && P2.get().currency === 4321 && P2.get().unlockedChapter === 7 && P2.get().activeRun === null, 'importing replaces the progress (no run left open)')
+  ok(mem2.getItem(BEFORE_IMPORT_KEY) === before, 'the replaced progress is kept aside, not deleted')
+  ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "exporting never touches the other games' saves")
+  ok(P2.savedAt() > 0, 'the last save time is known')
+}
+
 // fuse everything at once
 {
   const mem = new Mem()
