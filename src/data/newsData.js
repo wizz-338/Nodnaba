@@ -1,5 +1,6 @@
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 import { GAMES } from './games'
+import tizzzzImg from '../assets/artist/tizzzz.webp'
 
 // NEWS — NODNABA activity log.
 //
@@ -15,7 +16,18 @@ import { GAMES } from './games'
 //   link        optional. '#/…' opens a page of this site, 'https://…' opens
 //               in a new tab. Leave it out for news without a link.
 //   linkText    optional button label, e.g. VIEW · LISTEN · PLAY
+//   img         optional picture shown with the news (e.g. a new artist)
 export const NEWS = [
+  {
+    date: '2026-10-19',
+    time: '18:30',
+    category: 'NOTICE',
+    title: 'NODNABA, 신규 작가 Tizzzz 합류',
+    description: 'NODNABA에 새로운 작가 Tizzzz가 합류했습니다.',
+    link: ARTIST_HASH,
+    linkText: 'VIEW',
+    img: tizzzzImg,
+  },
   {
     date: '2026-10-19',
     time: '08:00',

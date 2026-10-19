@@ -1,5 +1,6 @@
 import manoImg from '../assets/artist/mano.webp'
 import zyoImg from '../assets/artist/zyo.webp'
+import tizzzzImg from '../assets/artist/tizzzz.webp'
 import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
 import { GAMES } from '../data/games'
 import { YOUTUBE_URL } from '../components/Footer'
@@ -8,6 +9,8 @@ import './artist.css'
 const external = { target: '_blank', rel: 'noopener noreferrer' }
 
 // Names are official spellings — zyo_ keeps its trailing underscore.
+// role is optional (shown under the name); links can be empty until there
+// is something to link to.
 const ARTISTS = [
   {
     id: 'mano',
@@ -31,6 +34,15 @@ const ARTISTS = [
       { label: 'YouTube ↗', href: YOUTUBE_URL, ...external, icon: true },
       { label: '다락 (Attic) ↗', href: 'https://youtu.be/Yoepw1Lgt4Y', ...external, small: true },
     ],
+  },
+  {
+    id: 'tizzzz',
+    name: 'Tizzzz',
+    role: 'Writer',
+    img: tizzzzImg,
+    w: 1024,
+    h: 1536,
+    links: [],
   },
 ]
 
@@ -56,20 +68,23 @@ function Card({ a, i }) {
         <h2 className="artist-card__name glitch" data-text={a.name}>
           {a.name}
         </h2>
-        <ul className="artist-card__links">
-          {a.links.map(({ label, small, icon, ...l }) => (
-            <li key={label}>
-              <a className={`artist-link mono ${small ? 'artist-link--small' : ''}`} {...l}>
-                {icon && (
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.7 15.1V8.9l5.8 3.1-5.8 3.1Z" />
-                  </svg>
-                )}
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
+        {a.role && <p className="artist-card__role mono">{a.role}</p>}
+        {a.links.length > 0 && (
+          <ul className="artist-card__links">
+            {a.links.map(({ label, small, icon, ...l }) => (
+              <li key={label}>
+                <a className={`artist-link mono ${small ? 'artist-link--small' : ''}`} {...l}>
+                  {icon && (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.7 15.1V8.9l5.8 3.1-5.8 3.1Z" />
+                    </svg>
+                  )}
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </article>
   )
