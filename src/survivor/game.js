@@ -511,7 +511,8 @@ function movePlayer(run, dt, input) {
   p.moving = m > 0.001
   p.x = Math.max(x0 + p.hitR, Math.min(x1 - p.hitR, p.x + p.vx * dt))
   p.y = Math.max(y0 + p.hitR, Math.min(y1 - p.hitR, p.y + p.vy * dt))
-  if (p.regen > 0) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt)
+  // regen: a share of the maximum HP each second, so it keeps its worth at any HP
+  if (p.regen > 0) p.hp = Math.min(p.maxHp, p.hp + p.regen * p.maxHp * dt)
   if (p.inv > 0) p.inv -= dt
   if (p.hitT > 0) p.hitT -= dt
 }
@@ -664,7 +665,7 @@ export function applyPreview(run, id) {
     case 'luck':
       return { coinMul: p.coinMul * E.mul }
     case 'regen':
-      return { regen: p.regen + E.add }
+      return { regen: p.regen + E.addMaxHpShare }
     case 'armor':
       return { armor: p.armor * E.mul }
     case 'xpGain':

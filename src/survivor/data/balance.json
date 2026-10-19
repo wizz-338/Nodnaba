@@ -249,28 +249,28 @@
     },
     {
       "hp": 1.4,
-      "damage": 0.95,
+      "damage": 1.0,
       "spawn": 1.08
     },
     {
       "hp": 2.6,
-      "damage": 1.22,
+      "damage": 1.3,
       "spawn": 1.16
     },
     {
       "hp": 4.2,
-      "damage": 1.29,
+      "damage": 1.55,
       "spawn": 1.21
     },
     {
       "hp": 6.8,
-      "damage": 1.42,
+      "damage": 1.9,
       "spawn": 1.3
     }
   ],
   "beyondLastChapter": {
     "hp": 1.55,
-    "damage": 1.1,
+    "damage": 1.35,
     "spawn": 1.05,
     "note": "each chapter past the list multiplies the last one by these"
   },
@@ -449,7 +449,7 @@
         "mul": 1.2
       },
       "regen": {
-        "add": 0.6
+        "addMaxHpShare": 0.01
       },
       "armor": {
         "mul": 0.88

@@ -23,7 +23,7 @@ const pctOf = (v) => `${fmt(v * 100, 1)}%`
 const effectTag = (id) => {
   const e = EFFECTS[id]
   if (id === 'crit' || id === 'split') return `+${fmt(e.add * 100)}%p`
-  if (id === 'regen') return `+${e.add}/초`
+  if (id === 'regen') return `최대 체력의 +${e.addMaxHpShare * 100}%/초`
   if (id === 'critDamage') return `+${e.add}배`
   return `×${e.mul}`
 }
@@ -62,7 +62,7 @@ function change(run, id) {
     case 'luck':
       return `코인 획득 ×${fmt(p.coinMul, 2)} → ×${fmt(n.coinMul, 2)}`
     case 'regen':
-      return `초당 회복 ${fmt(p.regen)} → ${fmt(n.regen)}`
+      return `초당 최대 체력의 ${pctOf(p.regen)} → ${pctOf(n.regen)} (${big(p.regen * p.maxHp)} → ${big(n.regen * p.maxHp)})`
     case 'armor':
       return `받는 피해 ${pctOf(p.armor)} → ${pctOf(n.armor)}`
     case 'xpGain':

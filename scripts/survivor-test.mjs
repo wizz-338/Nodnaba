@@ -280,6 +280,21 @@ const still = { x: 0, y: 0 }
   }
 }
 
+// regen heals a share of the maximum HP each second, whatever the HP is
+{
+  const share = B.upgrades.effects.regen.addMaxHpShare
+  for (const maxHp of [100, 10000]) {
+    const run = newRun()
+    run.spawnT = -1e9
+    run.state = 'levelup'; run.pending = 1; run.choices = ['regen', 'maxHp', 'pickup']; run.choiceSeq++
+    choose(run, 'regen', run.choiceSeq)
+    run.player.maxHp = maxHp
+    run.player.hp = maxHp / 2
+    for (let t = 0; t < 1 - 1e-9; t += FIXED) step(run, FIXED, still)
+    ok(near(run.player.hp, maxHp / 2 + share * maxHp, 1e-6 * maxHp + 0.01), `regen card at max HP ${maxHp}: +${share * maxHp} in one second (${run.player.hp.toFixed(2)})`)
+  }
+}
+
 // ── contact damage, death ───────────────────────────────────────────────────
 {
   const run = newRun()
