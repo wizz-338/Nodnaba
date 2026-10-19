@@ -1,113 +1,30 @@
 // MANO SURVIVOR — drawing one frame of the battle. Reads the run, never
-// changes it. Everything is drawn in the 360 × 640 logical screen.
+// changes it. The world is the 360 × 640 logical screen; sprites are the v3
+// pixel art (see sprites.js), placed by their pivot on the ground point and
+// drawn with smoothing off so pixels stay square.
 //
-// Mano: the baked sheets as delivered (128 px cells, rows S SW W NW N NE E SE),
-// drawn half size with the foot point [64, 115.5] on her ground position, so
-// she stands where she is and never floats. She is never rotated: only the
-// row (one of eight facings) changes, with a 6° margin so the facing does not
-// flicker on a boundary, and the walking step carries on across a turn.
+// Mano: one of eight facings picked from her direction of travel (with a 6°
+// margin so it never flickers on a boundary); she moves at any angle and is
+// never rotated. Left-hand rows are already in the sheet (mirrored when the
+// art was made), so run frames are never flipped again here. Her step carries
+// on through a turn; she stops on the spot when the stick is let go.
 
-const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE']
+import { FRAMES, ART, animFrame } from './sprites.js'
+import { chargePath } from './game.js'
+
+const DIRS = ['S', 'SE', 'E', 'NE', 'N', 'SW', 'W', 'NW']
 const DIR_ANGLE = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: -135, N: -90, NE: -45 }
-const MANO_SCALE = 0.5 // 128 px cell → 64 logical px (Mano about 50 px tall)
-const BALL_LIFT = 9 // balls fly a little above the ground (their shadow stays on it)
+const MANO_SCALE = 0.9 // a 50 px tall frame → 45 logical px
+const BALL_LIFT = 7 // balls fly a little above the ground (their shadow stays on it)
 const MAX_FX = 80
 const MAX_NUMBERS = 40
+const ENEMY_DIE = 0.28
 
-export const IMAGES = {
-  walk: new URL('./assets/mano/sheets/walk.png', import.meta.url).href,
-  idle: new URL('./assets/mano/sheets/idle.png', import.meta.url).href,
-  hit: new URL('./assets/mano/sheets/hit.png', import.meta.url).href,
-  down: new URL('./assets/mano/sheets/down.png', import.meta.url).href,
-  'jaw-move': new URL('./assets/enemies/jaw-move.png', import.meta.url).href,
-  'jaw-hit': new URL('./assets/enemies/jaw-hit.png', import.meta.url).href,
-  'jaw-die': new URL('./assets/enemies/jaw-die.png', import.meta.url).href,
-  'hunter-move': new URL('./assets/enemies/hunter-move.png', import.meta.url).href,
-  'hunter-hit': new URL('./assets/enemies/hunter-hit.png', import.meta.url).href,
-  'hunter-die': new URL('./assets/enemies/hunter-die.png', import.meta.url).href,
-  'armor-move': new URL('./assets/enemies/armor-move.png', import.meta.url).href,
-  'armor-hit': new URL('./assets/enemies/armor-hit.png', import.meta.url).href,
-  'armor-die': new URL('./assets/enemies/armor-die.png', import.meta.url).href,
-  ball: new URL('./assets/icons/ball.png', import.meta.url).href,
-  xp: new URL('./assets/icons/xp.png', import.meta.url).href,
-  coin: new URL('./assets/icons/coin.png', import.meta.url).href,
-  impact: new URL('./assets/fx/impact.png', import.meta.url).href,
-  dust: new URL('./assets/fx/dust.png', import.meta.url).href,
-  ground: new URL('./assets/environment/ground.jpg', import.meta.url).href,
-}
-
-const load = (src) =>
-  new Promise((ok, fail) => {
-    const img = new Image()
-    img.decoding = 'async'
-    img.onload = () => ok(img)
-    img.onerror = () => fail(new Error('이미지를 불러오지 못했어요: ' + src))
-    img.src = src
-  })
-
-let loading = null
-export function loadImages() {
-  loading ??= Promise.all(Object.entries(IMAGES).map(async ([k, src]) => [k, await load(src)]))
-    .then((list) => Object.fromEntries(list))
-    .catch((e) => {
-      loading = null
-      throw e
-    })
-  return loading
-}
-
-// the box (in a 128 px cell) that any of a sheet's n frames draws on
-const used = new Map()
-function usedBox(img, n) {
-  let b = used.get(img.src)
-  if (b) return b
-  const c = document.createElement('canvas')
-  c.width = 128 * n
-  c.height = 128
-  const g = c.getContext('2d', { willReadFrequently: true })
-  g.drawImage(img, 0, 0, 128 * n, 128, 0, 0, 128 * n, 128)
-  const a = g.getImageData(0, 0, 128 * n, 128).data
-  let x0 = 128
-  let y0 = 128
-  let x1 = -1
-  let y1 = -1
-  for (let y = 0; y < 128; y++)
-    for (let x = 0; x < 128 * n; x++)
-      if (a[(y * 128 * n + x) * 4 + 3] > 0) {
-        const cx = x % 128
-        if (cx < x0) x0 = cx
-        if (cx > x1) x1 = cx
-        if (y < y0) y0 = y
-        if (y > y1) y1 = y
-      }
-  // a pixel of room each side keeps the smoothing from clipping the edge
-  b = x1 < 0 ? { x0: 0, y0: 0, w: 128, h: 128 } : { x0: Math.max(0, x0 - 1), y0: Math.max(0, y0 - 1), w: Math.min(128, x1 + 2) - Math.max(0, x0 - 1), h: Math.min(128, y1 + 2) - Math.max(0, y0 - 1) }
-  used.set(img.src, b)
-  return b
-}
-
-// height of the drawing inside a 128 px cell (for sizing monsters by their real height)
-function drawnBox(img, cellX = 0, cell = 128) {
-  const c = document.createElement('canvas')
-  c.width = cell
-  c.height = cell
-  const g = c.getContext('2d', { willReadFrequently: true })
-  g.drawImage(img, cellX, 0, cell, cell, 0, 0, cell, cell)
-  const a = g.getImageData(0, 0, cell, cell).data
-  let x0 = cell
-  let y0 = cell
-  let x1 = 0
-  let y1 = 0
-  for (let y = 0; y < cell; y++)
-    for (let x = 0; x < cell; x++)
-      if (a[(y * cell + x) * 4 + 3] > 16) {
-        if (x < x0) x0 = x
-        if (x > x1) x1 = x
-        if (y < y0) y0 = y
-        if (y > y1) y1 = y
-      }
-  return { x0, y0, x1, y1, w: x1 - x0 + 1, h: y1 - y0 + 1 }
-}
+// idle frames there are: S/SE/E two, NE/N one; the left side mirrors the right
+const IDLE = { S: ['idle_s', false], SE: ['idle_se', false], E: ['idle_e', false], NE: ['idle_ne', false], N: ['idle_n', false], SW: ['idle_se', true], W: ['idle_e', true], NW: ['idle_ne', true] }
+// hit frames there are: S and SE (SW mirrors SE); other facings keep their
+// frame and flash instead of turning to face the viewer
+const HIT = { S: ['hit_s', false], SE: ['hit_se', false], SW: ['hit_se', true] }
 
 // facing from a direction of travel, kept unless the angle moves 6° past the
 // edge of the current 45° slice
@@ -122,32 +39,18 @@ export function facing(prev, vx, vy) {
 
 export function createRenderer(canvas, img, D) {
   const ctx = canvas.getContext('2d')
-  const M = D.mano
-  const [AX, AY] = M.groundAnchor
-  const CELL = M.cell[0]
   const view = { w: 360, h: 640, dpr: 1, k: 1 }
-  const enemySize = {}
-  for (const t of ['jaw', 'hunter', 'armor']) {
-    const box = drawnBox(img[t + '-move'])
-    enemySize[t] = D.balance.enemies[t].drawHeight / box.h
-  }
-  const ballBox = drawnBox(img.ball)
-  const xpBox = drawnBox(img.xp)
-  const coinBox = drawnBox(img.coin)
-  // Mano's look: kept between frames
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
   const fx = []
   const numbers = []
-  // the field, painted once per screen size (one copy per frame after that)
-  let field = null
-  // shadows wait here and go down together, one fill per darkness
-  const shade = new Map()
-  // sprites shrunk once to their size on screen (again after a resize), so a
-  // frame copies pixels 1:1 instead of resampling the big sheets each time
-  const shrunk = new Map()
+  let field = null // the ground, painted once per screen size
+  const shade = new Map() // shadows wait here and go down together, one fill per darkness
+  const small = new Map() // smoothed copies of frames drawn smaller than their pixels
+  const tints = new Map() // white / red silhouettes of each sheet, for flashes
+  const E = D.balance.enemies
 
   function resize(cssW, cssH, dpr) {
-    // past 2 the 128px art has no more detail to show, only more pixels to fill
+    // past 2 the art has no more detail to show, only more pixels to fill
     view.dpr = Math.min(dpr || 1, 2)
     view.w = cssW
     view.h = cssH
@@ -155,58 +58,82 @@ export function createRenderer(canvas, img, D) {
     canvas.width = Math.round(cssW * view.dpr)
     canvas.height = Math.round(cssH * view.dpr)
     field = null
-    shrunk.clear()
+    small.clear()
+  }
+  const kd = () => view.k * view.dpr
+  const world = () => ctx.setTransform(kd(), 0, 0, kd(), 0, 0)
+  const device = () => ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+  function tinted(sheet, color) {
+    const key = sheet + color
+    let c = tints.get(key)
+    if (c) return c
+    const im = img[sheet]
+    c = document.createElement('canvas')
+    c.width = im.width
+    c.height = im.height
+    const g = c.getContext('2d')
+    g.drawImage(im, 0, 0)
+    g.globalCompositeOperation = 'source-in'
+    g.fillStyle = color
+    g.fillRect(0, 0, c.width, c.height)
+    tints.set(key, c)
+    return c
   }
 
-  // a 128 px-cell sheet at scale s (in field units), optionally mirrored cell
-  // by cell; only the part any frame draws on is kept (most of a cell is empty)
-  function shrunkSheet(sheet, s, flip) {
-    const key = sheet.src + '|' + s + (flip ? '|f' : '')
-    let c = shrunk.get(key)
-    if (c) return c
-    const n = Math.max(1, Math.round(sheet.width / 128))
-    const box = usedBox(sheet, n)
-    const q = s * view.k * view.dpr
-    const w = Math.max(1, Math.round(box.w * q))
-    const h = Math.max(1, Math.round(box.h * q))
-    c = document.createElement('canvas')
-    c.width = w * n
-    c.height = h
-    const g = c.getContext('2d')
-    g.imageSmoothingEnabled = true
-    g.imageSmoothingQuality = 'high'
-    for (let i = 0; i < n; i++) {
-      g.setTransform(flip ? -1 : 1, 0, 0, 1, flip ? (i + 1) * w : i * w, 0)
-      g.drawImage(sheet, i * 128 + box.x0, box.y0, box.w, box.h, 0, 0, w, h)
+  // One frame with its pivot on (x, y) at scale s (logical px per art px).
+  // When an art pixel covers at least one screen pixel it is drawn square and
+  // sharp (smoothing off, snapped to whole pixels); smaller than that (tiny
+  // balls, gems) a smoothed copy is made once so no pixel simply vanishes.
+  function put(name, x, y, s, { flip = false, alpha = 1, flash = 0, flashColor = '#ffffff' } = {}) {
+    const f = FRAMES[name]
+    const r = f.rect
+    const b = f.contentBounds
+    const [px, py] = f.pivot
+    const K = kd()
+    const dw = Math.max(1, Math.round(b.w * s * K))
+    const dh = Math.max(1, Math.round(b.h * s * K))
+    const left = flip ? x - (b.x + b.w - px) * s : x - (px - b.x) * s
+    const dx = Math.round(left * K)
+    const dy = Math.round((y - (py - b.y) * s) * K)
+    let src = img[f.sheet]
+    let sx = r.x + b.x
+    let sy = r.y + b.y
+    let sw = b.w
+    let sh = b.h
+    if (s * K < 1) {
+      const key = name + '|' + dw + 'x' + dh
+      let c = small.get(key)
+      if (!c) {
+        c = document.createElement('canvas')
+        c.width = dw
+        c.height = dh
+        const g = c.getContext('2d')
+        g.imageSmoothingEnabled = true
+        g.imageSmoothingQuality = 'high'
+        g.drawImage(src, sx, sy, sw, sh, 0, 0, dw, dh)
+        small.set(key, c)
+      }
+      src = c
+      sx = 0
+      sy = 0
+      sw = dw
+      sh = dh
     }
-    Object.assign(c, { w, h, q, box })
-    shrunk.set(key, c)
-    return c
-  }
-
-  // the ball at one size in device pixels (only a few sizes ever occur)
-  function shrunkBall(w, h) {
-    const key = 'ball|' + w + 'x' + h
-    let c = shrunk.get(key)
-    if (c) return c
-    c = document.createElement('canvas')
-    c.width = w
-    c.height = h
-    const g = c.getContext('2d')
-    g.imageSmoothingEnabled = true
-    g.imageSmoothingQuality = 'high'
-    g.drawImage(img.ball, ballBox.x0, ballBox.y0, ballBox.w, ballBox.h, 0, 0, w, h)
-    shrunk.set(key, c)
-    return c
-  }
-
-  function frame(sheet, col, row, x, y, s, alpha = 1) {
+    ctx.imageSmoothingEnabled = false
+    if (flip) ctx.setTransform(-1, 0, 0, 1, dx + dw, 0)
+    else device()
+    const ox = flip ? 0 : dx
     if (alpha !== 1) ctx.globalAlpha = alpha
-    ctx.drawImage(sheet, col * CELL, row * CELL, CELL, CELL, x - AX * s, y - AY * s, CELL * s, CELL * s)
-    if (alpha !== 1) ctx.globalAlpha = 1
+    ctx.drawImage(src, sx, sy, sw, sh, ox, dy, dw, dh)
+    if (flash > 0 && src === img[f.sheet]) {
+      ctx.globalAlpha = alpha * flash
+      ctx.drawImage(tinted(f.sheet, flashColor), sx, sy, sw, sh, ox, dy, dw, dh)
+    }
+    ctx.globalAlpha = 1
   }
 
-  function shadow(x, y, rx, ry, a = 0.17) {
+  function shadow(x, y, rx, ry, a = 0.2) {
     let q = shade.get(a)
     if (!q) shade.set(a, (q = []))
     q.push(x, y, rx, ry)
@@ -214,9 +141,10 @@ export function createRenderer(canvas, img, D) {
 
   // all shadows lie on the ground, under everything standing or flying
   function drawShadows() {
+    world()
     for (const [a, q] of shade) {
       if (!q.length) continue
-      ctx.fillStyle = `rgba(38, 49, 62, ${a})`
+      ctx.fillStyle = `rgba(30, 38, 30, ${a})`
       ctx.beginPath()
       for (let i = 0; i < q.length; i += 4) {
         ctx.moveTo(q[i] + q[i + 2], q[i + 1])
@@ -227,195 +155,251 @@ export function createRenderer(canvas, img, D) {
     }
   }
 
+  // the ground tile laid edge to edge, every other one mirrored so the edges
+  // always meet (the tile is not assumed to be seamless)
   function paintField() {
     const c = document.createElement('canvas')
     c.width = canvas.width
     c.height = canvas.height
-    const f = c.getContext('2d')
-    const k = view.k * view.dpr
-    f.setTransform(k, 0, 0, k, 0, 0)
-    f.imageSmoothingEnabled = true
-    f.imageSmoothingQuality = 'high'
-    // one ground picture covering the screen, softened
-    const g = img.ground
-    const cover = Math.max(360 / g.width, 640 / g.height)
-    f.fillStyle = '#d8ccb8'
-    f.fillRect(0, 0, 360, 640)
-    f.globalAlpha = 0.6
-    f.drawImage(g, (360 - g.width * cover) / 2, (640 - g.height * cover) / 2, g.width * cover, g.height * cover)
-    f.globalAlpha = 1
+    const g = c.getContext('2d')
+    const K = kd()
+    const tile = img['09_ground.png']
+    const T = tile.width // one art pixel per logical pixel
+    g.imageSmoothingEnabled = false
+    for (let j = 0; j * T < 640; j++)
+      for (let i = 0; i * T < 360; i++) {
+        const fx = i % 2 === 1
+        const fy = j % 2 === 1
+        g.setTransform(fx ? -K : K, 0, 0, fy ? -K : K, (fx ? (i + 1) * T : i * T) * K, (fy ? (j + 1) * T : j * T) * K)
+        g.drawImage(tile, 0, 0)
+      }
+    g.setTransform(K, 0, 0, K, 0, 0)
     const [x0, y0, x1, y1] = D.balance.logicalArena.bounds
-    // outside the field (behind the top bar): a little darker
-    f.fillStyle = 'rgba(38, 49, 62, 0.16)'
-    f.fillRect(0, 0, 360, y0)
-    f.fillRect(0, y1, 360, 640 - y1)
-    f.fillRect(0, y0, x0, y1 - y0)
-    f.fillRect(x1, y0, 360 - x1, y1 - y0)
-    f.strokeStyle = 'rgba(38, 49, 62, 0.25)'
-    f.lineWidth = 1.5
-    f.strokeRect(x0, y0, x1 - x0, y1 - y0)
+    // the edge of the field: a soft darker band and a thin line (the balls
+    // bounce here, Mano stops here)
+    g.fillStyle = 'rgba(30, 38, 30, 0.18)'
+    g.fillRect(0, 0, 360, y0)
+    g.fillRect(0, y1, 360, 640 - y1)
+    g.fillRect(0, y0, x0, y1 - y0)
+    g.fillRect(x1, y0, 360 - x1, y1 - y0)
+    g.strokeStyle = 'rgba(30, 38, 30, 0.28)'
+    g.lineWidth = 1.5
+    g.strokeRect(x0, y0, x1 - x0, y1 - y0)
     return c
   }
 
   // ── Mano ──
   function drawMano(run, dt) {
     const p = run.player
-    const st = M.states
-    if (p.moving) mano.dir = facing(mano.dir, p.vx, p.vy)
-    const row = DIRS.indexOf(mano.dir)
-    if (p.hitT > 0 && mano.prevHit <= 0) mano.hitT = st.hit.durationSeconds
+    if (p.moving && run.state === 'play') mano.dir = facing(mano.dir, p.vx, p.vy)
+    const dir = mano.dir
+    if (p.hitT > 0 && mano.prevHit <= 0) mano.hitT = 0.12 // two hit frames of 60 ms
     mano.prevHit = p.hitT
-    let sheet
-    let col
-    if (run.state === 'dying' || run.state === 'over') {
-      if (!run.result || !run.result.cleared) {
-        mano.downT = Math.min(st.down.durationSeconds, mano.downT + dt)
-        sheet = img.down
-        col = Math.min(st.down.framesPerDirection - 1, Math.floor((mano.downT / st.down.durationSeconds) * st.down.framesPerDirection))
-      }
-    } else mano.downT = 0
-    if (!sheet && mano.hitT > 0) {
-      mano.hitT -= dt
-      sheet = img.hit
-      col = Math.min(st.hit.framesPerDirection - 1, Math.floor((1 - mano.hitT / st.hit.durationSeconds) * st.hit.framesPerDirection))
-    }
-    if (!sheet && p.moving && run.state === 'play') {
-      // the step goes on through a turn: one phase, whatever the facing
-      const rate = Math.max(0.7, Math.min(1.5, Math.hypot(p.vx, p.vy) / D.balance.player.speed))
-      mano.phase = (mano.phase + (dt / st.walk.durationSeconds) * rate) % 1
-      sheet = img.walk
-      col = Math.floor(mano.phase * st.walk.framesPerDirection) % st.walk.framesPerDirection
-    }
-    if (!sheet) {
-      mano.idleT += run.state === 'play' ? dt : 0
-      sheet = img.idle
-      col = Math.floor(((mano.idleT % st.idle.durationSeconds) / st.idle.durationSeconds) * st.idle.framesPerDirection)
-    }
-    // blink while she cannot be hurt
     const blink = p.inv > 0 && run.state === 'play' && Math.floor(p.inv * 14) % 2 === 0
-    frame(sheet, col, row, p.x, p.y, MANO_SCALE, blink ? 0.45 : 1)
+    const opt = { alpha: blink ? 0.55 : 1, flash: 0, flashColor: '#ff5a5a' }
+    if (run.state === 'dying' || (run.state === 'over' && run.result && !run.result.cleared)) {
+      mano.downT += dt
+      put(animFrame('down', mano.downT * 1000, false), p.x, p.y, MANO_SCALE)
+      return
+    }
+    mano.downT = 0
+    let name
+    let flip = false
+    if (mano.hitT > 0) {
+      mano.hitT -= dt
+      opt.flash = 0.55
+      const h = HIT[dir]
+      if (h) {
+        ;[name, flip] = h
+        name = animFrame(name, (0.12 - mano.hitT) * 1000, false)
+      }
+    }
+    if (!name && p.moving && run.state === 'play') {
+      // step rate follows her real speed (faster after speed upgrades)
+      const rate = Math.max(0.75, Math.min(1.4, Math.hypot(p.vx, p.vy) / p.baseSpeed))
+      mano.phase += dt * 1000 * rate
+      name = animFrame('run_' + dir.toLowerCase(), mano.phase)
+    }
+    if (!name) {
+      mano.idleT += run.state === 'play' ? dt : 0
+      const [a, f] = IDLE[dir]
+      name = animFrame(a, mano.idleT * 1000)
+      flip = f
+    }
+    put(name, p.x, p.y, MANO_SCALE, { ...opt, flip })
   }
 
   // ── monsters ──
-  function drawEnemy(e) {
-    const art = D.enemiesArt[e.type]
-    const s = enemySize[e.type]
-    const [ax, ay] = art.anchor
-    let sheet
-    let col
+  function drawEnemy(run, e) {
+    const def = E[e.type]
+    const s = def.scale
+    const art = def.art // which pictures it wears (the mid-boss wears the boss's)
+    const flip = e.face < 0
+    let name
     let alpha = 1
-    if (e.state === 'spawn') {
-      // where it will appear: a shadow growing in, the body fading in
-      const f = Math.min(1, e.t / 0.35)
-      alpha = 0.25 + 0.45 * f
-      sheet = img[e.type + '-move']
-      col = 0
-    } else if (e.state === 'die') {
-      const d = art.states.die
-      sheet = img[e.type + '-die']
-      col = Math.min(d.frames - 1, Math.floor((e.t / d.durationSeconds) * d.frames))
-    } else if (e.hitT > 0) {
-      const h = art.states.hit
-      sheet = img[e.type + '-hit']
-      col = Math.min(h.frames - 1, Math.floor((1 - e.hitT / h.durationSeconds) * h.frames))
-    } else {
-      const m = art.states.move
-      sheet = img[e.type + '-move']
-      col = Math.floor((((e.t + e.id * 0.137) % m.durationSeconds) / m.durationSeconds) * m.frames)
-    }
-    // the feet stay on the anchor; mirrored, the kept box mirrors around it
-    const c = shrunkSheet(sheet, s, e.face < 0)
-    const { w, h, q, box } = c
-    const kd = view.k * view.dpr
-    const dx = e.face < 0 ? ax - box.x0 - box.w : box.x0 - ax
-    if (alpha !== 1) ctx.globalAlpha = alpha
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.drawImage(c, col * w, 0, w, h, Math.round(e.x * kd + dx * q), Math.round(e.y * kd + (box.y0 - ay) * q), w, h)
-    ctx.setTransform(kd, 0, 0, kd, 0, 0)
-    if (alpha !== 1) ctx.globalAlpha = 1
+    let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
+    if (e.behavior === 'boss') {
+      if (e.state === 'down') (name = 'boss_down'), (flash = 0)
+      else if (e.mode === 'windup' || e.mode === 'stompWind') name = 'boss_windup'
+      else if (e.mode === 'charge') name = 'boss_charge'
+      else if (e.hitT > 0) name = 'boss_hit'
+      else name = animFrame('boss_run', e.life * 1000)
+    } else name = animFrame(art + '_run', e.life * 1000 + e.id * 37)
+    if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
+    else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
+    else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
+    put(name, e.x, e.y, s, { flip, alpha, flash })
   }
 
-  // (drawn in device pixels: the caller has set the identity transform)
-  function drawBall(b, kd) {
-    const d = b.r * 2 * kd
-    // a short tail: where it was a few hundredths of a second ago, faint
-    const t = b.trail
-    if (t.length > 3) {
-      const tw = Math.max(1, Math.round(d * 0.8))
-      const tail = shrunkBall(tw, tw)
-      for (let i = 0; i + 2 < t.length - 3; i += 3) {
-        ctx.globalAlpha = 0.12 + 0.1 * (i / t.length)
-        ctx.drawImage(tail, Math.round(t[i + 1] * kd - tw / 2), Math.round((t[i + 2] - BALL_LIFT) * kd - tw / 2))
-      }
+  // where the boss will charge: the real band its body sweeps (a capsule as
+  // wide as it is), on the ground under everyone
+  function drawWarning(run, e) {
+    const c = chargePath(run, e)
+    const def = E[e.type]
+    const k = 1 - e.modeT / def.windupSeconds // 0 → 1 as the charge nears
+    world()
+    ctx.save()
+    ctx.translate(c.x, c.y)
+    ctx.rotate(Math.atan2(c.dy, c.dx))
+    ctx.beginPath()
+    ctx.moveTo(0, -c.half)
+    ctx.lineTo(c.len, -c.half)
+    ctx.arc(c.len, 0, c.half, -Math.PI / 2, Math.PI / 2)
+    ctx.lineTo(0, c.half)
+    ctx.arc(0, 0, c.half, Math.PI / 2, -Math.PI / 2)
+    ctx.closePath()
+    ctx.fillStyle = `rgba(214, 58, 58, ${0.14 + 0.16 * k})`
+    ctx.fill()
+    ctx.lineWidth = 1.5
+    ctx.strokeStyle = `rgba(214, 58, 58, ${0.45 + 0.4 * k})`
+    ctx.setLineDash([5, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+    // how close it is: a bar filling along the band
+    ctx.fillStyle = 'rgba(214, 58, 58, 0.35)'
+    ctx.fillRect(0, -2, c.len * k, 4)
+    ctx.restore()
+  }
+
+  // the slam: the real circle it will hit, on the ground
+  function drawRing(run, e) {
+    const def = E[e.type]
+    const k = 1 - e.modeT / def.stompWindup
+    world()
+    ctx.beginPath()
+    ctx.arc(e.x, e.y, def.stompRadius, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(214, 58, 58, ${0.12 + 0.16 * k})`
+    ctx.fill()
+    ctx.lineWidth = 1.5
+    ctx.strokeStyle = `rgba(214, 58, 58, ${0.45 + 0.4 * k})`
+    ctx.setLineDash([5, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+    // how close it is: a ring closing in from the edge
+    ctx.beginPath()
+    ctx.arc(e.x, e.y, def.stompRadius * Math.max(0.05, k), 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(214, 58, 58, 0.5)'
+    ctx.stroke()
+  }
+
+  function drawBall(b, trails) {
+    const name = b.gen > 0 ? 'ball_child' : b.heavy ? 'ball_gold' : 'ball'
+    const s = (b.r * 2) / 24
+    const sp = Math.hypot(b.vx, b.vy)
+    if (trails && sp > 1) {
+      // the short trail: 8–16 px behind the ball, along where it is going
+      const f = FRAMES.trail
+      const cb = f.contentBounds
+      const len = Math.max(8, Math.min(16, sp * 0.045))
+      const K = kd()
+      ctx.imageSmoothingEnabled = true
+      ctx.setTransform(K, 0, 0, K, b.x * K, (b.y - BALL_LIFT) * K)
+      ctx.rotate(Math.atan2(b.vy, b.vx))
+      ctx.globalAlpha = 0.65
+      const th = Math.max(2, b.r * 1.3)
+      ctx.drawImage(img[f.sheet], f.rect.x + cb.x, f.rect.y + cb.y, cb.w, cb.h, -len, -th / 2, len, th)
       ctx.globalAlpha = 1
     }
-    const w = Math.max(1, Math.round(d))
-    const h = Math.max(1, Math.round((d * ballBox.h) / ballBox.w))
-    ctx.drawImage(shrunkBall(w, h), Math.round(b.x * kd - w / 2), Math.round((b.y - BALL_LIFT) * kd - w / 2))
+    put(name, b.x, b.y - BALL_LIFT, s)
   }
 
-  function drawOrb(o) {
-    const box = o.kind === 'xp' ? xpBox : coinBox
-    const size = o.kind === 'xp' ? 9 + Math.min(6, Math.sqrt(o.v)) : 11
-    const bob = Math.sin(performance.now() / 260 + o.x) * 1.2
-    ctx.drawImage(o.kind === 'xp' ? img.xp : img.coin, box.x0, box.y0, box.w, box.h, o.x - size / 2, o.y - size - 1 + bob, size, (size * box.h) / box.w)
+  function drawOrb(o, now) {
+    const bob = Math.sin(now / 260 + o.x) * 1.2
+    if (o.kind === 'xp') put('xp_gem', o.x, o.y - 5 + bob, (9 + Math.min(5, Math.sqrt(o.v))) / 24)
+    else if (o.kind === 'coin') put('coin', o.x, o.y - 5 + bob, 10 / 24)
+    else if (o.kind === 'heal') put('heal', o.x, o.y - 6 + bob, 13 / 24)
   }
 
   // ── one frame ──
   function draw(run, dt) {
-    const k = view.k * view.dpr
-    ctx.setTransform(k, 0, 0, k, 0, 0)
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
+    const now = performance.now()
     if (!field) field = paintField()
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    device()
     ctx.drawImage(field, 0, 0)
-    ctx.setTransform(k, 0, 0, k, 0, 0)
 
-    // shadows first (all on the ground), then pickups, then standing things
-    // back to front, then balls in the air
+    // the ground first: shadows, the boss's warning, pickups; then standing
+    // things back to front by their feet; then balls and hits in the air
     const p = run.player
-    shadow(p.x, p.y, 15, 5)
+    shadow(p.x, p.y, 13, 4.5)
     for (const e of run.enemies) {
+      const w = e.r * 1.15
       if (e.state === 'spawn') {
         const f = Math.min(1, e.t / 0.35)
-        shadow(e.x, e.y, e.r * 1.2 * f, e.r * 0.45 * f, 0.28)
-      } else shadow(e.x, e.y, e.r * 1.15, e.r * 0.42)
+        shadow(e.x, e.y, w * f, e.r * 0.42 * f, 0.3)
+      } else if (e.state === 'live' || e.state === 'down') shadow(e.x, e.y, w, e.r * 0.42)
     }
-    for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
+    // a busy screen sheds decoration first (never balls, hits or damage):
+    // ball shadows and trails go, and fewer numbers and sparks are drawn
+    const busy = run.balls.length > D.balance.performance.trailsUpTo
+    if (!busy) for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
     drawShadows()
-    for (const o of run.orbs) drawOrb(o)
+    for (const e of run.enemies) {
+      if (e.behavior !== 'boss' || e.state !== 'live') continue
+      if (e.mode === 'windup') drawWarning(run, e)
+      else if (e.mode === 'stompWind') drawRing(run, e)
+    }
+    for (const o of run.orbs) drawOrb(o, now)
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
-    list.push([run.player.y, 1, run.player])
+    list.push([p.y + 0.01, 1, p])
     list.sort((a, b) => a[0] - b[0])
-    for (const [, kind, o] of list) (kind ? drawMano(run, dt) : drawEnemy(o))
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
-    for (const b of run.balls) drawBall(b, k)
-    ctx.setTransform(k, 0, 0, k, 0, 0)
+    for (const [, kind, o] of list) (kind ? drawMano(run, dt) : drawEnemy(run, o))
+    for (const b of run.balls) drawBall(b, !busy)
+    const maxFx = busy ? MAX_FX / 3 : MAX_FX
+    const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
 
     // effects from this frame's events
     for (const ev of run.events) {
       if (ev.type === 'hit') {
-        if (fx.length < MAX_FX) fx.push({ kind: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, d: 0.16, size: 20 })
-        if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 18, n: Math.round(ev.n), t: 0, hurt: false })
+        if (fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
+        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: String(Math.round(ev.n)), t: 0, color: '#2f2537' })
       } else if (ev.type === 'die') {
-        if (fx.length < MAX_FX) fx.push({ kind: 'dust', x: ev.x, y: ev.y - 8, t: 0, d: 0.3, size: ev.kind === 'armor' ? 56 : 36 })
+        const big = E[ev.kind].rank ? 2.2 : 1
+        if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })
+      } else if (ev.type === 'stomp') {
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2
+          fx.push({ anim: 'dust', x: ev.x + Math.cos(a) * ev.r * 0.7, y: ev.y + Math.sin(a) * ev.r * 0.7, t: 0, s: 1.3 })
+        }
       } else if (ev.type === 'hurt') {
-        if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, n: Math.round(ev.n), t: 0, hurt: true })
+        if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: '#d9524a' })
+      } else if (ev.type === 'heal') {
+        numbers.push({ x: ev.x, y: ev.y - 52, text: `+${Math.round(ev.n)}`, t: 0, color: '#3f9d5a' })
       }
     }
     run.events.length = 0
     for (let i = fx.length - 1; i >= 0; i--) {
       const f = fx[i]
       f.t += dt
-      if (f.t >= f.d) {
+      const a = f.anim && ART.animations[f.anim]
+      const d = f.d || a.frames.length * (a.frameMs / 1000)
+      if (f.t >= d) {
         fx.splice(i, 1)
         continue
       }
-      const col = Math.min(3, Math.floor((f.t / f.d) * 4))
-      ctx.drawImage(img[f.kind], col * 128, 0, 128, 128, f.x - f.size / 2, f.y - f.size / 2, f.size, f.size)
+      put(f.frame || animFrame(f.anim, f.t * 1000, false), f.x, f.y, f.s, { alpha: f.frame ? Math.min(1, (d - f.t) * 4) : 1 })
     }
+    world()
     ctx.textAlign = 'center'
     ctx.font = '700 11px system-ui, -apple-system, sans-serif'
     ctx.lineWidth = 3
@@ -428,25 +412,13 @@ export function createRenderer(canvas, img, D) {
       }
       const y = n.y - n.t * 22
       ctx.globalAlpha = Math.min(1, (0.6 - n.t) * 4)
-      ctx.strokeStyle = 'rgba(255, 243, 220, 0.9)'
-      ctx.strokeText(n.hurt ? `-${n.n}` : String(n.n), n.x, y)
-      ctx.fillStyle = n.hurt ? '#d9524a' : '#26313e'
-      ctx.fillText(n.hurt ? `-${n.n}` : String(n.n), n.x, y)
+      ctx.strokeStyle = 'rgba(252, 235, 205, 0.9)'
+      ctx.strokeText(n.text, n.x, y)
+      ctx.fillStyle = n.color
+      ctx.fillText(n.text, n.x, y)
     }
     ctx.globalAlpha = 1
   }
 
   return { resize, draw, view, mano, reset: () => Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }) }
-}
-
-// a small looping Mano for the equipment screen (idle, facing the viewer)
-export function drawIdlePreview(canvas, img, D, t, dir = 'S') {
-  const g = canvas.getContext('2d')
-  const st = D.mano.states.idle
-  const col = Math.floor(((t % st.durationSeconds) / st.durationSeconds) * st.framesPerDirection)
-  const row = DIRS.indexOf(dir)
-  g.clearRect(0, 0, canvas.width, canvas.height)
-  g.imageSmoothingQuality = 'high'
-  const s = canvas.height / 128
-  g.drawImage(img.idle, col * 128, row * 128, 128, 128, (canvas.width - 128 * s) / 2, 0, 128 * s, 128 * s)
 }

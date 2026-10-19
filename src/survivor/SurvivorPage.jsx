@@ -1,66 +1,121 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, applyPreview, buildSummary, gradeMul, weaponDef } from './game.js'
-import { browserStorage, canFuse, createProgress } from './progress.js'
-import { createRenderer, drawIdlePreview, loadImages } from './render.js'
+import { createRun, step, choose, applyPreview, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
+import { browserStorage, canFuse, createProgress, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
+import { createRenderer } from './render.js'
+import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
-import pauseSvg from './assets/ui/pause.svg'
-import iconBall from './assets/icons/ball.png'
-import iconCoin from './assets/icons/coin.png'
-import iconChest from './assets/icons/chest.png'
-import iconFusion from './assets/icons/fusion.png'
-import iconCount from './assets/icons/upgrade_count.png'
-import iconBounce from './assets/icons/upgrade_bounce.png'
-import iconSplit from './assets/icons/upgrade_split.png'
-import iconSize from './assets/icons/upgrade_size.png'
-import iconPower from './assets/icons/upgrade_power.png'
-import iconHaste from './assets/icons/upgrade_haste.png'
-import iconMagnet from './assets/icons/upgrade_magnet.png'
-import iconHealth from './assets/icons/upgrade_health.png'
 import './survivor.css'
 
-const ICON = {
-  upgrade_count: iconCount,
-  upgrade_bounce: iconBounce,
-  upgrade_split: iconSplit,
-  upgrade_size: iconSize,
-  upgrade_power: iconPower,
-  upgrade_haste: iconHaste,
-  upgrade_magnet: iconMagnet,
-  upgrade_health: iconHealth,
-}
-const WEAPON_ICON = { bouncy_ball: iconBall }
-const OPTIONS = Object.fromEntries(D.upgrades.options.map((o) => [o.id, o]))
-const GRADES = D.progression.grades
+// the weapon's picture in the sheet (data/weapons.json names it)
+const weaponIcon = (id) => (weaponDef(D, id) || {}).icon || 'weapon_ball'
+const OPTIONS = D.upgrades.options
+const EFFECTS = D.balance.upgrades.effects
+const GRADES = D.balance.grades
 const GRADE_COLOR = D.ui.grades
 const JOY = D.ui.joystick
 const fmt = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toString()
+const pctOf = (v) => `${fmt(v * 100, 1)}%`
 
-// one line of numbers for a card: what it is now → what it becomes
+// what a card really does: its effect straight from the balanceConfig (the
+// same numbers the game applies), then what it is now → what it becomes
+const effectTag = (id) => {
+  const e = EFFECTS[id]
+  if (id === 'crit' || id === 'split') return `+${fmt(e.add * 100)}%p`
+  if (id === 'regen') return `+${e.add}/초`
+  if (id === 'critDamage') return `+${e.add}배`
+  return `×${e.mul}`
+}
+const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
 function change(run, id) {
   const w = run.weapon
   const p = run.player
   const n = applyPreview(run, id)
   switch (id) {
     case 'count':
-      return `공 ${w.count}개 → ${n.count}개`
+      return `한 번에 ${big(w.count)}개 → ${big(n.count)}개`
+    case 'interval':
+      return `${fmt(w.interval, 4)}초마다 → ${fmt(n.interval, 4)}초마다`
     case 'damage':
-      return `피해 ${fmt(w.damage)} → ${fmt(n.damage)}`
+      return `피해 ${big(w.damage)} → ${big(n.damage)}`
     case 'bounce':
-      return `반사 ${w.bounces}회 → ${n.bounces}회`
-    case 'split':
-      return `분열 ${Math.round(w.splitChance * 100)}% → ${Math.round(n.splitChance * 100)}%`
-    case 'haste':
-      return `발사 간격 ${fmt(w.interval, 2)}초 → ${fmt(n.interval, 2)}초`
+      return `반사 ${big(w.bounces)}회 → ${big(n.bounces)}회`
+    case 'maxHp':
+      return `최대 체력 ${Math.round(p.maxHp)} → ${Math.round(n.maxHp)} · 체력 +${Math.round(n.hp - p.hp)}`
+    case 'move':
+      return `이동 속도 ${Math.round(p.speed)} → ${Math.round(n.speed)}`
+    case 'crit':
+      return `치명타 ${pctOf(w.critChance)} → ${pctOf(n.critChance)}`
+    case 'critDamage':
+      return `치명타 피해 ×${fmt(w.critMul)} → ×${fmt(n.critMul)}`
+    case 'ballSpeed':
+      return `공 속도 ${Math.round(w.speed)} → ${Math.round(n.ballSpeed)}`
     case 'size':
-      return `크기 ${fmt(w.radius)} → ${fmt(n.radius)} · 피해 ${fmt(w.damage)} → ${fmt(n.damage)}`
-    case 'magnet':
-      return `획득 반경 ${Math.round(p.pickupR)} → ${Math.round(n.pickupR)} · 속도 ${Math.round(p.speed)} → ${Math.round(n.speed)}`
-    case 'health':
-      return `최대 체력 ${Math.round(p.maxHp)} → ${Math.round(n.maxHp)} · 체력 +35`
+      return `공 지름 ${fmt(w.radius * 2)} → ${fmt(n.radius * 2)}`
+    case 'pickup':
+      return `획득 반경 ${Math.round(p.pickupR)} → ${Math.round(n.pickupR)}`
+    case 'split':
+      return `분열 ${pctOf(w.splitChance)} → ${pctOf(n.splitChance)}`
+    case 'luck':
+      return `코인 획득 ×${fmt(p.coinMul, 2)} → ×${fmt(n.coinMul, 2)}`
+    case 'regen':
+      return `초당 회복 ${fmt(p.regen)} → ${fmt(n.regen)}`
+    case 'armor':
+      return `받는 피해 ${pctOf(p.armor)} → ${pctOf(n.armor)}`
+    case 'xpGain':
+      return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
     default:
       return ''
   }
+}
+
+// one frame of the art as a DOM box `size` px on its long side
+function Sprite({ name, size, flip, whole, className = '' }) {
+  return <span className={`ms-sprite ${className}`} style={spriteStyle(name, size, { whole, flip })} aria-hidden="true" />
+}
+
+// A bar from the UI sheet `w` × `h` px: its two ends drawn as they are and
+// only the middle stretched (sideways), so the frame keeps its shape at any
+// length. Every bar frame is cut by the empty bar's box, so they line up.
+const BAR_BOX = FRAMES.hp_empty.contentBounds
+const CAP = 12 // art px at each end that are never stretched
+function barLayer(name, w, h) {
+  const f = FRAMES[name]
+  const sh = ART.sheets[f.sheet]
+  const s = h / BAR_BOX.h
+  const cap = CAP * s
+  const mid = Math.max(0, w - 2 * cap)
+  const sx = mid / (BAR_BOX.w - 2 * CAP)
+  const x0 = f.rect.x + BAR_BOX.x
+  const y0 = (f.rect.y + BAR_BOX.y) * s
+  const url = `url(${SHEET_URLS[f.sheet]})`
+  const part = (left, width, ax, scaleX) => ({
+    left,
+    width,
+    height: h,
+    backgroundImage: url,
+    backgroundSize: `${sh.width * scaleX}px ${sh.height * s}px`,
+    backgroundPosition: `${-ax * scaleX}px ${-y0}px`,
+  })
+  return [part(0, cap, x0, s), part(cap, mid, x0 + CAP, sx), part(cap + mid, cap, x0 + BAR_BOX.w - CAP, s)]
+}
+function Bar({ w, h, fill, value, label }) {
+  const v = Math.max(0, Math.min(1, value))
+  // the full bar is cut off where the value ends, inside the frame's own ends
+  const cap = CAP * (h / BAR_BOX.h)
+  const right = w - (cap * 0.6 + (w - cap * 1.2) * v)
+  return (
+    <span className="ms-bar" style={{ width: w, height: h }} role="meter" aria-valuenow={Math.round(v * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+      {barLayer('hp_empty', w, h).map((st, i) => (
+        <i key={i} style={st} />
+      ))}
+      <span className="ms-bar__fill" style={{ clipPath: `inset(0 ${Math.max(0, right)}px 0 0)` }}>
+        {barLayer(fill, w, h).map((st, i) => (
+          <i key={i} style={st} />
+        ))}
+      </span>
+    </span>
+  )
 }
 
 const weaponName = (id) => (weaponDef(D, id) || { name: id }).name
@@ -77,30 +132,51 @@ function Grade({ g }) {
   )
 }
 
-function ManoPreview({ img }) {
-  const ref = useRef(null)
-  useEffect(() => {
-    let raf
-    const t0 = performance.now()
-    const loop = (now) => {
-      raf = requestAnimationFrame(loop)
-      if (ref.current && img) drawIdlePreview(ref.current, img, D, (now - t0) / 1000)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [img])
-  return <canvas ref={ref} className="ms-preview" width="192" height="192" aria-label="마노" />
+// the weapons owned, by kind and grade, with how many of each
+function groupInventory(save) {
+  const groups = new Map()
+  for (const it of save.inventory) {
+    const k = it.weaponId + ':' + it.grade
+    if (!groups.has(k)) groups.set(k, { weaponId: it.weaponId, grade: it.grade, items: [] })
+    groups.get(k).items.push(it)
+  }
+  return [...groups.values()].sort((a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade))
+}
+
+// what a coin stat shows: its value now and after one more level
+function statText(stat, L) {
+  const s = D.balance.perma.stats[stat]
+  const v = (l) => statValue(D, stat, l)
+  const P = D.balance.player
+  const w = D.weapons.registry[0].base
+  switch (stat) {
+    case 'hp':
+      return [`${Math.round(P.hp * v(L))}`, `${Math.round(P.hp * v(L + 1))}`]
+    case 'damage':
+      return [`×${fmt(v(L), 3)}`, `×${fmt(v(L + 1), 3)}`]
+    case 'move':
+      return [`${fmt(P.speed * v(L))}`, `${fmt(P.speed * v(L + 1))}`]
+    case 'interval':
+      return [`${fmt(w.interval * v(L), 3)}초`, `${fmt(w.interval * v(L + 1), 3)}초`]
+    case 'crit':
+      return [pctOf(v(L)), pctOf(Math.min(s.max, v(L + 1)))]
+    case 'coins':
+      return [`×${fmt(v(L), 3)}`, `×${fmt(v(L + 1), 3)}`]
+    default:
+      return ['', '']
+  }
 }
 
 export default function SurvivorPage({ exitHref = '#/' }) {
   const P = useRef(null)
   const [img, setImg] = useState(null)
   const [error, setError] = useState('')
-  const [screen, setScreen] = useState('loading') // loading | equip | battle | fusion
+  const [screen, setScreen] = useState('loading') // loading | lobby | battle | fusion
+  const [tab, setTab] = useState('go') // go | gear | stats
   const [save, setSave] = useState(null)
   const [notice, setNotice] = useState('')
   const [chapter, setChapter] = useState(1)
-  const [modal, setModal] = useState(null) // { kind: 'pause' | 'quit' | 'result' | 'chest' | 'help' }
+  const [modal, setModal] = useState(null) // { kind: 'pause' | 'quit' | 'result' | 'chest' }
   const [, setBeat] = useState(0)
   const G = useRef({ run: null, runId: null, input: { x: 0, y: 0 }, paid: false, choosing: false })
 
@@ -112,12 +188,12 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     const b = P.current.boot()
     setSave(b.data)
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, 99)))
-    if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혀서 보상 없이 종료되었어요. 무기와 받은 보상은 그대로예요.')
+    if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혔어요. 그때까지 받은 엘리트·보스 보상은 그대로예요.')
     else if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
     loadImages()
       .then((i) => {
         setImg(i)
-        setScreen('equip')
+        setScreen('lobby')
       })
       .catch((e) => setError(e.message))
     // the page behind does not scroll while the game is open
@@ -141,24 +217,25 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma })
+    g.saved = 0 // rewards of this run already saved
+    g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
     setModal(null)
     setScreen('battle')
     refresh()
   }
 
-  // ── chest ──
-  const openChest = (chestId) => {
+  // ── chests: one, or all at once; the results show, then back ──
+  const openChests = (all) => {
     const g = G.current
     if (g.opening) return
     g.opening = true
-    const item = P.current.openChest(chestId)
+    const d = P.current.get()
+    const results = all ? P.current.openAll() : d.chests[0] ? [P.current.openChest(d.chests[0].id)].filter(Boolean) : []
     g.opening = false
-    if (g.reward && g.reward.chest && g.reward.chest.id === chestId) g.reward.chest = null
     refresh()
-    // after the chest, back to whatever was showing (the result, say)
-    if (item) setModal((m) => ({ kind: 'chest', item, after: m }))
+    if (results.length) setModal((m) => ({ kind: 'chest', results, after: m && m.kind !== 'chest' ? m : m && m.after }))
   }
 
   if (error)
@@ -174,9 +251,10 @@ export default function SurvivorPage({ exitHref = '#/' }) {
   return (
     <div className="ms">
       {screen === 'loading' && <div className="ms-loading">마노가 주머니를 챙기는 중…</div>}
-      {screen === 'equip' && save && (
-        <Equip
-          img={img}
+      {screen === 'lobby' && save && (
+        <Lobby
+          tab={tab}
+          setTab={setTab}
           save={save}
           equipped={equipped}
           chapter={chapter}
@@ -189,7 +267,12 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           }}
           onStart={() => start()}
           onFusion={() => setScreen('fusion')}
-          onChest={() => save.chests[0] && openChest(save.chests[0].id)}
+          onChests={openChests}
+          onBuy={(stat, level) => {
+            const r = P.current.buyStat(stat, level)
+            refresh()
+            return r
+          }}
           exitHref={exitHref}
           saveError={P.current && P.current.error()}
         />
@@ -197,7 +280,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       {screen === 'fusion' && save && (
         <Fusion
           save={save}
-          onBack={() => setScreen('equip')}
+          onBack={() => setScreen('lobby')}
           onFuse={(ids) => {
             const r = P.current.fuse(ids)
             refresh()
@@ -211,16 +294,17 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           img={img}
           G={G}
           P={P}
+          save={save}
           firstTime={save && !save.seenHelp}
           modal={modal}
           setModal={setModal}
           onRetry={() => start(G.current.chapter)}
           onEquip={() => {
             setModal(null)
-            setScreen('equip')
+            setScreen('lobby')
             refresh()
           }}
-          onChest={openChest}
+          onChests={openChests}
           refresh={refresh}
           rerender={() => setBeat((x) => x + 1)}
         />
@@ -228,13 +312,29 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
-            <h2 className="ms-h">상자 열기</h2>
-            <img className="ms-chest__img" src={iconChest} alt="" />
-            <p className="ms-chest__item">
-              <img src={WEAPON_ICON[modal.item.weaponId]} alt="" />
-              {weaponName(modal.item.weaponId)} <Grade g={modal.item.grade} />
-            </p>
-            <p className="ms-dim">무기가 주머니에 들어갔어요. 장착 칸이 늘어나지는 않아요.</p>
+            <h2 className="ms-h">상자 {modal.results.length}개를 열었어요</h2>
+            <Sprite name="chest_open" size={72} className="ms-chest__img" />
+            <ul className="ms-loot">
+              {modal.results.map((r) => (
+                <li key={r.chestId}>
+                  {r.items.map((it) => (
+                    <span key={it.id} className="ms-loot__item">
+                      <Sprite name={weaponIcon(it.weaponId)} size={24} />
+                      {weaponName(it.weaponId)} <Grade g={it.grade} />
+                    </span>
+                  ))}
+                  <span className="ms-loot__coins">
+                    <Sprite name="coin" size={14} /> +{r.coins}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="ms-dim">무기는 주머니에 들어갔어요. 같은 무기·같은 등급 3개면 합성할 수 있어요.</p>
+            {save && save.chests.length > 0 && (
+              <button type="button" className="ms-btn" onClick={() => openChests(true)}>
+                남은 상자 {save.chests.length}개 모두 열기
+              </button>
+            )}
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setModal(modal.after || null)}>
               확인
             </button>
@@ -245,47 +345,67 @@ export default function SurvivorPage({ exitHref = '#/' }) {
   )
 }
 
-// ── equipment ────────────────────────────────────────────────────────────────
+// ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
-function Equip({ img, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onChest, exitHref, saveError }) {
-  const groups = {}
-  for (const it of save.inventory) {
-    const k = it.weaponId + ':' + it.grade
-    ;(groups[k] = groups[k] || []).push(it)
-  }
-  const best = save.bestResults[chapter]
-  const rows = Object.entries(groups).sort((a, b) => GRADES.indexOf(b[1][0].grade) - GRADES.indexOf(a[1][0].grade))
+function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onChests, onBuy, exitHref, saveError }) {
+  const tabs = [
+    ['go', '출발'],
+    ['gear', '장비'],
+    ['stats', '마노 강화'],
+  ]
   return (
     <div className="ms-page">
       <header className="ms-top">
         <a className="ms-exit" href={exitHref}>
           ◀ 나가기
         </a>
-        <span className="ms-coins">
-          <img src={iconCoin} alt="재화" />
-          {save.currency}
+        <span className="ms-coins" aria-label={`코인 ${save.currency}`}>
+          <Sprite name="coin" size={20} />
+          {save.currency.toLocaleString('ko-KR')}
         </span>
       </header>
       <h1 className="ms-title">{GAMES.survivor.title}</h1>
-      <h2 className="ms-h">마노의 주머니</h2>
+      <nav className="ms-tabs" role="tablist">
+        {tabs.map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`ms-tab ${tab === k ? 'is-on' : ''}`} onClick={() => setTab(k)}>
+            {label}
+            {k === 'gear' && save.chests.length > 0 ? <em className="ms-tab__dot">{save.chests.length}</em> : null}
+          </button>
+        ))}
+      </nav>
       {notice && (
         <p className="ms-notice" onClick={onNotice}>
           {notice}
         </p>
       )}
       {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
+      {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
+      {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onChests={onChests} />}
+      {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
+    </div>
+  )
+}
+
+function Go({ save, equipped, chapter, setChapter, onStart }) {
+  const best = save.bestResults[chapter]
+  const R = D.balance.rewards
+  const first = !save.firstCleared.includes(chapter)
+  const most = R.elite1.chests + R.elite2.chests + R.boss.chests + R.clear.chests + (first ? R.firstClear.chests : 0)
+  const time = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+  return (
+    <>
       <section className="ms-panel ms-equip">
-        <ManoPreview img={img} />
+        <Sprite name="menu_wave" size={96} className="ms-preview" />
         <div className="ms-slot">
-          <span className="ms-slot__label">무기 슬롯</span>
+          <span className="ms-slot__label">장착 무기 (하나만)</span>
           {equipped ? (
             <div className="ms-slot__item" style={{ '--g': GRADE_COLOR[equipped.grade] }}>
-              <img src={WEAPON_ICON[equipped.weaponId]} alt="" />
+              <Sprite name={weaponIcon(equipped.weaponId)} size={36} />
               <div>
                 <p className="ms-slot__name">
                   {weaponName(equipped.weaponId)} <Grade g={equipped.grade} />
                 </p>
-                <p className="ms-dim">피해 {fmt(damageOf(equipped))} · 장착 중</p>
+                <p className="ms-dim">기본 피해 {fmt(damageOf(equipped))}</p>
               </div>
             </div>
           ) : (
@@ -293,50 +413,131 @@ function Equip({ img, save, equipped, chapter, setChapter, notice, onNotice, onE
           )}
         </div>
       </section>
+      <section className="ms-panel ms-go">
+        <div className="ms-chapters" role="group" aria-label="장 고르기">
+          {Array.from({ length: save.unlockedChapter }, (_, i) => i + 1).map((c) => (
+            <button key={c} type="button" className={`ms-chip ${c === chapter ? 'is-on' : ''} ${save.firstCleared.includes(c) ? 'is-done' : ''}`} onClick={() => setChapter(c)} aria-pressed={c === chapter}>
+              {c}장
+            </button>
+          ))}
+        </div>
+        <p className="ms-dim">
+          70초 보물 도둑 · 145초 왕관 해골 짐승 · 210초 해골 왕. 해골 왕을 쓰러뜨리면 클리어예요. 이 장에서 받을 수 있는 상자 최대 {most}개{first ? ' (첫 클리어 보너스 포함)' : ''}.
+        </p>
+        {best && (
+          <p className="ms-dim">
+            최고 기록: {best.cleared ? '클리어' : `${time(best.time)} 버팀`} · 처치 {best.kills} · 엘리트 {best.elites}
+          </p>
+        )}
+        <button type="button" className="ms-btn ms-btn--primary ms-btn--big" onClick={onStart} disabled={!equipped}>
+          {chapter}장 출발
+        </button>
+      </section>
+    </>
+  )
+}
 
+function Gear({ save, equipped, onEquip, onFusion, onChests }) {
+  const groups = groupInventory(save)
+  return (
+    <>
+      {save.chests.length > 0 && (
+        <section className="ms-panel ms-row ms-chests">
+          <Sprite name="chest_closed" size={40} />
+          <span className="ms-sub">상자 {save.chests.length}개</span>
+          <button type="button" className="ms-btn ms-btn--small" onClick={() => onChests(false)}>
+            하나 열기
+          </button>
+          <button type="button" className="ms-btn ms-btn--small ms-btn--primary" onClick={() => onChests(true)}>
+            모두 열기
+          </button>
+        </section>
+      )}
       <section className="ms-panel">
         <div className="ms-row">
           <h3 className="ms-sub">보유 무기</h3>
           <button type="button" className="ms-btn ms-btn--small" onClick={onFusion}>
-            <img src={iconFusion} alt="" /> 합성
+            합성
           </button>
         </div>
         <ul className="ms-inv">
-          {rows.map(([k, items]) =>
-            items.map((it) => (
-              <li key={it.id}>
-                <button type="button" className={`ms-inv__item ${it.id === save.equippedInstanceId ? 'is-on' : ''}`} style={{ '--g': GRADE_COLOR[it.grade] }} onClick={() => onEquip(it.id)} aria-pressed={it.id === save.equippedInstanceId}>
-                  <img src={WEAPON_ICON[it.weaponId]} alt="" />
+          {groups.map((g) => {
+            const on = equipped && equipped.weaponId === g.weaponId && equipped.grade === g.grade
+            return (
+              <li key={g.weaponId + g.grade}>
+                <button type="button" className={`ms-inv__item ${on ? 'is-on' : ''}`} style={{ '--g': GRADE_COLOR[g.grade] }} onClick={() => onEquip(g.items[0].id)} aria-pressed={on}>
+                  <Sprite name={weaponIcon(g.weaponId)} size={28} />
                   <span>
-                    {weaponName(it.weaponId)} <Grade g={it.grade} />
+                    {weaponName(g.weaponId)} <Grade g={g.grade} />
                   </span>
-                  <small>{it.id === save.equippedInstanceId ? '장착 중' : '장착'}</small>
+                  <small>
+                    ×{g.items.length}
+                    <br />
+                    {on ? '장착 중' : '장착'}
+                  </small>
                 </button>
               </li>
-            )),
-          )}
+            )
+          })}
         </ul>
-        {save.chests.length > 0 && (
-          <button type="button" className="ms-btn ms-chestbtn" onClick={onChest}>
-            <img src={iconChest} alt="" /> 상자 열기 ({save.chests.length})
-          </button>
-        )}
+        <p className="ms-dim">같은 무기·같은 등급 3개를 합성하면 다음 등급 1개가 돼요. 등급은 출발할 때의 기본 피해를 높여요 (D ×1 … EX ×{D.balance.gradeMultipliers[D.balance.gradeMultipliers.length - 1]}).</p>
       </section>
+    </>
+  )
+}
 
-      <section className="ms-panel ms-go">
-        <div className="ms-chapters" role="group" aria-label="챕터">
-          {Array.from({ length: save.unlockedChapter }, (_, i) => i + 1).map((c) => (
-            <button key={c} type="button" className={`ms-chip ${c === chapter ? 'is-on' : ''}`} onClick={() => setChapter(c)} aria-pressed={c === chapter}>
-              챕터 {c}
-            </button>
-          ))}
-        </div>
-        <p className="ms-dim">{best ? `최고 기록: 웨이브 ${best.wave} · 처치 ${best.kills}${best.cleared ? ' · 클리어' : ''}` : '6웨이브를 버티면 챕터 클리어, 상자 1개를 받아요.'}</p>
-        <button type="button" className="ms-btn ms-btn--primary ms-btn--big" onClick={onStart} disabled={!equipped}>
-          출발
-        </button>
-      </section>
-    </div>
+// taps closer together than this count as one (a double tap)
+const TAP_GAP = 350
+
+function Stats({ save, onBuy }) {
+  const last = useRef(0)
+  const [msg, setMsg] = useState('')
+  return (
+    <section className="ms-panel">
+      <h3 className="ms-sub">마노 강화 (코인으로 영구 강화)</h3>
+      <p className="ms-dim">능력치마다 따로 올려요. 한 번 올릴 때마다 다음 가격이 ×{D.balance.perma.priceGrowth}가 돼요. 판 안의 강화와는 따로 쌓여요.</p>
+      <ul className="ms-stats-list">
+        {STATS.map((k) => {
+          const s = D.balance.perma.stats[k]
+          const L = save.perma[k]
+          const max = statMaxLevel(D, k)
+          const atMax = L >= max
+          const price = statPrice(D, k, L)
+          const [now, next] = statText(k, L)
+          return (
+            <li key={k} className="ms-stat">
+              <div>
+                <p className="ms-stat__name">
+                  {s.name} <small>Lv.{L}</small>
+                </p>
+                <p className="ms-dim">{atMax ? `${now} (최대)` : `${now} → ${next}`}</p>
+              </div>
+              <button
+                type="button"
+                className="ms-btn ms-btn--small ms-btn--primary"
+                disabled={atMax || save.currency < price}
+                onClick={() => {
+                  // a double tap buys one level, not two
+                  const now = performance.now()
+                  if (now - last.current < TAP_GAP) return
+                  last.current = now
+                  const r = onBuy(k, L)
+                  setMsg(r.ok ? `${s.name} Lv.${r.level}!` : r.reason)
+                }}
+              >
+                {atMax ? '최대' : (
+                  <>
+                    <Sprite name="coin" size={14} /> {price.toLocaleString('ko-KR')}
+                  </>
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      {msg && <p className="ms-ok">{msg}</p>}
+      <p className="ms-dim">치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요.</p>
+    </section>
   )
 }
 
@@ -367,14 +568,14 @@ function Fusion({ save, onBack, onFuse }) {
             const it = save.inventory.find((x) => x.id === sel[i])
             return (
               <span key={i} className="ms-fuse__slot" style={it ? { '--g': GRADE_COLOR[it.grade] } : undefined}>
-                {it ? <img src={WEAPON_ICON[it.weaponId]} alt="" /> : '+'}
+                {it ? <Sprite name={weaponIcon(it.weaponId)} size={34} /> : '+'}
                 {it && <Grade g={it.grade} />}
               </span>
             )
           })}
           <span className="ms-fuse__arrow">→</span>
           <span className="ms-fuse__slot ms-fuse__slot--out" style={check.ok ? { '--g': GRADE_COLOR[next] } : undefined}>
-            {check.ok ? <img src={WEAPON_ICON[first.weaponId]} alt="" /> : '?'}
+            {check.ok ? <Sprite name={weaponIcon(first.weaponId)} size={40} /> : '?'}
             {check.ok && <Grade g={next} />}
           </span>
         </div>
@@ -407,7 +608,7 @@ function Fusion({ save, onBack, onFuse }) {
           {items.map((it) => (
             <li key={it.id}>
               <button type="button" className={`ms-inv__item ${sel.includes(it.id) ? 'is-sel' : ''}`} style={{ '--g': GRADE_COLOR[it.grade] }} onClick={() => toggle(it.id)} aria-pressed={sel.includes(it.id)}>
-                <img src={WEAPON_ICON[it.weaponId]} alt="" />
+                <Sprite name={weaponIcon(it.weaponId)} size={28} />
                 <span>
                   {weaponName(it.weaponId)} <Grade g={it.grade} />
                 </span>
@@ -423,12 +624,13 @@ function Fusion({ save, onBack, onFuse }) {
 
 // ── battle ───────────────────────────────────────────────────────────────────
 
-function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChest, refresh, rerender }) {
+function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip, onChests, refresh, rerender }) {
   const stageRef = useRef(null)
   const canvasRef = useRef(null)
   const joyRef = useRef(null)
   const knobRef = useRef(null)
   const [hint, setHint] = useState(firstTime)
+  const [toast, setToast] = useState(null)
   const modalRef = useRef(modal)
   modalRef.current = modal
 
@@ -438,26 +640,27 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
     const R = createRenderer(canvasRef.current, img, D)
     const fit = () => {
       const r = stage.getBoundingClientRect()
-      R.resize(r.width, r.height, devicePixelRatio)
+      R.resize(r.width, r.height, Math.min(devicePixelRatio, g.dprCap || 2))
       g.k = r.width / 360
     }
     fit()
-    const ro = new ResizeObserver(fit)
-    ro.observe(stage)
 
-    // ── joystick: one finger, wherever it lands in the lower half ──
+    // ── joystick: bottom left; one finger in that corner moves it a little
+    // toward where it landed and steers from there ──
     const joy = { id: null, ox: 0, oy: 0 }
-    const show = (on, x = 0, y = 0, kx = 0, ky = 0) => {
+    const home = () => ({ x: JOY.center[0] * g.k, y: JOY.center[1] * g.k })
+    const show = (on, x, y, kx = 0, ky = 0) => {
       const el = joyRef.current
       if (!el) return
-      el.style.display = on ? 'block' : 'none'
+      el.classList.toggle('is-on', on)
       el.style.transform = `translate(${x}px, ${y}px)`
       knobRef.current.style.transform = `translate(${kx}px, ${ky}px)`
     }
     const release = () => {
       joy.id = null
       g.input = { x: 0, y: 0 }
-      show(false)
+      const h = home()
+      show(false, h.x, h.y)
     }
     g.releaseInput = release
     const local = (e) => {
@@ -468,16 +671,23 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
       if (joy.id !== null || modalRef.current || g.run.state !== 'play') return
       if (e.target.closest('button, a')) return
       const p = local(e)
-      const [, ry, , rh] = JOY.activationRegion
-      if (p.y / g.k < ry || p.y / g.k > ry + rh) return
+      const [rx, ry, rw, rh] = JOY.activationRegion
+      if (p.x / g.k < rx || p.x / g.k > rx + rw || p.y / g.k < ry || p.y / g.k > ry + rh) return
+      // the stick comes toward the finger, at most `follow` from its home
+      const h = home()
+      const dx = p.x - h.x
+      const dy = p.y - h.y
+      const d = Math.hypot(dx, dy)
+      const f = JOY.follow * g.k
+      const c = d > f ? f / d : 1
       joy.id = e.pointerId
-      joy.ox = p.x
-      joy.oy = p.y
+      joy.ox = h.x + dx * c
+      joy.oy = h.y + dy * c
       stage.setPointerCapture?.(e.pointerId)
-      show(true, p.x, p.y)
       e.preventDefault()
+      onMove(e)
     }
-    const onMove = (e) => {
+    function onMove(e) {
       if (e.pointerId !== joy.id) return
       const p = local(e)
       const R0 = JOY.radius * g.k
@@ -491,6 +701,14 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
       g.input = d > 0 ? { x: (dx / Math.hypot(dx, dy)) * s, y: (dy / Math.hypot(dx, dy)) * s } : { x: 0, y: 0 }
       show(true, joy.ox, joy.oy, dx, dy)
     }
+    release()
+    // a new size: the HUD and the stick follow (a held stick is let go)
+    const ro = new ResizeObserver(() => {
+      fit()
+      release()
+      rerender()
+    })
+    ro.observe(stage)
     const onUp = (e) => {
       if (e.pointerId === joy.id) release()
     }
@@ -512,8 +730,18 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
     }
     addEventListener('keydown', onKey)
 
+    // short notices over the battle
+    let toastTimer
+    const say = (text) => {
+      setToast(text)
+      clearTimeout(toastTimer)
+      toastTimer = setTimeout(() => setToast(null), 2200)
+    }
+
     // ── the loop ──
     let raf
+    let slow = 0
+    let lastDrop = 0
     let last = performance.now()
     let hudT = 0
     let shownLevel = null
@@ -523,12 +751,53 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
       last = now
       const run = g.run
       const paused = modalRef.current && modalRef.current.kind !== 'result' && modalRef.current.kind !== 'chest'
+      const w0 = performance.now()
       if (!paused && run.state !== 'over') step(run, dt, g.input)
+      // an elite or the boss fell: its reward is saved now, once
+      while (g.saved < run.awards.length) {
+        const key = run.awards[g.saved++]
+        const r = P.current.award(g.runId, g.chapter, key)
+        if (!r.already) {
+          g.earned.chests += r.chests.length
+          g.earned.coins += r.coins
+          say(`${key === 'boss' ? '해골 왕' : key === 'elite1' ? '보물 도둑' : '왕관 해골 짐승'} 처치! 상자 ${r.chests.length}개 · 코인 ${r.coins}`)
+        }
+        refresh()
+      }
+      for (const ev of run.events) {
+        if (ev.type === 'elite') say(`${ev.name} 등장!`)
+        else if (ev.type === 'boss') say(`${ev.name} 등장! 쓰러뜨려야 클리어예요`)
+        else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
+      }
+      if (overtime(run) && !g.overtimeSaid) {
+        g.overtimeSaid = true
+        say('보스전 연장! 몬스터가 점점 빨리 나와요')
+      }
       R.draw(run, paused || run.state === 'levelup' ? 0 : dt)
+      // telemetry: how long this frame's work took (simulation + drawing)
+      if (run.state === 'play') {
+        const ms = performance.now() - w0
+        run.stats.frames++
+        run.stats.frameMs += ms
+        if (ms > run.stats.frameMsMax) run.stats.frameMsMax = ms
+        // a phone that cannot keep up gets a sharper-than-needed canvas
+        // made smaller (2 → 1.5 → 1 pixel per CSS pixel); the battle itself
+        // (balls, hits, damage) never changes
+        slow = slow * 0.97 + (dt > 1 / 40 ? 0.03 : 0)
+        if (slow > 0.6 && (g.dprCap || 2) > 1 && now - lastDrop > 3000) {
+          g.dprCap = (g.dprCap || 2) === 2 ? 1.5 : 1
+          lastDrop = now
+          slow = 0
+          fit()
+        }
+      }
       // a level-up opens its cards (input let go, so the stick never sticks)
       if (run.state === 'levelup' && shownLevel !== run.choiceSeq) {
         shownLevel = run.choiceSeq
         g.choosing = false
+        // new cards take no tap for a moment: the second tap of a double tap
+        // must not pick from the next set
+        g.cardsAt = performance.now()
         release()
         rerender()
       }
@@ -536,7 +805,7 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
         g.paid = true
         release()
         const reward = P.current.finishRun(g.runId, g.chapter, run.result)
-        g.reward = reward
+        g.reward = { ...reward, earned: { ...g.earned } }
         refresh()
         setModal({ kind: 'result' })
       }
@@ -561,11 +830,13 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
           return P.current.get()
         },
         setInput: (x, y) => (g.input = { x, y }),
+        choose,
         R,
       }
     }
 
     return () => {
+      clearTimeout(toastTimer)
       cancelAnimationFrame(raf)
       ro.disconnect()
       release()
@@ -588,46 +859,71 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
 
   const run = G.current.run
   const p = run.player
-  const waves = D.balance.waves
-  const left = Math.max(0, Math.ceil(waves[run.wave].seconds - run.waveT))
+  const k = G.current.k || 1
   const pct = (v) => `${(v * 100).toFixed(2)}%`
   const box = ([x, y, w, h]) => ({ left: pct(x / 360), top: pct(y / 640), width: pct(w / 360), height: pct(h / 640) })
   const H = D.ui.hud
+  // the elite or boss on the field, for its health bar
+  const big = [run.boss, run.elites.elite2, run.elites.elite1].find((e) => e && e.state === 'live')
+  const ot = overtime(run)
+  const mm = Math.floor(run.t / 60)
+  const ss = String(Math.floor(run.t % 60)).padStart(2, '0')
+  const R0 = JOY.radius * k
 
   return (
     <div className="ms-stage" ref={stageRef}>
       <canvas ref={canvasRef} className="ms-canvas" aria-label="전투 화면" />
-      {/* top bar: health, XP, level, wave and time, coins, pause */}
+      {/* top bar: chapter · wave and time, pause; health, experience and
+          level; coins. The one weapon sits just below, on the right. */}
       <div className="ms-hud">
-        <div className="ms-bar ms-bar--hp" style={box(H.health)}>
-          <span style={{ width: pct(Math.max(0, Math.min(1, p.hp / p.maxHp))) }} />
-          <em>
-            {Math.ceil(p.hp)} / {Math.round(p.maxHp)}
-          </em>
-        </div>
-        <div className="ms-bar ms-bar--xp" style={box(H.xp)}>
-          <span style={{ width: pct(Math.max(0, Math.min(1, run.xp / run.need))) }} />
-        </div>
-        <div className="ms-lv" style={{ left: pct(12 / 360), top: pct(38 / 640) }}>
-          LV {run.level}
-        </div>
-        <div className="ms-wave" style={box(H.wave)}>
-          WAVE {run.wave + 1}/{waves.length}
+        <div className="ms-hudbar" style={{ height: pct(H.height / 640) }} />
+        <div className="ms-stagename" style={box(H.stage)}>
+          {run.chapter}장{ot ? ' · 보스전 연장' : run.boss ? ' · 보스' : ''}
         </div>
         <div className="ms-time" style={box(H.timer)}>
-          {left}초
-        </div>
-        <div className="ms-cur" style={box(H.currency)}>
-          <img src={iconCoin} alt="재화" /> {run.coins}
+          {mm}:{ss}
         </div>
         <button type="button" className="ms-pause" style={box(H.pause)} onClick={() => setModal({ kind: 'pause' })} aria-label="일시정지" disabled={run.state !== 'play' || !!modal}>
-          <img src={pauseSvg} alt="" />
+          <Sprite name="pause" size={H.pause[2] * k} />
         </button>
+        <div className="ms-hudrow" style={box(H.health)}>
+          <Bar w={H.health[2] * k} h={H.health[3] * k} fill="hp_full" value={p.hp / p.maxHp} label="체력" />
+        </div>
+        <div className="ms-hudtext" style={box(H.healthText)}>
+          {Math.ceil(p.hp)} / {Math.round(p.maxHp)}
+        </div>
+        <div className="ms-hudrow" style={box(H.xp)}>
+          <Bar w={H.xp[2] * k} h={H.xp[3] * k} fill="exp_full" value={run.xp / run.need} label="경험치" />
+        </div>
+        <div className="ms-hudtext" style={box(H.level)}>
+          LV. {run.level}
+        </div>
+        <div className="ms-cur" style={box(H.currency)}>
+          <Sprite name="coin" size={13 * k} /> {run.coins}
+        </div>
+        {big && (
+          <div className="ms-bossbar" style={box(H.bossBar)}>
+            <span className="ms-bossbar__name">{D.balance.enemies[big.type].name}</span>
+            <Bar w={H.bossBar[2] * k} h={10 * k} fill="hp_full" value={big.hp / big.maxHp} label={`${D.balance.enemies[big.type].name} 체력`} />
+          </div>
+        )}
+        <div className="ms-wslot" style={box(H.weaponSlot)} aria-label={`장착: ${weaponName(run.weaponDef.id)} ${run.grade}`}>
+          <Sprite name="weapon_slot" size={H.weaponSlot[2] * k} />
+          <Sprite name={weaponIcon(run.weaponDef.id)} size={H.weaponSlot[2] * 0.55 * k} className="ms-wslot__icon" />
+          <span className="ms-wslot__g" style={{ '--g': GRADE_COLOR[run.grade] }}>
+            {run.grade}
+          </span>
+        </div>
       </div>
-      {hint && <p className="ms-hint">아래쪽 화면을 누른 채 움직이면 마노가 걸어요. 공격은 자동이에요.</p>}
+      {toast && <p className="ms-toast">{toast}</p>}
+      {hint && <p className="ms-hint">왼쪽 아래를 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.</p>}
       <div className="ms-joy" ref={joyRef} aria-hidden="true">
-        <span className="ms-joy__base" style={{ width: JOY.radius * 2 * (G.current.k || 1), height: JOY.radius * 2 * (G.current.k || 1) }} />
-        <span className="ms-joy__knob" ref={knobRef} style={{ width: JOY.knobRadius * 2 * (G.current.k || 1), height: JOY.knobRadius * 2 * (G.current.k || 1) }} />
+        <span className="ms-joy__base">
+          <Sprite name="joystick_base" size={R0 * 2} />
+        </span>
+        <span className="ms-joy__knob" ref={knobRef}>
+          <Sprite name="joystick_thumb" size={JOY.knobRadius * 2 * k} />
+        </span>
       </div>
 
       {run.state === 'levelup' && run.choices && !modal && (
@@ -644,20 +940,25 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
                   className="ms-card"
                   onClick={() => {
                     const g = G.current
-                    if (g.choosing) return
+                    if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
                     g.choosing = true
                     choose(run, id, run.choiceSeq)
+                    g.cardsAt = performance.now()
                     g.choosing = false
                     rerender()
                   }}
                 >
-                  <img src={ICON[o.icon]} alt="" />
+                  <span className="ms-card__icon">
+                    <Sprite name={o.icon} size={36} />
+                  </span>
                   <span className="ms-card__body">
                     <span className="ms-card__name">
                       {o.name}
-                      {run.picks[id] ? <em className="ms-card__stack">×{run.picks[id]}</em> : null}
+                      {run.picks[id] ? <em className="ms-card__stack">{run.picks[id]}번 고름</em> : null}
                     </span>
-                    <span className="ms-card__num">{change(run, id)}</span>
+                    <span className="ms-card__num">
+                      <b>{effectTag(id)}</b> {change(run, id)}
+                    </span>
                   </span>
                 </button>
               )
@@ -669,6 +970,7 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
       {modal && modal.kind === 'pause' && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
+            <Sprite name="menu_sleep" size={92} className="ms-mascot" />
             <h2 className="ms-h">잠깐 쉬어가기</h2>
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setModal(null)}>
               계속하기
@@ -683,7 +985,7 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
             <h2 className="ms-h">전투를 포기할까요?</h2>
-            <p className="ms-dim ms-center">이번 판의 강화와 보상은 사라져요. 무기는 그대로예요.</p>
+            <p className="ms-dim ms-center">이번 판의 강화는 사라져요. 주운 코인과 이미 받은 엘리트·보스 보상은 남아요.</p>
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'pause' })}>
               계속하기
             </button>
@@ -693,7 +995,8 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
               onClick={() => {
                 const g = G.current
                 g.paid = true
-                P.current.abandonRun(g.runId)
+                // coins picked up so far are kept; the rewards already earned stay too
+                P.current.abandonRun(g.runId, run.coins)
                 onEquip()
               }}
             >
@@ -703,13 +1006,13 @@ function Battle({ img, G, P, firstTime, modal, setModal, onRetry, onEquip, onChe
         </div>
       )}
       {modal && modal.kind === 'result' && run.result && (
-        <Result run={run} reward={G.current.reward} onRetry={onRetry} onEquip={onEquip} onChest={onChest} setModal={setModal} />
+        <Result run={run} reward={G.current.reward} save={save} onRetry={onRetry} onEquip={onEquip} onChests={onChests} />
       )}
     </div>
   )
 }
 
-function Result({ run, reward, onRetry, onEquip, onChest, setModal }) {
+function Result({ run, reward, save, onRetry, onEquip, onChests }) {
   const r = run.result
   const build = buildSummary(run)
   const busy = useRef(false)
@@ -718,50 +1021,65 @@ function Result({ run, reward, onRetry, onEquip, onChest, setModal }) {
     busy.current = true
     fn()
   }
+  const rw = reward || { chests: [], coins: 0, earned: { chests: 0, coins: 0 } }
+  const chests = rw.chests.length + rw.earned.chests
+  const coins = rw.coins + rw.earned.coins
+  const time = `${Math.floor(r.time / 60)}:${String(Math.floor(r.time % 60)).padStart(2, '0')}`
   return (
     <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
       <div className="ms-panel ms-result">
+        <Sprite name={r.cleared ? 'portrait_happy' : 'portrait_cry'} size={76} className="ms-mascot" />
         <h2 className="ms-h">{r.cleared ? '마노가 해냈다!' : '한 번 더 도전할까?'}</h2>
         <dl className="ms-stats">
           <div>
-            <dt>챕터</dt>
-            <dd>{run.chapter}</dd>
-          </div>
-          <div>
-            <dt>웨이브</dt>
-            <dd>
-              {r.wave}/{D.balance.waves.length}
-            </dd>
+            <dt>{run.chapter}장</dt>
+            <dd>{time}</dd>
           </div>
           <div>
             <dt>처치</dt>
             <dd>{r.kills}</dd>
           </div>
           <div>
-            <dt>재화</dt>
-            <dd>
-              <img src={iconCoin} alt="" /> {r.coins}
-            </dd>
+            <dt>엘리트</dt>
+            <dd>{r.elites}/2</dd>
+          </div>
+          <div>
+            <dt>보스</dt>
+            <dd>{r.cleared ? '처치' : r.bossLeft === null ? '-' : `${Math.ceil(r.bossLeft * 100)}%`}</dd>
           </div>
         </dl>
+        <div className="ms-reward">
+          <p>
+            <Sprite name="chest_closed" size={22} /> 상자 {chests}개
+            {rw.firstClear ? ' (첫 클리어 보너스 포함)' : ''}
+          </p>
+          <p>
+            <Sprite name="coin" size={16} /> 코인 +{coins.toLocaleString('ko-KR')}
+          </p>
+          {rw.gift && (
+            <p>
+              <Sprite name={weaponIcon(rw.gift.weaponId)} size={18} /> 첫 클리어 선물: {weaponName(rw.gift.weaponId)} <Grade g={rw.gift.grade} />
+            </p>
+          )}
+        </div>
         {build.length > 0 && (
           <ul className="ms-build" aria-label="선택한 강화">
             {build.map((b) => (
               <li key={b.id}>
-                <img src={ICON[b.icon]} alt="" />
+                <Sprite name={b.icon} size={18} />
                 {b.name} ×{b.n}
               </li>
             ))}
           </ul>
         )}
-        {reward && reward.chest && (
-          <button type="button" className="ms-btn ms-chestbtn" onClick={() => onChest(reward.chest.id)}>
-            <img src={iconChest} alt="" /> 상자 열기
+        {save && save.chests.length > 0 && (
+          <button type="button" className="ms-btn ms-chestbtn" onClick={() => onChests(true)}>
+            <Sprite name="chest_closed" size={24} /> 상자 {save.chests.length}개 모두 열기
           </button>
         )}
         <div className="ms-row ms-row--two">
           <button type="button" className="ms-btn" onClick={once(onEquip)}>
-            장비로
+            로비로
           </button>
           <button type="button" className="ms-btn ms-btn--primary" onClick={once(onRetry)}>
             다시 도전
@@ -771,4 +1089,3 @@ function Result({ run, reward, onRetry, onEquip, onChest, setModal }) {
     </div>
   )
 }
-

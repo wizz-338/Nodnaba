@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:game": "node scripts/mano-run-fairness.mjs",
     "test:colony": "node scripts/colony-test.mjs && node scripts/colony-sim-check.mjs",
-    "test:survivor": "node scripts/survivor-test.mjs"
+    "test:survivor": "node scripts/survivor-test.mjs",
+    "balance:survivor": "node scripts/survivor-campaign.mjs",
+    "sim:survivor": "node scripts/survivor-sims.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

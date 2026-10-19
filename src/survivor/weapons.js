@@ -1,7 +1,7 @@
 // MANO SURVIVOR — weapon behaviours. A weapon in data/weapons.json names a
-// behaviorId; the behaviour does the attacking. Adding a weapon later (churu:
-// cats that fight on their own) means adding a behaviour here and an entry in
-// the registry, nothing in the game loop.
+// behaviorId; the behaviour does the attacking. Adding a weapon later (churu,
+// bubbles, rattle) means adding a behaviour here and an entry in the registry,
+// nothing in the game loop.
 //
 // Every behaviour: { stats(def, gradeMul) → run stats, update(run, dt) }.
 // Only weapons whose behaviour exists are ever offered or rewarded.
@@ -9,7 +9,7 @@
 const TAU = Math.PI * 2
 const LOCK = 0.18 // s: a ball cannot hit the same enemy again this soon
 const SUB = 4 // px: longest move per collision check (fast balls never tunnel)
-const TRAIL = 0.045 // s of past positions drawn behind a ball
+const TRAIL = 0.045 // s of past positions kept for the short trail
 
 export const BEHAVIORS = {
   bounce_projectile: {
@@ -25,14 +25,29 @@ export const implemented = (def) => !!(def && BEHAVIORS[def.behaviorId])
 
 // ── the bouncy ball ─────────────────────────────────────────────────────────
 
-// life of a ball: the base, plus 0.3 s per two extra bounces past the
-// starting two, at most 5.3 s
-export const ballTtl = (w) => Math.min(5.3, w.ttl + 0.15 * Math.max(0, w.bounces - 2))
+// life of a ball: the base, plus a little for every bounce past the first
+// (data: ttl, ttlPerBounce, ttlMax) — a ball has to live to use its bounces
+export const ballTtl = (w) => Math.min(w.ttlMax, w.ttl + w.ttlPerBounce * Math.max(0, w.bounces - 1))
 
-// spread of a volley: narrow fan, never more than 60°
+// how many times a hit is critical: the whole part of the chance always, the
+// rest by luck (so a chance past 100% keeps adding double, triple crits)
+export const critCount = (chance, r) => Math.floor(chance) + (r < chance - Math.floor(chance) ? 1 : 0)
+
+// spread of a volley: a narrow fan for a few balls that opens with every ball
+// added (11° apart), up to a full ring for a big volley
 export const fanAngles = (count) => {
-  const spread = Math.min((60 * Math.PI) / 180, (count - 1) * ((11 * Math.PI) / 180))
-  return Array.from({ length: count }, (_, i) => (count === 1 ? 0 : -spread / 2 + (spread * i) / (count - 1)))
+  if (count === 1) return [0]
+  const spread = Math.min(TAU * (1 - 1 / count), (count - 1) * ((11 * Math.PI) / 180))
+  return Array.from({ length: count }, (_, i) => -spread / 2 + (spread * i) / (count - 1))
+}
+
+// How many balls a volley really launches, and the damage each carries. Up to
+// the budget every ball flies; past it the volley launches what fits (at least
+// one) and each launched ball carries the damage of the ones it stands for,
+// so a volley always deals its full damage.
+export function volley(count, live, budget) {
+  const n = Math.max(1, Math.min(count, budget - live))
+  return { n, mult: count / n }
 }
 
 function nearestTarget(run) {
@@ -50,33 +65,44 @@ function nearestTarget(run) {
   return best
 }
 
-function fire(run, target) {
+// `volleys` volleys at once (more than one when the gap between volleys is
+// shorter than a game step): count × volleys balls, as one burst
+function fire(run, target, volleys) {
   const w = run.weapon
   const p = run.player
   const aim = Math.atan2(target.y - p.y, target.x - p.x)
-  for (const da of fanAngles(w.count)) {
+  const want = w.count * volleys
+  const { n, mult } = volley(want, run.balls.length, run.D.balance.performance.ballBudget)
+  for (const da of fanAngles(n)) {
     const a = aim + da
     const dx = Math.cos(a)
     const dy = Math.sin(a)
-    run.balls.push(newBall(run, p.x + dx * 12, p.y + dy * 12, dx * w.speed, dy * w.speed, w.radius, w.damage, w.bounces, ballTtl(w), true))
+    const b = newBall(run, p.x + dx * 12, p.y + dy * 12, dx * w.speed, dy * w.speed, w.radius, w.damage * mult, w.bounces, ballTtl(w), 0)
+    // a ball standing for several (past the budget) looks golden
+    b.heavy = mult > 1
+    run.balls.push(b)
   }
-  run.stats.shots += w.count
+  run.stats.volleys += volleys
+  run.stats.shots += want
+  run.stats.launched += n
+  if (n < want) run.stats.merged += want - n
 }
 
-function newBall(run, x, y, vx, vy, r, damage, bounces, ttl, canSplit) {
-  return { id: run.nextId++, x, y, vx, vy, r, damage, bounces, ttl, canSplit, hitAny: false, locks: [], trail: [], age: 0 }
+function newBall(run, x, y, vx, vy, r, damage, bounces, ttl, gen) {
+  return { id: run.nextId++, x, y, vx, vy, r, damage, bounces, ttl, gen, hitAny: false, locks: [], trail: [], age: 0 }
 }
 
 function updateBalls(run, dt) {
   const w = run.weapon
-  // fire: only with someone to aim at; the timer waits at zero meanwhile
+  // fire: only with someone to aim at (the timer waits at zero meanwhile);
+  // every volley that is due fires, however short the gap has become
   run.fireT -= dt
   if (run.fireT <= 0) {
     const target = nearestTarget(run)
     if (target) {
-      fire(run, target)
-      run.fireT += w.interval
-      if (run.fireT < 0) run.fireT = 0
+      const k = Math.floor(-run.fireT / w.interval) + 1
+      fire(run, target, k)
+      run.fireT += k * w.interval
     } else run.fireT = 0
   }
   const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
@@ -85,7 +111,7 @@ function updateBalls(run, dt) {
     b.ttl -= dt
     b.age += dt
     if (b.ttl <= 0) continue
-    b.locks = b.locks.filter((l) => l.until > run.t)
+    if (b.locks.length) b.locks = b.locks.filter((l) => l.until > run.t)
     const speed = Math.hypot(b.vx, b.vy)
     const steps = Math.max(1, Math.ceil((speed * dt) / SUB))
     const h = dt / steps
@@ -111,7 +137,9 @@ function updateBalls(run, dt) {
       const d = Math.hypot(nx0, ny0) || 1
       const nx = nx0 / d
       const ny = ny0 / d
-      run.hurt(e, b.damage, b.x - nx * b.r, b.y - ny * b.r)
+      const crits = critCount(w.critChance, w.critChance > 0 ? run.rng() : 1)
+      if (crits) run.stats.crits++
+      run.hurt(e, b.damage * w.critMul ** crits, b.x - nx * b.r, b.y - ny * b.r)
       b.locks.push({ id: e.id, until: run.t + LOCK })
       // bounce off: reflect on the contact normal, step out of the enemy
       const dot = b.vx * nx + b.vy * ny
@@ -123,7 +151,7 @@ function updateBalls(run, dt) {
       b.y = e.y + ny * (e.r + b.r + 0.5)
       const first = !b.hitAny
       b.hitAny = true
-      if (first && b.canSplit) split(run, b, e)
+      if (first && b.gen < w.split.generations) split(run, b, e)
       if (!spend(b)) alive = false
     }
     if (!alive) continue
@@ -142,7 +170,8 @@ function spend(b) {
 }
 
 // first enemy hit only: floor(p) sure splits plus one more with the leftover
-// chance; each split makes two smaller balls that never split again
+// chance; each split makes two smaller balls one generation older (data says
+// how many generations may split, so it can never run away)
 function split(run, b, e) {
   const sp = run.weapon.split
   const p = run.weapon.splitChance
@@ -153,7 +182,7 @@ function split(run, b, e) {
   for (let k = 0; k < procs; k++) {
     for (const side of [-1, 1]) {
       const a = a0 + side * ((22 + 18 * k) * Math.PI) / 180
-      const c = newBall(run, b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, b.r * sp.childRadiusMultiplier, b.damage * sp.childDamageMultiplier, sp.childBounces, sp.childTtl, false)
+      const c = newBall(run, b.x, b.y, Math.cos(a) * speed, Math.sin(a) * speed, b.r * sp.childRadiusMultiplier, b.damage * sp.childDamageMultiplier, sp.childBounces, sp.childTtl, b.gen + 1)
       c.locks.push({ id: e.id, until: run.t + LOCK })
       c.hitAny = true
       run.balls.push(c)

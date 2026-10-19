@@ -1,80 +1,69 @@
 {
-  "status": "initial tuning proposal, not measured balance",
-  "selection": "weighted sampling without replacement within each choice; repeat across levels",
-  "removeCappedOptions": true,
-  "fallback": "damage,health always eligible",
-  "options": [
-    {
-      "id": "count",
-      "name": "한 알 더",
-      "icon": "upgrade_count",
-      "weight": 1.1,
-      "operation": "count +1",
-      "cap": 10,
-      "description": "발사당 공 +1개"
+  "note": "names and icons of the in-run upgrades (numbers live in balance.json → upgrades)",
+  "options": {
+    "count": {
+      "name": "탱탱볼 개수",
+      "icon": "upgrade_double"
     },
-    {
-      "id": "damage",
-      "name": "통통, 더 세게",
-      "icon": "upgrade_power",
-      "weight": 2,
-      "operation": "damage *1.30",
-      "cap": null,
-      "description": "현재 피해량 ×1.30"
+    "interval": {
+      "name": "공격 주기",
+      "icon": "upgrade_cooldown"
     },
-    {
-      "id": "bounce",
-      "name": "한 번 더 튕겨",
-      "icon": "upgrade_bounce",
-      "weight": 1.4,
-      "operation": "bounces +2",
-      "cap": 16,
-      "description": "공마다 추가 반사 +2회"
+    "damage": {
+      "name": "공격 피해",
+      "icon": "upgrade_damage"
     },
-    {
-      "id": "split",
-      "name": "쪼개지는 행운",
-      "icon": "upgrade_split",
-      "weight": 0.8,
-      "operation": "splitChance +0.25",
-      "cap": 2,
-      "description": "첫 적 명중 시 분열 확률 +25%p"
+    "bounce": {
+      "name": "최대 반사",
+      "icon": "upgrade_bounce"
     },
-    {
-      "id": "haste",
-      "name": "쉴 틈 없는 공",
-      "icon": "upgrade_haste",
-      "weight": 1.5,
-      "operation": "interval *0.85",
-      "floor": 0.15,
-      "description": "발사 간격 ×0.85"
-    },
-    {
-      "id": "size",
-      "name": "왕 탱탱볼",
-      "icon": "upgrade_size",
-      "weight": 1.1,
-      "operation": "radius *1.15; damage *1.10",
-      "capRadius": 14,
-      "description": "공 크기 ×1.15, 피해 ×1.10"
-    },
-    {
-      "id": "magnet",
-      "name": "주머니 자석",
-      "icon": "upgrade_magnet",
-      "weight": 1,
-      "operation": "pickupRadius +24; moveSpeed *1.04",
-      "capPickupRadius": 160,
-      "description": "획득 반경 +24, 이동 속도 +4%"
-    },
-    {
-      "id": "health",
+    "maxHp": {
       "name": "폭신한 잠옷",
-      "icon": "upgrade_health",
-      "weight": 1.2,
-      "operation": "maxHp +20; heal 35",
-      "cap": null,
-      "description": "최대 체력 +20, 체력 35 회복"
+      "icon": "upgrade_hp"
+    },
+    "move": {
+      "name": "우다다 발걸음",
+      "icon": "upgrade_move"
+    },
+    "crit": {
+      "name": "치명타 확률",
+      "icon": "upgrade_luck"
+    },
+    "critDamage": {
+      "name": "치명타 피해",
+      "icon": "impact_1"
+    },
+    "ballSpeed": {
+      "name": "투사체 속도",
+      "icon": "trail"
+    },
+    "size": {
+      "name": "왕 탱탱볼",
+      "icon": "upgrade_size"
+    },
+    "pickup": {
+      "name": "주머니 자석",
+      "icon": "upgrade_pickup"
+    },
+    "split": {
+      "name": "쪼개지는 행운",
+      "icon": "upgrade_split"
+    },
+    "luck": {
+      "name": "반짝 코인",
+      "icon": "coin"
+    },
+    "regen": {
+      "name": "쌔근쌔근 회복",
+      "icon": "heal"
+    },
+    "armor": {
+      "name": "단단한 후드",
+      "icon": "weapon_slot"
+    },
+    "xpGain": {
+      "name": "반짝 원석",
+      "icon": "xp_gem"
     }
-  ]
+  }
 }

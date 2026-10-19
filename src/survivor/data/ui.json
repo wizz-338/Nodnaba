@@ -6,53 +6,84 @@
   "aspect": "9:16",
   "safeArea": "env(safe-area-inset-*)",
   "hud": {
-    "health": [
+    "note": "360 x 640 logical screen; the top bar is 75 px",
+    "height": 75,
+    "stage": [
       12,
-      12,
-      122,
-      12
-    ],
-    "xp": [
-      12,
-      30,
-      122,
-      4
-    ],
-    "wave": [
-      152,
-      12,
-      95,
-      20
+      8,
+      240,
+      18
     ],
     "timer": [
-      160,
-      35,
-      80,
+      252,
+      8,
+      56,
       18
     ],
     "pause": [
-      316,
+      312,
+      6,
+      40,
+      40
+    ],
+    "health": [
       12,
-      32,
-      32
+      30,
+      214,
+      14
+    ],
+    "healthText": [
+      230,
+      30,
+      62,
+      14
+    ],
+    "xp": [
+      12,
+      50,
+      214,
+      10
+    ],
+    "level": [
+      230,
+      47,
+      62,
+      16
     ],
     "currency": [
-      285,
-      52,
-      62,
-      20
+      12,
+      60,
+      120,
+      15
+    ],
+    "weaponSlot": [
+      316,
+      82,
+      34,
+      34
+    ],
+    "bossBar": [
+      70,
+      90,
+      200,
+      26
     ]
   },
   "joystick": {
-    "mode": "floating",
+    "mode": "bottom-left, follows the thumb a little",
+    "center": [
+      66,
+      556
+    ],
     "radius": 42,
-    "knobRadius": 18,
+    "knobRadius": 17,
+    "follow": 56,
     "deadzone": 0.12,
     "activationRegion": [
       0,
-      320,
-      360,
-      320
+      380,
+      250,
+      260
     ]
   },
   "modal": {
@@ -63,13 +94,15 @@
     "gap": 12
   },
   "colors": {
-    "ink": "#26313e",
-    "paper": "#fff3dc",
-    "panel": "#eceddf",
-    "accent": "#e6cb70",
-    "xp": "#66d6c7",
-    "health": "#eb7c75",
-    "muted": "#77828e"
+    "ink": "#2f2537",
+    "paper": "#fcebcd",
+    "panel": "#f3dfbd",
+    "accent": "#e9b949",
+    "xp": "#79d6d6",
+    "health": "#e0676a",
+    "muted": "#77828e",
+    "hud": "#2f2537",
+    "slate": "#616678"
   },
   "fonts": "system-ui, -apple-system, sans-serif",
   "radii": {
