@@ -12,7 +12,7 @@
   },
   "player": {
     "hp": 100,
-    "speed": 105,
+    "speed": 125,
     "hitRadius": 9,
     "pickupRadius": 55,
     "contactInvulnerability": 0.65,
@@ -20,10 +20,11 @@
     "critMultiplier": 2
   },
   "xp": {
-    "startThreshold": 10,
-    "growth": 1.18,
-    "add": 3,
-    "note": "next = round(previous × growth + add)"
+    "startThreshold": 5,
+    "growth": 1.07,
+    "add": 4,
+    "pullAfter": 4,
+    "note": "next = round(previous × growth + add). Experience left lying flies to Mano by itself after pullAfter seconds"
   },
   "enemies": {
     "imp": {
@@ -86,7 +87,7 @@
       "name": "왕관 해골 짐승",
       "behavior": "boss",
       "art": "boss",
-      "hp": 900,
+      "hp": 25000,
       "speed": 34,
       "damage": 14,
       "xp": 30,
@@ -106,7 +107,7 @@
       "name": "해골 왕",
       "behavior": "boss",
       "art": "boss",
-      "hp": 2400,
+      "hp": 500000,
       "speed": 30,
       "damage": 18,
       "xp": 60,
@@ -130,81 +131,88 @@
     "phases": [
       {
         "from": 0,
-        "spawnInterval": 1.35,
-        "hpMultiplier": 1,
+        "spawnInterval": 1.2,
+        "hpMultiplier": 0.6,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 1
-        }
+        },
+        "pack": 1
       },
       {
         "from": 35,
-        "spawnInterval": 1.15,
-        "hpMultiplier": 1.05,
+        "spawnInterval": 1.05,
+        "hpMultiplier": 1.0,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 0.7,
           "spider": 0.3
-        }
+        },
+        "pack": 2
       },
       {
         "from": 70,
-        "spawnInterval": 1.0,
-        "hpMultiplier": 1.15,
+        "spawnInterval": 0.9,
+        "hpMultiplier": 2.2,
         "speedMultiplier": 1.05,
         "mix": {
           "imp": 0.5,
           "spider": 0.3,
           "slime": 0.2
-        }
+        },
+        "pack": 3
       },
       {
         "from": 110,
-        "spawnInterval": 0.88,
-        "hpMultiplier": 1.3,
+        "spawnInterval": 0.8,
+        "hpMultiplier": 6,
         "speedMultiplier": 1.1,
         "mix": {
           "imp": 0.4,
           "spider": 0.25,
           "slime": 0.15,
           "bone_beast": 0.2
-        }
+        },
+        "pack": 4
       },
       {
         "from": 145,
-        "spawnInterval": 0.78,
-        "hpMultiplier": 1.45,
+        "spawnInterval": 0.7,
+        "hpMultiplier": 14,
         "speedMultiplier": 1.12,
         "mix": {
           "imp": 0.35,
           "spider": 0.25,
           "slime": 0.2,
           "bone_beast": 0.2
-        }
+        },
+        "pack": 6
       },
       {
         "from": 180,
-        "spawnInterval": 0.7,
-        "hpMultiplier": 1.6,
+        "spawnInterval": 0.63,
+        "hpMultiplier": 45,
         "speedMultiplier": 1.15,
         "mix": {
           "imp": 0.35,
           "spider": 0.25,
           "slime": 0.2,
           "bone_beast": 0.2
-        }
+        },
+        "pack": 7
       },
       {
         "from": 210,
-        "spawnInterval": 0.78,
-        "hpMultiplier": 1.8,
+        "spawnInterval": 0.7,
+        "hpMultiplier": 120,
         "speedMultiplier": 1.15,
         "mix": {
           "imp": 0.35,
           "spider": 0.25,
           "slime": 0.2,
           "bone_beast": 0.2
-        }
+        },
+        "pack": 5
       }
     ],
     "events": [
@@ -230,31 +238,32 @@
       "every": 30,
       "spawnFaster": 0.85,
       "note": "the chapter is cleared only when the boss falls. Past 240 s with the boss alive the fight goes on (boss overtime): every 30 s monsters come 15% faster"
-    }
+    },
+    "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply"
   },
   "chapters": [
     {
-      "hp": 1.0,
-      "damage": 1.0,
+      "hp": 0.8,
+      "damage": 0.85,
       "spawn": 1.0
     },
     {
-      "hp": 1.5,
-      "damage": 1.1,
+      "hp": 1.4,
+      "damage": 0.95,
       "spawn": 1.08
     },
     {
-      "hp": 2.8,
+      "hp": 2.6,
       "damage": 1.22,
       "spawn": 1.16
     },
     {
-      "hp": 3.55,
+      "hp": 4.2,
       "damage": 1.29,
       "spawn": 1.21
     },
     {
-      "hp": 5.1,
+      "hp": 6.8,
       "damage": 1.42,
       "spawn": 1.3
     }
@@ -266,9 +275,9 @@
     "note": "each chapter past the list multiplies the last one by these"
   },
   "drops": {
-    "coinChance": 0.3,
+    "coinChance": 0.12,
     "coinAmount": 1,
-    "healChance": 0.012,
+    "healChance": 0.005,
     "healAmount": 20
   },
   "rewards": {

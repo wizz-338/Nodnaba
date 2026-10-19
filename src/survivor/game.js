@@ -574,8 +574,11 @@ function collect(run, o) {
 
 function moveOrbs(run, dt) {
   const p = run.player
+  const pullAfter = run.D.balance.xp.pullAfter
   const keep = []
   for (const o of run.orbs) {
+    // experience left lying comes to Mano by itself after a while
+    if (o.kind === 'xp' && (o.age = (o.age || 0) + dt) >= pullAfter) o.pull = true
     const dx = p.x - o.x
     const dy = p.y - o.y
     const d = Math.hypot(dx, dy)
@@ -730,10 +733,34 @@ function spawning(run, dt) {
     return
   }
   if (run.spawnT >= iv) {
-    // one at a time per tick at most; a long frame never spawns a crowd at once
-    if (spawn(run)) run.spawnT -= iv
+    // one pack per tick at most; a long frame never spawns a crowd at once
+    if (spawnPack(run, B.performance.enemySoftLimit - alive)) run.spawnT -= iv
     run.spawnT = Math.min(run.spawnT, iv)
   }
+}
+
+// A pack: the phase's pack size of one kind of monster, bunched at one point
+// of the edge (never closer than 60 to Mano), up to the room left.
+function spawnPack(run, room) {
+  const B = run.D.balance
+  const type = pickType(run)
+  const def = B.enemies[type]
+  const m = def.radius + 2
+  const pt = edgePoint(run, m)
+  if (!pt) return 0
+  const [x0, y0, x1, y1] = B.logicalArena.bounds
+  const p = run.player
+  const n = Math.min(room, phaseAt(run).pack || 1)
+  let made = 0
+  for (let i = 0; i < n; i++) {
+    const a = run.rng() * 2 * Math.PI
+    const d = def.radius * 1.8 * Math.sqrt(i)
+    const x = Math.max(x0 + m, Math.min(x1 - m, pt.x + Math.cos(a) * d))
+    const y = Math.max(y0 + m, Math.min(y1 - m, pt.y + Math.sin(a) * d))
+    if ((x - p.x) ** 2 + (y - p.y) ** 2 < 60 * 60) continue
+    if (spawn(run, type, { x, y })) made++
+  }
+  return made
 }
 
 // ── the tick ────────────────────────────────────────────────────────────────

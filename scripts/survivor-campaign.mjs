@@ -32,7 +32,7 @@ async function campaign(seed, skill, policy, maxCh) {
       for (const key of run.awards) P.award(s.runId, ch, key)
       const r = run.result || { cleared: false, coins: Math.floor(run.coins), time: run.t }
       P.finishRun(s.runId, ch, r)
-      if (!first) first = { cleared: r.cleared, time: run.t, bossLeft: r.bossLeft, grade: s.weapon.grade, perma: { ...s.perma }, coins: r.coins, level: run.level }
+      if (!first) first = { cleared: r.cleared, time: run.t, bossLeft: r.bossLeft, grade: s.weapon.grade, perma: { ...s.perma }, coins: r.coins, level: run.level, kills: run.kills }
       cleared = r.cleared
       // between runs: chests, fusion, the best weapon, coin stats
       P.openAll()
@@ -93,7 +93,7 @@ if (!isMainThread) {
     const permaSum = (r) => Object.values(r.first.perma).reduce((a, b) => a + b, 0)
     const grades = {}
     for (const r of rows) grades[r.first.grade] = (grades[r.first.grade] || 0) + 1
-    console.log(`ch${ch}: reached ${rows.length}, first try cleared ${firstClear} (${((100 * firstClear) / rows.length).toFixed(0)}%), lost at the boss ${atBoss}/${lost.length}; cleared within ${MAX_TRIES} tries ${done.length}, avg tries ${avg((r) => r.tries, done).toFixed(1)}; on arrival: coin-stat levels ${avg(permaSum).toFixed(1)}, grade ${JSON.stringify(grades)}`)
+    console.log(`ch${ch}: reached ${rows.length}, first try cleared ${firstClear} (${((100 * firstClear) / rows.length).toFixed(0)}%), lost at the boss ${atBoss}/${lost.length}; cleared within ${MAX_TRIES} tries ${done.length}, avg tries ${avg((r) => r.tries, done).toFixed(1)}; first try: level ${avg((r) => r.first.level).toFixed(1)}, kills ${avg((r) => r.first.kills).toFixed(0)}; on arrival: coin-stat levels ${avg(permaSum).toFixed(1)}, grade ${JSON.stringify(grades)}`)
   }
   console.log(((Date.now() - t0) / 1000).toFixed(0) + ' s')
 }
