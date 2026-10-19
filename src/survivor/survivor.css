@@ -784,7 +784,7 @@
 /* lobby tabs: go · gear · Mano's stats */
 .ms-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 
@@ -797,6 +797,13 @@
   font-weight: 800;
   cursor: pointer;
   touch-action: manipulation;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+/* (after `.ms button { font: inherit }`): a little smaller on narrow phones */
+.ms .ms-tab {
+  font-size: clamp(12.5px, 4vw, 15px);
 }
 
 .ms-tab.is-on {
@@ -977,4 +984,44 @@
 
 .ms-track__mark.is-past {
   opacity: 0.45;
+}
+
+/* settings: last save, backup files */
+.ms-savebox {
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  background: #e3f0dc;
+}
+
+.ms-savebox img {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+.ms-savebox.is-bad {
+  background: #fde8c4;
+}
+
+.ms-savebox p {
+  margin: 0;
+}
+
+.ms-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.ms-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px dashed var(--ink);
+}
+
+.ms-confirm p {
+  margin: 0;
 }

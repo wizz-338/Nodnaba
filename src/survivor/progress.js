@@ -13,6 +13,9 @@ import { chapterCoins } from './game.js'
 
 export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
+// the progress a backup import replaced, kept in case it was a mistake
+export const BEFORE_IMPORT_KEY = 'nodnaba:survivor:before-import'
+const GAME_ID = 'mano-survivor'
 export const SCHEMA = 2
 const KEEP_KEYS = 400
 export const STATS = ['hp', 'damage', 'move', 'interval', 'crit', 'coins']
@@ -125,6 +128,7 @@ export const permaEffects = (D, perma = {}) => Object.fromEntries(STATS.map((s) 
 export function createProgress(D, storage) {
   let memory = null // the copy used when saving is impossible
   let lastError = null
+  let savedAt = 0 // when the last write went through (0: not yet this visit)
   const R = D.balance.rewards
 
   function read() {
@@ -151,6 +155,7 @@ export function createProgress(D, storage) {
 
   function write(d) {
     memory = d
+    savedAt = Date.now()
     if (!storage) {
       lastError = 'unavailable'
       return false
@@ -196,6 +201,28 @@ export function createProgress(D, storage) {
   return {
     get: read,
     error: () => lastError,
+    savedAt: () => (lastError ? 0 : savedAt),
+
+    // the whole progress as a backup file's text
+    exportText(now = Date.now()) {
+      return JSON.stringify({ game: GAME_ID, exportedAt: new Date(now).toISOString(), save: read() }, null, 1)
+    },
+
+    // Replace the progress with a checked backup (from parseBackup). What it
+    // replaces is kept under BEFORE_IMPORT_KEY first, never thrown away.
+    importBackup(data) {
+      if (storage) {
+        try {
+          const cur = storage.getItem(KEY)
+          if (cur) storage.setItem(BEFORE_IMPORT_KEY, cur)
+        } catch {
+          /* nowhere to keep it */
+        }
+      }
+      const d = validate(D, data)
+      d.activeRun = null
+      return write(d)
+    },
     available: !!storage,
 
     // On opening the game: a run that never finished (page closed) ends;
@@ -404,6 +431,41 @@ function fuseEverything(D, d) {
     }
   }
   return { ok: fusions > 0, made, fusions, equipped: d.inventory.find((it) => it.id === d.equippedInstanceId) || null }
+}
+
+// ── backup files ────────────────────────────────────────────────────────────
+
+export function exportName(now = new Date()) {
+  const p = (n) => String(n).padStart(2, '0')
+  return `mano-survivor-backup-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}.json`
+}
+
+// Read a backup file's text: { ok, data, summary } or { ok: false, error }.
+// Takes this game's backup file or a bare save; changes nothing.
+export function parseBackup(D, text) {
+  let j
+  try {
+    j = JSON.parse(text)
+  } catch {
+    return { ok: false, error: '백업 파일이 아니거나 손상된 파일이에요.' }
+  }
+  if (isObj(j) && typeof j.game === 'string' && j.game !== GAME_ID) return { ok: false, error: '다른 게임의 백업이에요. MANO SURVIVOR 백업 파일을 골라 주세요.' }
+  const save = isObj(j) && j.game === GAME_ID ? j.save : j
+  if (isObj(save) && num(save.schemaVersion) && save.schemaVersion > SCHEMA) return { ok: false, error: '더 새로운 버전의 게임에서 만든 백업이에요. 페이지를 새로고침한 뒤 다시 시도해 주세요.' }
+  let data
+  try {
+    data = validate(D, save)
+  } catch {
+    return { ok: false, error: 'MANO SURVIVOR 백업 파일이 아니에요.' }
+  }
+  const grades = D.balance.grades
+  const best = data.inventory.reduce((g, it) => Math.max(g, grades.indexOf(it.grade)), 0)
+  return {
+    ok: true,
+    data,
+    exportedAt: isObj(j) && typeof j.exportedAt === 'string' ? j.exportedAt : null,
+    summary: { coins: data.currency, chapter: data.unlockedChapter, weapons: data.inventory.length, best: grades[best], chests: data.chests.length },
+  }
 }
 
 export function canFuse(D, d, ids) {
