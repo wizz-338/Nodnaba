@@ -9,6 +9,8 @@
 // reload never pays twice. Rewards earned during a run (an elite, the boss)
 // are saved the moment they are earned, so a later loss keeps them.
 
+import { chapterCoins } from './game.js'
+
 export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
 export const SCHEMA = 2
@@ -172,7 +174,7 @@ export function createProgress(D, storage) {
   }
 
   // reward coins for a chapter, with the coin stat
-  const rewardCoins = (d, base, chapter) => Math.round(base * (1 + R.coinsPerChapter * (chapter - 1)) * statValue(D, 'coins', d.perma.coins))
+  const rewardCoins = (d, base, chapter) => Math.round(base * chapterCoins(D, chapter) * statValue(D, 'coins', d.perma.coins))
 
   // spend a key once; false if it was spent before
   function spend(d, key) {
@@ -322,6 +324,22 @@ export function createProgress(D, storage) {
       })
     },
 
+    // Every possible fusion at once, lowest grade first, so the new weapons
+    // fuse on upward (27 D can become one A). One write. Afterwards the
+    // highest grade of the weapon in use is equipped. Returns how many of
+    // each grade were made.
+    fuseAll() {
+      return change((d) => {
+        const r = fuseEverything(D, d)
+        if (!r.ok) return r
+        const grades = D.balance.grades
+        const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
+        const best = d.inventory.filter((it) => !cur || it.weaponId === cur.weaponId).sort((a, b) => grades.indexOf(b.grade) - grades.indexOf(a.grade))[0]
+        if (best) d.equippedInstanceId = best.id
+        return { ...r, equipped: best || null }
+      })
+    },
+
     // Buy the next level of a coin stat. `fromLevel` is the level shown on
     // the button: a second tap (or a stale screen) finds the level moved on
     // and buys nothing.
@@ -344,7 +362,7 @@ export function createProgress(D, storage) {
 function openOne(D, d, chestId) {
   const i = d.chests.findIndex((c) => c.id === chestId)
   if (i < 0) return null
-  d.chests.splice(i, 1)
+  const [chest] = d.chests.splice(i, 1)
   const C = D.balance.chest
   const pool = D.weapons.registry.map((w) => w.id)
   const rolls = pool.length >= 4 ? C.rollsWhenFourWeapons : C.rollsPerChest
@@ -355,9 +373,37 @@ function openOne(D, d, chestId) {
     d.inventory.push(item)
     items.push(item)
   }
-  const coins = Math.round(C.coinsPerChest * statValue(D, 'coins', d.perma.coins))
+  const coins = Math.round(C.coinsPerChest * chapterCoins(D, chest.chapter || 1) * statValue(D, 'coins', d.perma.coins))
   d.currency += coins
   return { chestId, items, coins }
+}
+
+// What fuseAll would make, without changing the save: { made: { C: n, … }, fusions }
+export function fuseAllPreview(D, d) {
+  return fuseEverything(D, { ...d, inventory: d.inventory.map((it) => ({ ...it })) })
+}
+
+function fuseEverything(D, d) {
+  const grades = D.balance.grades
+  const k = D.balance.fusion.inputs
+  const made = {}
+  let fusions = 0
+  for (const weaponId of [...new Set(d.inventory.map((it) => it.weaponId))]) {
+    for (let g = 0; g < grades.length - 1; g++) {
+      // the equipped one last, so it is only used when it has to be
+      const same = d.inventory.filter((it) => it.weaponId === weaponId && it.grade === grades[g]).sort((a, b) => (a.id === d.equippedInstanceId) - (b.id === d.equippedInstanceId))
+      for (let i = 0; i + k <= same.length; i += k) {
+        const used = same.slice(i, i + k).map((it) => it.id)
+        const item = { id: 'w' + d.nextSeq++, weaponId, grade: grades[g + 1] }
+        d.inventory = d.inventory.filter((it) => !used.includes(it.id))
+        d.inventory.push(item)
+        if (used.includes(d.equippedInstanceId)) d.equippedInstanceId = item.id
+        made[item.grade] = (made[item.grade] || 0) + 1
+        fusions++
+      }
+    }
+  }
+  return { ok: fusions > 0, made, fusions, equipped: d.inventory.find((it) => it.id === d.equippedInstanceId) || null }
 }
 
 export function canFuse(D, d, ids) {

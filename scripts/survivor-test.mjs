@@ -1,9 +1,9 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
-import { createProgress, canFuse, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
+import { createProgress, canFuse, fuseAllPreview, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun } from './survivor-bot.mjs'
 
 let fails = 0
@@ -407,12 +407,13 @@ const still = { x: 0, y: 0 }
 {
   const run = createRun(D, { weaponId: 'bouncy_ball', grade: 'A', seed: 1, perma: { hp: 3, damage: 2, move: 4, interval: 5, crit: 10, coins: 1 } })
   ok(near(gradeMul(D, 'A'), 1.65) && near(gradeMul(D, 'EX'), 7), 'grade multipliers D ×1 … A ×1.65 … EX ×7')
-  ok(near(run.weapon.damage, BASE.damage * 1.65 * 1.04 ** 2), `A grade with damage Lv.2: ${BASE.damage} × 1.65 × 1.04² = ${run.weapon.damage.toFixed(3)}`)
-  ok(near(run.player.maxHp, 100 * 1.08 ** 3) && near(run.weapon.interval, BASE.interval * 0.98 ** 5) && near(run.weapon.critChance, 0.075) && near(run.player.speed, B.player.speed * 1.015 ** 4) && near(run.player.coinMul, 1.04), 'coin stats: HP ×1.08^L, gap ×0.98^L, crit +0.75%p×L, speed ×1.015^L, coins ×1.04^L')
+  const S = B.perma.stats
+  ok(near(run.weapon.damage, BASE.damage * 1.65 * S.damage.mul ** 2), `A grade with damage Lv.2: ${BASE.damage} × 1.65 × ${S.damage.mul}² = ${run.weapon.damage.toFixed(3)}`)
+  ok(near(run.player.maxHp, B.player.hp * S.hp.mul ** 3) && near(run.weapon.interval, BASE.interval * S.interval.mul ** 5) && near(run.weapon.critChance, S.crit.add * 10) && near(run.player.speed, B.player.speed * S.move.mul ** 4) && near(run.player.coinMul, S.coins.mul), `coin stats: HP ×${S.hp.mul}^L, gap ×${S.interval.mul}^L, crit +${S.crit.add * 100}%p×L, speed ×${S.move.mul}^L, coins ×${S.coins.mul}^L`)
   pickIn(run, 'damage')
-  ok(near(run.weapon.damage, BASE.damage * 1.65 * 1.04 ** 2 * 1.5), 'an in-run upgrade multiplies on top')
+  ok(near(run.weapon.damage, BASE.damage * 1.65 * S.damage.mul ** 2 * 1.5), 'an in-run upgrade multiplies on top')
   const r2 = createRun(D, { weaponId: 'bouncy_ball', grade: 'A', seed: 2, perma: { damage: 2 } })
-  ok(near(r2.weapon.damage, BASE.damage * 1.65 * 1.04 ** 2) && r2.weapon.count === 1, 'the next run starts again from the grade and coin stats (upgrades reset)')
+  ok(near(r2.weapon.damage, BASE.damage * 1.65 * S.damage.mul ** 2) && r2.weapon.count === 1, 'the next run starts again from the grade and coin stats (upgrades reset)')
   ok(near(statValue(D, 'crit', 1000), 0.5) && statValue(D, 'move', 999) === 1.015 ** 40, 'coin stat caps: crit 50%, speed 40 levels')
 }
 
@@ -435,7 +436,8 @@ const still = { x: 0, y: 0 }
   ok(firstTotal === 8 && P.get().chests.length === 8, `first clear with both elites: ${e1.chests.length} + ${e2.chests.length} + ${bo.chests.length} + ${end.chests.length} = ${firstTotal} chests`)
   ok(e1b.already && end2.already && P.get().chests.length === 8, 'the same reward twice (double tap, reload) pays nothing the second time')
   const coins1 = P.get().currency
-  ok(coins1 === 40 + 30 + 50 + 80 + 100, `coins: picked up 40 + elites 30 + 50 + boss 80 + clear 100 = ${coins1}`)
+  const R = B.rewards
+  ok(coins1 === 40 + R.elite1.coins + R.elite2.coins + R.boss.coins + R.clear.coins, `coins: picked up 40 + elites ${R.elite1.coins} + ${R.elite2.coins} + boss ${R.boss.coins} + clear ${R.clear.coins} = ${coins1}`)
   ok(P.get().unlockedChapter === 2 && end.firstClear, 'chapter 2 opens; it was a first clear')
   const r2 = P.startRun(1)
   for (const k of ['elite1', 'elite2', 'boss']) P.award(r2.runId, 1, k)
@@ -451,10 +453,11 @@ const still = { x: 0, y: 0 }
   ok(q1 === 9 && q2 === 0, 'quitting keeps the coins picked up (once)')
   const before = P.get().inventory.length
   const cur0 = P.get().currency
+  const chestCoins = P.get().chests.reduce((a, c) => a + Math.round(B.chest.coinsPerChest * chapterCoins(D, c.chapter)), 0)
   const all = P.openAll()
   const again2 = P.openAll()
   ok(all.length === 15 && again2.length === 0 && P.get().inventory.length === before + 15 && P.get().chests.length === 0, '15 chests opened at once: one bouncy ball each, then none are left')
-  ok(P.get().currency === cur0 + 15 * B.chest.coinsPerChest, `each chest also gives ${B.chest.coinsPerChest} coins`)
+  ok(P.get().currency === cur0 + chestCoins && chestCoins > 15 * B.chest.coinsPerChest, `each chest also gives ${B.chest.coinsPerChest} coins × its chapter's coin value (${chestCoins} for 14 from chapter 1 and 1 from chapter 2)`)
   ok(all.every((x) => x.items.every((it) => it.weaponId === 'bouncy_ball')), 'only weapons that can be played come out of chests')
   const r5 = P.startRun(2)
   const c2 = P.finishRun(r5.runId, 2, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
@@ -465,13 +468,18 @@ const still = { x: 0, y: 0 }
   const again3 = createProgress(D, mem).boot()
   ok(again3.lostRun && again3.data.activeRun === null, 'a run left unfinished (page closed) ends; what it earned stays')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY' && mem.getItem('nodnaba:manorun:best') === '777', "other games' saves untouched")
+  ok(near(chapterCoins(D, 1), 1) && near(chapterCoins(D, 3), R.coinGrowth ** 2) && near(chapterCoins(D, 99) / chapterCoins(D, 98), R.coinGrowth), `every chapter's coins are worth ×${R.coinGrowth} the one before (chapter 10: ×${chapterCoins(D, 10).toFixed(0)})`)
+  const r3b = P.startRun(3)
+  const e3 = P.award(r3b.runId, 3, 'elite1')
+  ok(e3.coins === Math.round(R.elite1.coins * chapterCoins(D, 3)), `the thief in chapter 3 pays ${R.elite1.coins} × ${R.coinGrowth}² = ${e3.coins}`)
+  P.finishRun(r3b.runId, 3, { cleared: false, coins: 0, kills: 1, time: 1, elites: 1 })
   const counts = { D: 0, C: 0, B: 0 }
   for (let i = 0; i < 20000; i++) counts[rollGrade(D, i / 20000)]++
   ok(Math.abs(counts.D - 17000) < 20 && Math.abs(counts.C - 2400) < 20 && Math.abs(counts.B - 600) < 20, `chest grades D85 / C12 / B3 (${counts.D}/${counts.C}/${counts.B})`)
 }
 {
   const prices = [0, 1, 2, 3, 4].map((L) => statPrice(D, 'hp', L))
-  ok(prices.join() === '100,135,182,246,332' && prices.slice(0, 4).reduce((a, b) => a + b) === 663, `HP prices ${prices.join(' → ')} (first four: 663)`)
+  ok(prices.every((p, L) => p === Math.floor(B.perma.stats.hp.price * B.perma.priceGrowth ** L)) && prices[1] > prices[0], `HP prices ${prices.join(' → ')} (×${B.perma.priceGrowth} a level)`)
   const mem = new Mem()
   const P = createProgress(D, mem)
   P.boot()
@@ -506,6 +514,39 @@ const still = { x: 0, y: 0 }
   ok(f.equipped && after.equippedInstanceId === f.item.id, 'the equipped ball was fused: the new C ball is equipped')
   const ex = { ...after, inventory: [1, 2, 3].map((i) => ({ id: 'x' + i, weaponId: 'bouncy_ball', grade: 'EX' })) }
   ok(!canFuse(D, ex, ['x1', 'x2', 'x3']).ok, 'EX cannot be fused')
+}
+// fuse everything at once
+{
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  // 28 D (w1 is the equipped one) + 2 C
+  d.inventory = [...Array.from({ length: 28 }, (_, i) => ({ id: 'w' + (i + 1), weaponId: 'bouncy_ball', grade: 'D' })), { id: 'w29', weaponId: 'bouncy_ball', grade: 'C' }, { id: 'w30', weaponId: 'bouncy_ball', grade: 'C' }]
+  d.equippedInstanceId = 'w1'
+  d.nextSeq = 31
+  mem.setItem(KEY, JSON.stringify(d))
+  const plan = fuseAllPreview(D, P.get())
+  ok(P.get().inventory.length === 30 && plan.ok && plan.made.C === 9 && plan.made.B === 3 && plan.made.A === 1, `the preview counts what would be made (${JSON.stringify(plan.made)}) and changes nothing`)
+  const r = P.fuseAll()
+  const after = P.get()
+  const count = (g) => after.inventory.filter((it) => it.grade === g).length
+  ok(r.ok && JSON.stringify(r.made) === JSON.stringify(plan.made), 'fuse all makes what the preview said')
+  // 28 D → 9 C (1 D left), 9 + 2 = 11 C → 3 B (2 C left), 3 B → 1 A
+  ok(count('D') === 1 && count('C') === 2 && count('B') === 0 && count('A') === 1 && after.inventory.length === 4, '28 D + 2 C → 1 A, with 1 D and 2 C left over')
+  ok(after.inventory.find((it) => it.id === after.equippedInstanceId).grade === 'A' && r.equipped.grade === 'A', 'afterwards the best ball (the new A) is equipped')
+  const again = P.fuseAll()
+  ok(!again.ok && P.get().inventory.length === 4, 'a second tap finds nothing to fuse and changes nothing')
+  const d2 = P.get()
+  d2.inventory = Array.from({ length: 3 }, (_, i) => ({ id: 'e' + i, weaponId: 'bouncy_ball', grade: 'D' }))
+  d2.equippedInstanceId = 'e0'
+  mem.setItem(KEY, JSON.stringify(d2))
+  const r2 = P.fuseAll()
+  ok(r2.ok && P.get().inventory.length === 1 && P.get().equippedInstanceId === P.get().inventory[0].id && r2.equipped.grade === 'C', 'when the equipped one has to go in, its result is equipped')
+  const d3 = P.get()
+  d3.inventory = Array.from({ length: 3 }, (_, i) => ({ id: 'x' + i, weaponId: 'bouncy_ball', grade: 'EX' }))
+  mem.setItem(KEY, JSON.stringify(d3))
+  ok(!P.fuseAll().ok && P.get().inventory.length === 3, 'EX is never fused')
 }
 {
   const mem = new Mem()

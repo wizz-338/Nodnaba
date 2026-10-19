@@ -4,14 +4,13 @@
 // and spends its coins on the coin stats (always the cheapest one next).
 // Reports, per chapter, how often the FIRST attempt clears (first arrival)
 // and how many attempts a clear took.
-//   node scripts/survivor-campaign.mjs [campaigns] [skill] [policy] [maxChapter]
+//   node scripts/survivor-campaign.mjs [campaigns] [skill] [policy] [maxChapter] [triesPerChapter=8]
 // A bot is not a person: these numbers show trends, not win rates.
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads'
 import os from 'os'
 
-const MAX_TRIES = 8
 
-async function campaign(seed, skill, policy, maxCh) {
+async function campaign(seed, skill, policy, maxCh, MAX_TRIES) {
   const { D } = await import('./survivor-data.mjs')
   const { playRun } = await import('./survivor-bot.mjs')
   const { createProgress, canFuse, statPrice, statMaxLevel, STATS } = await import('../src/survivor/progress.js')
@@ -32,7 +31,7 @@ async function campaign(seed, skill, policy, maxCh) {
       for (const key of run.awards) P.award(s.runId, ch, key)
       const r = run.result || { cleared: false, coins: Math.floor(run.coins), time: run.t }
       P.finishRun(s.runId, ch, r)
-      if (!first) first = { cleared: r.cleared, time: run.t, bossLeft: r.bossLeft, grade: s.weapon.grade, perma: { ...s.perma }, coins: r.coins, level: run.level, kills: run.kills }
+      if (!first) first = { at: n, cleared: r.cleared, time: run.t, bossLeft: r.bossLeft, grade: s.weapon.grade, perma: { ...s.perma }, coins: r.coins, level: run.level, kills: run.kills }
       cleared = r.cleared
       // between runs: chests, fusion, the best weapon, coin stats
       P.openAll()
@@ -66,18 +65,19 @@ async function campaign(seed, skill, policy, maxCh) {
 
 if (!isMainThread) {
   const res = []
-  for (const s of workerData.seeds) res.push(await campaign(s, workerData.skill, workerData.policy, workerData.maxCh))
+  for (const s of workerData.seeds) res.push(await campaign(s, workerData.skill, workerData.policy, workerData.maxCh, workerData.tries))
   parentPort.postMessage(res)
 } else {
   const N = +process.argv[2] || 24
   const skill = process.argv[3] || 'good'
   const policy = process.argv[4] || 'core'
   const maxCh = +process.argv[5] || 5
+  const MAX_TRIES = +process.argv[6] || 8
   const T = os.cpus().length
   const parts = Array.from({ length: T }, (_, i) => Array.from({ length: N }, (_, s) => s + 1).filter((s) => s % T === i))
   const t0 = Date.now()
   const all = (await Promise.all(parts.map((seeds) => new Promise((ok, fail) => {
-    const w = new Worker(new URL(import.meta.url), { workerData: { seeds, skill, policy, maxCh } })
+    const w = new Worker(new URL(import.meta.url), { workerData: { seeds, skill, policy, maxCh, tries: MAX_TRIES } })
     w.once('message', ok)
     w.once('error', fail)
   })))).flat()
@@ -93,7 +93,7 @@ if (!isMainThread) {
     const permaSum = (r) => Object.values(r.first.perma).reduce((a, b) => a + b, 0)
     const grades = {}
     for (const r of rows) grades[r.first.grade] = (grades[r.first.grade] || 0) + 1
-    console.log(`ch${ch}: reached ${rows.length}, first try cleared ${firstClear} (${((100 * firstClear) / rows.length).toFixed(0)}%), lost at the boss ${atBoss}/${lost.length}; cleared within ${MAX_TRIES} tries ${done.length}, avg tries ${avg((r) => r.tries, done).toFixed(1)}; first try: level ${avg((r) => r.first.level).toFixed(1)}, kills ${avg((r) => r.first.kills).toFixed(0)}; on arrival: coin-stat levels ${avg(permaSum).toFixed(1)}, grade ${JSON.stringify(grades)}`)
+    console.log(`ch${ch}: reached ${rows.length} (after ${avg((r) => r.first.at - 1).toFixed(0)} runs), first try cleared ${firstClear} (${((100 * firstClear) / rows.length).toFixed(0)}%), lost at the boss ${atBoss}/${lost.length}; cleared within ${MAX_TRIES} tries ${done.length}, avg tries ${avg((r) => r.tries, done).toFixed(1)}; first try: level ${avg((r) => r.first.level).toFixed(1)}, kills ${avg((r) => r.first.kills).toFixed(0)}; on arrival: coin-stat levels ${avg(permaSum).toFixed(1)}, grade ${JSON.stringify(grades)}`)
   }
   console.log(((Date.now() - t0) / 1000).toFixed(0) + ' s')
 }

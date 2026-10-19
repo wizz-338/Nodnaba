@@ -48,6 +48,10 @@ export function chapterFactor(D, chapter) {
   return { hp: last.hp * g.hp ** n, damage: last.damage * g.damage ** n, spawn: last.spawn * g.spawn ** n }
 }
 
+// how much every coin of a chapter is worth: ×coinGrowth for each chapter
+// after the first (rewards, coins on the field, coins in its chests)
+export const chapterCoins = (D, chapter) => D.balance.rewards.coinGrowth ** (Math.max(1, chapter) - 1)
+
 // what the coin stats give (same formulas as the shop; see progress.js)
 function perma(D, levels = {}) {
   const S = D.balance.perma.stats
@@ -316,7 +320,7 @@ function hurtEnemy(run, e, dmg, x, y) {
   }
   e.state = 'die'
   if (e.rank) return
-  if (run.rng() < B.drops.coinChance) run.orbs.push({ kind: 'coin', x: e.x + 6, y: e.y + 3, v: B.drops.coinAmount, pull: false })
+  if (run.rng() < B.drops.coinChance) run.orbs.push({ kind: 'coin', x: e.x + 6, y: e.y + 3, v: B.drops.coinAmount * chapterCoins(run.D, run.chapter), pull: false })
   if (run.rng() < B.drops.healChance) run.orbs.push({ kind: 'heal', x: e.x - 6, y: e.y + 2, v: B.drops.healAmount, pull: false })
 }
 
