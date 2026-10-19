@@ -496,7 +496,7 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
         {plan.ok && <p className="ms-dim">모두 합성하면: {madeText(plan.made)}</p>}
         {fused && (
           <p className="ms-ok">
-            {madeText(fused.made)} 완성!{fused.equipped ? ` 장착 중: ${weaponName(fused.equipped.weaponId)} ${fused.equipped.grade}` : ''}
+            {madeText(fused.made)} 완성!{fused.equipped ? ` ${weaponName(fused.equipped.weaponId)} ${fused.equipped.grade} 장착!` : ''}
           </p>
         )}
         <ul className="ms-inv">

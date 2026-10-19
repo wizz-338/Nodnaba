@@ -325,11 +325,19 @@ export function createProgress(D, storage) {
     },
 
     // Every possible fusion at once, lowest grade first, so the new weapons
-    // fuse on upward (27 D can become one A). One write; the weapon in use
-    // is fused last within its grade, and if it is used, its result is
-    // equipped. Returns how many of each grade were made.
+    // fuse on upward (27 D can become one A). One write. Afterwards the
+    // highest grade of the weapon in use is equipped. Returns how many of
+    // each grade were made.
     fuseAll() {
-      return change((d) => fuseEverything(D, d))
+      return change((d) => {
+        const r = fuseEverything(D, d)
+        if (!r.ok) return r
+        const grades = D.balance.grades
+        const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
+        const best = d.inventory.filter((it) => !cur || it.weaponId === cur.weaponId).sort((a, b) => grades.indexOf(b.grade) - grades.indexOf(a.grade))[0]
+        if (best) d.equippedInstanceId = best.id
+        return { ...r, equipped: best || null }
+      })
     },
 
     // Buy the next level of a coin stat. `fromLevel` is the level shown on

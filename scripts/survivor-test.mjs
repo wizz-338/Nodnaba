@@ -534,7 +534,7 @@ const still = { x: 0, y: 0 }
   ok(r.ok && JSON.stringify(r.made) === JSON.stringify(plan.made), 'fuse all makes what the preview said')
   // 28 D → 9 C (1 D left), 9 + 2 = 11 C → 3 B (2 C left), 3 B → 1 A
   ok(count('D') === 1 && count('C') === 2 && count('B') === 0 && count('A') === 1 && after.inventory.length === 4, '28 D + 2 C → 1 A, with 1 D and 2 C left over')
-  ok(after.equippedInstanceId === 'w1', 'the equipped D is the one left over: still equipped')
+  ok(after.inventory.find((it) => it.id === after.equippedInstanceId).grade === 'A' && r.equipped.grade === 'A', 'afterwards the best ball (the new A) is equipped')
   const again = P.fuseAll()
   ok(!again.ok && P.get().inventory.length === 4, 'a second tap finds nothing to fuse and changes nothing')
   const d2 = P.get()
