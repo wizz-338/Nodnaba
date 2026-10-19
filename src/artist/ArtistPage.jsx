@@ -9,8 +9,7 @@ import './artist.css'
 const external = { target: '_blank', rel: 'noopener noreferrer' }
 
 // Names are official spellings — zyo_ keeps its trailing underscore.
-// role is optional (shown under the name); links can be empty until there
-// is something to link to.
+// links can be empty until there is something to link to.
 const ARTISTS = [
   {
     id: 'mano',
@@ -38,7 +37,6 @@ const ARTISTS = [
   {
     id: 'tizzzz',
     name: 'Tizzzz',
-    role: 'Writer',
     img: tizzzzImg,
     w: 1024,
     h: 1536,
@@ -68,7 +66,6 @@ function Card({ a, i }) {
         <h2 className="artist-card__name glitch" data-text={a.name}>
           {a.name}
         </h2>
-        {a.role && <p className="artist-card__role mono">{a.role}</p>}
         {a.links.length > 0 && (
           <ul className="artist-card__links">
             {a.links.map(({ label, small, icon, ...l }) => (
