@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, applyPreview, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
+import { createRun, step, choose, previewTimes, isEdited, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
@@ -20,21 +20,22 @@ const pctOf = (v) => `${fmt(v * 100, 1)}%`
 
 // what a card really does: its effect straight from the balanceConfig (the
 // same numbers the game applies), then what it is now → what it becomes
-const effectTag = (id) => {
+// (n: how many times it applies — Tizzzz's rewritten card does it more than once)
+const effectTag = (id, n = 1) => {
   const e = EFFECTS[id]
-  if (id === 'crit' || id === 'split') return `+${fmt(e.add * 100)}%p`
-  if (id === 'regen') return `최대 체력의 +${e.addMaxHpShare * 100}%/초`
-  if (id === 'nyang') return '고양이'
-  if (id === 'critDamage') return `+${e.add}배`
-  return `×${e.mul}`
+  if (id === 'crit' || id === 'split') return `+${fmt(e.add * n * 100)}%p`
+  if (id === 'regen') return `최대 체력의 +${fmt(e.addMaxHpShare * n * 100)}%/초`
+  if (id === 'nyang') return n > 1 ? `고양이 Lv.+${n}` : '고양이'
+  if (id === 'critDamage') return `+${fmt(e.add * n)}배`
+  return `×${fmt(e.mul ** n, 4)}`
 }
 // coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
 const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
 const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
-function change(run, id) {
+function change(run, id, times = 1) {
   const w = run.weapon
   const p = run.player
-  const n = applyPreview(run, id)
+  const n = previewTimes(run, id, times)
   switch (id) {
     case 'count':
       return `한 번에 ${big(w.count)}개 → ${big(n.count)}개`
@@ -69,7 +70,7 @@ function change(run, id) {
     case 'xpGain':
       return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
     case 'nyang':
-      return nyangText(run.nyang + 1)
+      return times > 1 ? nyangJump(run.nyang, run.nyang + times) : nyangText(run.nyang + 1)
     default:
       return ''
   }
@@ -93,11 +94,57 @@ const STORY_IMG = {
   story_1: new URL('./assets/story/story_1.webp', import.meta.url).href,
   story_2: new URL('./assets/story/story_2.webp', import.meta.url).href,
   story_3: new URL('./assets/story/story_3.webp', import.meta.url).href,
+  tizzzz_1: new URL('./assets/story/tizzzz_1.webp', import.meta.url).href,
+}
+
+// 냥냥 연금술 several levels at once (Tizzzz's rewrite)
+function nyangJump(from, to) {
+  const L = EFFECTS.nyang.levels[to - 1]
+  return `Lv.${from} → Lv.${to} · 일반 하트 1개 → ${fmt(L.share * 100)}% 회복 하트 ${L.hearts}개`
 }
 
 // the cats' names from data/cats.json, put into a text ({danchu} → 단추)
 const CAT_NAMES = Object.fromEntries(D.cats.companions.map((c) => [c.id, c.name]))
 const withNames = (t) => t.replace(/\{(\w+)\}/g, (m, id) => CAT_NAMES[id] ?? m)
+
+// Tizzzz's pen (drawn here: the art package has no pen)
+function Pen() {
+  return (
+    <svg className="ms-penicon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 21l3.5-1 12-12-2.5-2.5-12 12z" fill="#2f2537" />
+      <path d="M15.5 5.5l2.5 2.5 2-2a1.77 1.77 0 0 0-2.5-2.5z" fill="#c93c86" />
+      <path d="M3 21l1-3.5 2.5 2.5z" fill="#f2c14e" />
+    </svg>
+  )
+}
+
+// a short scratch of a pen (made on the spot: no sound files), quiet
+let audio = null
+function scribble() {
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)()
+    if (audio.state === 'suspended') audio.resume()
+    const t = audio.currentTime
+    const len = Math.floor(audio.sampleRate * 0.22)
+    const buf = audio.createBuffer(1, len, audio.sampleRate)
+    const d = buf.getChannelData(0)
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / 90))
+    const src = audio.createBufferSource()
+    src.buffer = buf
+    const f = audio.createBiquadFilter()
+    f.type = 'bandpass'
+    f.frequency.value = 3200
+    f.Q.value = 1.4
+    const g = audio.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.03)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22)
+    src.connect(f).connect(g).connect(audio.destination)
+    src.start(t)
+  } catch {
+    /* no sound here: the pen still shows */
+  }
+}
 
 // one frame of the art as a DOM box `size` px on its long side
 function Sprite({ name, size, flip, whole, className = '' }) {
@@ -228,12 +275,12 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       .then((i) => {
         setImg(i)
         setScreen('lobby')
-        // a save that cleared chapter 5 before the cats existed sees their
-        // story (once) when the game opens
-        const story = P.current.claimCatEvent()
-        if (story.ok) {
+        // a save that cleared chapter 5 (or 10) before the cats (or Tizzzz)
+        // existed sees their story (once) when the game opens
+        const stories = dueStories(P.current, null)
+        if (stories) {
           setSave(P.current.get())
-          setModal({ kind: 'story', item: story.item })
+          setModal(stories)
         }
       })
       .catch((e) => setError(e.message))
@@ -258,7 +305,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -360,7 +407,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           rerender={() => setBeat((x) => x + 1)}
         />
       )}
-      {modal && modal.kind === 'story' && <Story item={modal.item} onDone={() => setModal(modal.after || null)} />}
+      {modal && modal.kind === 'story' && <Story key={modal.who} who={modal.who} item={modal.item} onDone={() => setModal(modal.after || null)} />}
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
@@ -484,6 +531,16 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
               {chapter >= D.balance.cats.activeFromChapter
                 ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요`
                 : `${D.balance.cats.activeFromChapter}장부터 고양이들이 함께해요`}
+            </span>
+          </p>
+        )}
+        {save.tizzzz.unlocked && (
+          <p className="ms-catline">
+            <Pen />
+            <span>
+              {chapter >= D.balance.tizzzz.activeFromChapter
+                ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요`
+                : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 선택지를 고쳐 써 줘요`}
             </span>
           </p>
         )}
@@ -683,6 +740,17 @@ function Settings({ save, P, onImported }) {
           </div>
         )}
         {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
+      </section>
+      <section className="ms-panel">
+        <div className="ms-row">
+          <span className="ms-sub">효과음</span>
+          <button type="button" className="ms-btn ms-btn--small" aria-pressed={save.sound} onClick={() => {
+              P.setSound(!save.sound)
+              onImported(P.get())
+            }}>
+            {save.sound ? '켜짐' : '꺼짐'}
+          </button>
+        </div>
       </section>
     </>
   )
@@ -999,6 +1067,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         g.cardsAt = performance.now()
         release()
         rerender()
+        if (run.edit && run.edit.seq === run.choiceSeq && P.current.get().sound) setTimeout(scribble, 250)
       }
       if (run.state === 'over' && !g.paid) {
         g.paid = true
@@ -1007,9 +1076,9 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         g.reward = { ...reward, earned: { ...g.earned } }
         // the cats' story, once, right after the chapter-5 clear is saved;
         // the result comes after it
-        const story = run.result.cleared ? P.current.claimCatEvent() : { ok: false }
+        const stories = run.result.cleared ? dueStories(P.current, { kind: 'result' }) : null
         refresh()
-        setModal(story.ok ? { kind: 'story', item: story.item, after: { kind: 'result' } } : { kind: 'result' })
+        setModal(stories || { kind: 'result' })
       }
       hudT += dt
       if (hudT > 0.1) {
@@ -1149,11 +1218,17 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
             <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
             {run.choices.map((id) => {
               const o = OPTIONS[id]
+              // Tizzzz's rewrite: the pen crosses the card, the old number is
+              // struck out and the stronger one pops in (CSS only, ~1.2 s; the
+              // card can be chosen at once, it is stronger from the start)
+              const ed = isEdited(run, id, run.choiceSeq)
+              const T = D.balance.tizzzz.times
               return (
                 <button
                   key={id + run.choiceSeq}
                   type="button"
-                  className="ms-card"
+                  className={`ms-card${ed ? ' is-edited' : ''}`}
+                  style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
                   onClick={() => {
                     const g = G.current
                     if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
@@ -1172,10 +1247,30 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
                       {o.name}
                       {run.picks[id] ? <em className="ms-card__stack">{run.picks[id]}번 고름</em> : null}
                     </span>
-                    <span className="ms-card__num">
-                      <b>{effectTag(id)}</b> {change(run, id)}
-                    </span>
+                    {ed ? (
+                      <span className="ms-card__num">
+                        <s className="ms-card__old">{effectTag(id)}</s> <b className="ms-card__new">{effectTag(id, T)}</b>{' '}
+                        <span className="ms-card__new">{change(run, id, T)}</span>
+                      </span>
+                    ) : (
+                      <span className="ms-card__num">
+                        <b>{effectTag(id)}</b> {change(run, id)}
+                      </span>
+                    )}
                   </span>
+                  {ed && (
+                    <>
+                      <em className="ms-card__badge">
+                        <Pen /> {D.tizzzz.edit.badge}
+                      </em>
+                      <span className="ms-pen" aria-hidden="true">
+                        <Pen />
+                      </span>
+                      <svg className="ms-card__scribble" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M2 6 Q 12 1 22 6 T 42 6 T 62 6 T 82 6 T 98 5" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               )
             })}
@@ -1228,12 +1323,25 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   )
 }
 
-// The cats' story: each scene's picture with Mano's lines under it, one line
-// per tap (or Enter / Space); 건너뛰기 goes straight to what was given. The
-// save was already written when it started, so leaving at any point loses
-// nothing and can never give twice.
-function Story({ item, onDone }) {
-  const S = D.cats.story
+// The companion stories now due, claimed (each in its own single save write)
+// and chained: the cats' (chapter 5) first, then Tizzzz's (chapter 10), then
+// `after`. null when none is due.
+function dueStories(P, after) {
+  const due = [
+    ['cats', P.claimCatEvent()],
+    ['tizzzz', P.claimTizzzzEvent()],
+  ].filter(([, r]) => r.ok)
+  if (!due.length) return null
+  return due.reduceRight((next, [who, r]) => ({ kind: 'story', who, item: r.item, after: next }), after)
+}
+
+// A companion's story (the cats' at chapter 5, Tizzzz's at chapter 10): each
+// scene's picture with the lines under it, one line per tap (or Enter /
+// Space); 건너뛰기 goes straight to what was given. The save was already
+// written when it started, so leaving at any point loses nothing and can
+// never give twice.
+function Story({ who = 'cats', item, onDone }) {
+  const S = who === 'tizzzz' ? D.tizzzz.story : D.cats.story
   const steps = []
   for (const sc of S.scenes) for (const line of sc.lines) steps.push({ image: sc.image, text: withNames(line) })
   const [i, setI] = useState(0)
@@ -1265,15 +1373,24 @@ function Story({ item, onDone }) {
               {withNames(t)}
             </p>
           ))}
-          <div className="ms-story__cats" aria-label={D.cats.companions.map((c) => c.name).join(', ')}>
-            {D.cats.companions.map((c) => (
-              <span key={c.id}>
-                <Sprite name={`${c.frames}_r_0`} size={44} />
-                <small>{c.name}</small>
-              </span>
-            ))}
-          </div>
-          <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요.</p>
+          {who === 'tizzzz' ? (
+            <>
+              <img className="ms-story__face" src={STORY_IMG.tizzzz_1} alt={D.tizzzz.name} />
+              <p className="ms-dim ms-center">{S.rewardNote.replace('{from}', D.balance.tizzzz.activeFromChapter)}</p>
+            </>
+          ) : (
+            <>
+              <div className="ms-story__cats" aria-label={D.cats.companions.map((c) => c.name).join(', ')}>
+                {D.cats.companions.map((c) => (
+                  <span key={c.id}>
+                    <Sprite name={`${c.frames}_r_0`} size={44} />
+                    <small>{c.name}</small>
+                  </span>
+                ))}
+              </div>
+              <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요.</p>
+            </>
+          )}
           <button type="button" className="ms-btn ms-btn--primary" onClick={onDone}>
             확인
           </button>
@@ -1282,7 +1399,8 @@ function Story({ item, onDone }) {
     )
   const st = steps[i]
   return (
-    <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label="이야기" onClick={next}>
+    <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label={S.title || '이야기'} onClick={next}>
+      {S.title && <p className="ms-story__title">{S.title}</p>}
       <div className="ms-story__pic">
         {/* every picture is loaded at once, so a change of scene never flashes */}
         {Object.entries(STORY_IMG).map(([k, src]) => (

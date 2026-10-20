@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun } from './survivor-bot.mjs'
@@ -12,6 +12,7 @@ const ok = (c, m) => {
   if (!c) fails++
 }
 const near = (a, b, e = 1e-6) => Math.abs(a - b) <= e
+const fmt2 = (v) => Math.round(v * 1e4) / 1e4
 class Mem {
   constructor() { this.m = new Map() }
   getItem(k) { return this.m.has(k) ? this.m.get(k) : null }
@@ -818,6 +819,114 @@ const still = { x: 0, y: 0 }
   step(run, FIXED * 2, still)
   const boss = run.boss
   ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+}
+
+// ── the writer Tizzzz ───────────────────────────────────────────────────────
+// her chapter-10 story: once, with exactly one SS ball, apart from the cats'
+{
+  const T = B.tizzzz
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const clear = (ch) => {
+    const r = P.startRun(ch)
+    P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  }
+  for (let ch = 1; ch <= 9; ch++) clear(ch)
+  ok(!P.claimTizzzzEvent().ok && !P.get().tizzzz.unlocked, 'before chapter 10 is cleared there is no Tizzzz story')
+  const cats = P.claimCatEvent()
+  ok(cats.ok && cats.item.grade === 'S' && !P.get().tizzzz.eventSeen, "the cats' story (chapter 5) is its own: it does not touch Tizzzz's")
+  clear(T.eventChapter)
+  const ss0 = P.get().inventory.filter((it) => it.grade === 'SS').length
+  const ev = P.claimTizzzzEvent()
+  const d = P.get()
+  ok(ev.ok && ev.item.grade === 'SS' && ev.item.weaponId === D.weapons.initialWeaponId && d.inventory.filter((it) => it.grade === 'SS').length === ss0 + 1, 'the first chapter-10 clear: Tizzzz comes and one SS-grade bouncy ball is given')
+  ok(d.tizzzz.unlocked && d.tizzzz.eventSeen && d.tizzzz.rewardGiven && d.equippedInstanceId === ev.item.id, 'Tizzzz has joined, the story is marked seen, the reward recorded; the SS ball is equipped (it beats the S)')
+  ok(d.inventory.filter((it) => it.grade === 'S').length === 1 && d.cats.unlocked, "the chapter-5 S ball and the cats are untouched")
+  ok(!P.claimTizzzzEvent().ok && !P.claimCatEvent().ok, 'asking again gives nothing and plays nothing')
+  clear(T.eventChapter)
+  ok(!P.claimTizzzzEvent().ok && P.get().inventory.filter((it) => it.grade === 'SS').length === ss0 + 1, 'clearing chapter 10 again: no story, still one SS ball')
+  const again = createProgress(D, mem)
+  const re = again.boot().data
+  ok(re.tizzzz.unlocked && re.tizzzz.eventSeen && re.tizzzz.rewardGiven && !again.claimTizzzzEvent().ok, 'after a reload Tizzzz is still there and the story stays seen')
+  ok(again.startRun(T.activeFromChapter).tizzzz === true && parseBackup(D, again.exportText()).data.tizzzz.unlocked, 'a run started now brings her; a backup keeps her')
+  again.setSound(false)
+  ok(createProgress(D, mem).boot().data.sound === false, 'the sound setting is kept')
+}
+// a save that cleared chapter 10 before Tizzzz (or the cats) existed
+{
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.firstCleared = Array.from({ length: 12 }, (_, i) => i + 1)
+  delete d.cats
+  delete d.tizzzz
+  mem.setItem(KEY, JSON.stringify(d))
+  const P2 = createProgress(D, mem)
+  const b = P2.boot().data
+  ok(!b.tizzzz.unlocked && !b.cats.unlocked && b.sound === true, 'an older save loads with neither met yet')
+  const a = P2.claimCatEvent()
+  const t = P2.claimTizzzzEvent()
+  ok(a.ok && t.ok && a.item.grade === 'S' && t.item.grade === 'SS' && P2.get().inventory.length === 3, 'it gets both stories, each with its own ball (S and SS)')
+}
+// her rewrite: from chapter 11, at every level-up, one card does its effect twice
+{
+  const T = B.tizzzz
+  ok(!newRun({ chapter: T.eventChapter, tizzzz: true }).writer && !newRun({ chapter: T.activeFromChapter, tizzzz: false }).writer && newRun({ chapter: T.activeFromChapter, tizzzz: true }).writer, `she rewrites from chapter ${T.activeFromChapter}, once she has joined`)
+  const run = newRun({ chapter: T.activeFromChapter, tizzzz: true, cats: true, seed: 12 })
+  run.spawnT = -1e9
+  let sets = 0
+  let marked = 0
+  let inChoices = true
+  for (let i = 0; i < 300; i++) {
+    run.orbs.push({ kind: 'xp', x: run.player.x, y: run.player.y, v: run.need, pull: false })
+    step(run, FIXED * 2, still)
+    if (run.state !== 'levelup') continue
+    sets++
+    if (run.edit && run.edit.seq === run.choiceSeq) marked++
+    if (run.edit && !run.choices.includes(run.edit.id)) inChoices = false
+    // pick a card that is not the rewritten one, so its normal effect is checked too
+    choose(run, run.choices.find((c) => !isEdited(run, c, run.choiceSeq)) || run.choices[0], run.choiceSeq)
+  }
+  ok(sets > 50 && marked === sets && inChoices, `every level-up (${sets}): one of its three cards is rewritten`)
+  // the rewritten card applies the same calculation twice, both on the card and in the run
+  const E = B.upgrades.effects
+  const check = (id, read) => {
+    const r = newRun({ chapter: T.activeFromChapter, tizzzz: true, seed: 2 })
+    r.state = 'levelup'; r.pending = 1; r.choices = [id, 'maxHp', 'pickup']; r.choiceSeq++
+    r.edit = { id, seq: r.choiceSeq }
+    const before = read(r)
+    const preview = previewTimes(r, id, T.times)
+    choose(r, id, r.choiceSeq)
+    return { before, after: read(r), preview, picks: r.picks[id] }
+  }
+  const c = check('count', (r) => r.weapon.count)
+  ok(c.after === c.before * E.count.mul ** 2 && c.preview.count === c.after && c.picks === 2, `탱탱볼 개수: ×${E.count.mul} rewritten → ×${E.count.mul ** 2} (${c.before} → ${c.after}), counted as two picks`)
+  const iv = check('interval', (r) => r.weapon.interval)
+  ok(near(iv.after, iv.before * E.interval.mul ** 2) && near(iv.preview.interval, iv.after), `공격 주기: ×${E.interval.mul} → ×${fmt2(E.interval.mul ** 2)}`)
+  const dm = check('damage', (r) => r.weapon.damage)
+  ok(near(dm.after, dm.before * E.damage.mul ** 2), `공격 피해: ×${E.damage.mul} → ×${E.damage.mul ** 2}`)
+  const cr = check('crit', (r) => r.weapon.critChance)
+  ok(near(cr.after, cr.before + E.crit.add * 2), `치명타: +${E.crit.add * 100}%p → +${E.crit.add * 200}%p`)
+  const hp = check('maxHp', (r) => r.player.maxHp)
+  ok(near(hp.after, hp.before * E.maxHp.mul ** 2), `최대 체력: ×${E.maxHp.mul} → ×${fmt2(E.maxHp.mul ** 2)}`)
+  // a card not rewritten works as before, and a stale tap never gets the rewrite
+  const r2 = newRun({ chapter: T.activeFromChapter, tizzzz: true, seed: 2 })
+  r2.state = 'levelup'; r2.pending = 1; r2.choices = ['count', 'damage', 'pickup']; r2.choiceSeq++
+  r2.edit = { id: 'damage', seq: r2.choiceSeq }
+  choose(r2, 'count', r2.choiceSeq)
+  ok(r2.weapon.count === E.count.mul && r2.picks.count === 1, 'the other cards keep their normal effect')
+  // a card with levels too close to its last is never rewritten; none left: no rewrite, no error
+  const r3 = newRun({ chapter: T.activeFromChapter, tizzzz: true, cats: true, seed: 2 })
+  r3.picks.nyang = B.upgrades.effects.nyang.levels.length - 1
+  ok(!canEdit(r3, 'nyang') && canEdit(r3, 'count'), '냥냥 연금술 one level from its last cannot be rewritten')
+  r3.pool = ['nyang']
+  r3.picks.nyang = B.upgrades.effects.nyang.levels.length - 1
+  r3.orbs.push({ kind: 'xp', x: r3.player.x, y: r3.player.y, v: r3.need, pull: false })
+  r3.spawnT = -1e9
+  step(r3, FIXED * 2, still)
+  ok(r3.state === 'levelup' && r3.edit === null, 'with nothing that can be rewritten the cards just show as they are')
 }
 
 // the cats cost little with a full screen

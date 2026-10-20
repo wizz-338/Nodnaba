@@ -1029,8 +1029,9 @@
 /* the cats' story: the scene's picture, Mano's line under it */
 .ms-story {
   z-index: 5;
-  grid-template-rows: 1fr auto;
-  place-items: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   padding: 12px;
   background: #1d1622;
@@ -1039,6 +1040,7 @@
 
 .ms-story__pic {
   position: relative;
+  flex: 1;
   min-height: 0;
   border-radius: 14px;
   overflow: hidden;
@@ -1115,8 +1117,7 @@
 }
 
 .ms-story__reward {
-  align-self: center;
-  justify-self: center;
+  margin: auto;
   width: min(100%, 320px);
   text-align: center;
 }
@@ -1156,5 +1157,190 @@
   }
   .ms-story__pic img {
     transition: none;
+  }
+}
+
+.ms-story__title {
+  margin: 0 96px 0 0; /* room for 건너뛰기 */
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--ink);
+  background: #fde8c4;
+  text-align: center;
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.ms-story__face {
+  justify-self: center;
+  margin: 0 auto;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  object-fit: cover;
+  object-position: 50% 22%;
+}
+
+/* Tizzzz's rewritten card: an ink edge and a small pen badge (stays), and a
+   quick pass of the pen that strikes the old number and writes the new one
+   (once, about 1.2 s; the card works from the first moment) */
+.ms-card.is-edited {
+  position: relative;
+  overflow: hidden;
+  border-color: #c93c86;
+  box-shadow: 0 0 0 2px #f6c1dc inset;
+  background: #fff3f8;
+}
+
+.ms-penicon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+}
+
+.ms-card__badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: #c93c86;
+  color: #fff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.ms-card__old {
+  color: var(--muted);
+  text-decoration-color: transparent;
+  animation: ms-strike calc(var(--pen) * 0.35) ease-out calc(var(--pen) * 0.2) forwards;
+}
+
+@keyframes ms-strike {
+  to {
+    text-decoration-color: #c93c86;
+  }
+}
+
+.ms-card__new {
+  opacity: 0;
+  animation: ms-write calc(var(--pen) * 0.3) ease-out calc(var(--pen) * 0.5) forwards;
+}
+
+.ms-card__num b.ms-card__new {
+  color: #c93c86;
+}
+
+@keyframes ms-write {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ms-pen {
+  position: absolute;
+  left: 0;
+  bottom: 14px;
+  font-size: 22px;
+  pointer-events: none;
+  opacity: 0;
+  animation: ms-pen var(--pen) ease-in-out forwards;
+}
+
+@keyframes ms-pen {
+  0% {
+    opacity: 0;
+    transform: translate(105%, 6px) rotate(-12deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+    transform: translate(85%, 0) rotate(-12deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(240%, -4px) rotate(-6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(300%, -8px) rotate(0deg);
+  }
+}
+
+.ms-card.is-edited .ms-pen {
+  left: 20%;
+}
+
+.ms-card__scribble {
+  position: absolute;
+  left: 30%;
+  right: 8%;
+  bottom: 8px;
+  height: 8px;
+  pointer-events: none;
+}
+
+.ms-card__scribble path {
+  fill: none;
+  stroke: #c93c86;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: ms-scribble calc(var(--pen) * 0.45) ease-out calc(var(--pen) * 0.1) forwards;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes ms-scribble {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* the sparkle as the pen leaves */
+.ms-card.is-edited::after {
+  content: '';
+  position: absolute;
+  right: 18%;
+  top: 40%;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #fff 30%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: ms-spark calc(var(--pen) * 0.25) ease-out calc(var(--pen) * 0.75) forwards;
+}
+
+@keyframes ms-spark {
+  50% {
+    opacity: 1;
+    transform: scale(2.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-pen,
+  .ms-card.is-edited::after {
+    display: none;
+  }
+  .ms-card__old,
+  .ms-card__new,
+  .ms-card__scribble path {
+    animation-duration: 0s;
+    animation-delay: 0s;
   }
 }

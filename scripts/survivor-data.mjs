@@ -10,4 +10,5 @@ export const D = {
   art: read('assets-v3'),
   cats: read('cats'),
   catFrames: read('cats-frames'),
+  tizzzz: read('tizzzz'),
 }

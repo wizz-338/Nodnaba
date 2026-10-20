@@ -543,5 +543,13 @@
       "boss": 60
     },
     "fullAtChapter": 15
+  },
+  "tizzzz": {
+    "note": "The writer Tizzzz joins for good after the event of chapter 10's first clear (which also gives one SS-grade weapon of the starting kind, once). From activeFromChapter on, at every level-up she rewrites one of the three cards at random: that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone.",
+    "eventChapter": 10,
+    "rewardGrade": "SS",
+    "activeFromChapter": 11,
+    "times": 2,
+    "penSeconds": 1.2
   }
 }

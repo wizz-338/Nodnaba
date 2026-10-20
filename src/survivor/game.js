@@ -66,7 +66,8 @@ function perma(D, levels = {}) {
 // ── a new run ───────────────────────────────────────────────────────────────
 
 // opts: { chapter, weaponId, grade, seed, runId, perma: { hp: L, damage: L, … },
-//         cats: true once the cat companions have joined }
+//         cats: true once the cat companions have joined,
+//         tizzzz: true once the writer Tizzzz has joined }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
@@ -86,6 +87,8 @@ export function createRun(D, opts) {
   const chapter = opts.chapter || 1
   // the cats come along from their chapter on, once they have joined
   const withCats = !!opts.cats && chapter >= B.cats.activeFromChapter
+  // Tizzzz rewrites a card at every level-up from her chapter on
+  const withWriter = !!opts.tizzzz && chapter >= B.tizzzz.activeFromChapter
   const pool = [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))]
   // with the cats, the magnet's place among the cards goes to 냥냥 연금술
   if (withCats) pool[pool.indexOf(B.upgrades.catSwap.from)] = B.upgrades.catSwap.to
@@ -128,6 +131,8 @@ export function createRun(D, opts) {
     pool,
     cats: [],
     nyang: 0, // 냥냥 연금술 level this run (0: the cats leave hearts alone)
+    writer: withWriter,
+    edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
     fireT: 0.4,
     enemies: [],
     balls: [],
@@ -944,13 +949,16 @@ function openChoice(run) {
   run.state = 'levelup'
   run.choices = drawChoices(run)
   run.choiceSeq++
+  // Tizzzz rewrites one of them, at random among those that can take it
+  run.edit = null
+  if (run.writer) {
+    const ok = run.choices.filter((id) => canEdit(run, id))
+    if (ok.length) run.edit = { id: ok[Math.floor(run.rng() * ok.length)], seq: run.choiceSeq }
+  }
 }
 
-// Apply a choice. `seq` must be the one shown with the cards, so a double tap
-// (or a tap on cards that already changed) does nothing. Returns true once.
-export function choose(run, id, seq) {
-  if (run.state !== 'levelup' || seq !== run.choiceSeq || !run.choices || !run.choices.includes(id)) return false
-  const ch = applyPreview(run, id)
+// put an upgrade's new values (from applyPreview) into the run
+function applyChange(run, ch) {
   const w = run.weapon
   const p = run.player
   for (const k of ['count', 'damage', 'bounces', 'splitChance', 'interval', 'radius', 'critChance', 'critMul']) if (k in ch) w[k] = ch[k]
@@ -958,8 +966,39 @@ export function choose(run, id, seq) {
   for (const k of ['pickupR', 'speed', 'coinMul', 'regen', 'armor', 'xpMul']) if (k in ch) p[k] = ch[k]
   if ('maxHp' in ch) (p.maxHp = ch.maxHp), (p.hp = ch.hp)
   if ('nyang' in ch) run.nyang = ch.nyang
-  run.picks[id] = (run.picks[id] || 0) + 1
-  run.log.push(id)
+}
+
+// What choosing `id` n times in a row would make (pure: works on a copy).
+// For the cards: n = 1, or Tizzzz's times for the card she rewrote.
+export function previewTimes(run, id, n) {
+  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang }
+  for (let i = 0; i < n; i++) applyChange(tmp, applyPreview(tmp, id))
+  const w = tmp.weapon
+  const p = tmp.player
+  return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang }
+}
+
+// Tizzzz's rewrite: the card can take her `times` (a card with levels needs
+// that many levels left)
+export function canEdit(run, id) {
+  const L = levelsOf(run, id)
+  return !L || (run.picks[id] || 0) + run.D.balance.tizzzz.times <= L.length
+}
+export const isEdited = (run, id, seq) => !!run.edit && run.edit.id === id && run.edit.seq === seq
+
+// Apply a choice. `seq` must be the one shown with the cards, so a double tap
+// (or a tap on cards that already changed) does nothing. Returns true once.
+export function choose(run, id, seq) {
+  if (run.state !== 'levelup' || seq !== run.choiceSeq || !run.choices || !run.choices.includes(id)) return false
+  // a card Tizzzz rewrote does its own effect `times` times over, exactly as
+  // if it had been chosen that many times (the same multiplying, nothing else)
+  const times = isEdited(run, id, seq) ? run.D.balance.tizzzz.times : 1
+  for (let i = 0; i < times; i++) {
+    applyChange(run, applyPreview(run, id))
+    run.picks[id] = (run.picks[id] || 0) + 1
+    run.log.push(id)
+  }
+  if (times > 1) run.stats.edited = (run.stats.edited || 0) + 1
   run.pending--
   if (run.pending > 0) openChoice(run)
   else {

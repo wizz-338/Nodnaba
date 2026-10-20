@@ -52,14 +52,17 @@ export function fresh(D) {
     activeRun: null,
     seenHelp: false,
     perma: zeroPerma(),
-    // the cat companions: kept for good once earned
+    // the cat companions and the writer Tizzzz: kept for good once earned
     cats: freshCats(),
+    tizzzz: freshCats(),
+    sound: true,
   }
 }
 
-// eventSeen: the chapter-5 story has been started (it never plays again);
-// unlocked: the cats come along from cats.activeFromChapter; rewardGiven: its
-// S-grade weapon was put in the pocket (exactly once)
+// For each companion story (the cats at chapter 5, Tizzzz at chapter 10):
+// eventSeen: the story has been started (it never plays again); unlocked:
+// the companion helps from its activeFromChapter on; rewardGiven: its weapon
+// was put in the pocket (exactly once). Each is kept on its own.
 const freshCats = () => ({ unlocked: false, eventSeen: false, rewardGiven: false })
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -101,6 +104,8 @@ function validate(D, d) {
   out.seenHelp = d.seenHelp === true
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
   if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
+  if (isObj(d.tizzzz)) for (const k of Object.keys(out.tizzzz)) out.tizzzz[k] = d.tizzzz[k] === true
+  out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
     const n = +String(it.id).slice(1)
@@ -263,7 +268,7 @@ export function createProgress(D, storage) {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
         d.activeRun = { runId, chapter }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked }
       })
     },
 
@@ -367,22 +372,19 @@ export function createProgress(D, storage) {
     // or play it again. The weapon is equipped when it beats the one in use.
     // Returns { ok, item } once, then { ok: false }.
     claimCatEvent() {
+      return change((d) => claimStory(D, d, 'cats', D.balance.cats))
+    },
+
+    // Tizzzz's story: due once chapter 10 has been cleared for the first time,
+    // the same way (one write: seen, joined, the SS-grade weapon once).
+    claimTizzzzEvent() {
+      return change((d) => claimStory(D, d, 'tizzzz', D.balance.tizzzz))
+    },
+
+    setSound(on) {
       return change((d) => {
-        const C = D.balance.cats
-        if (d.cats.eventSeen || !d.firstCleared.includes(C.eventChapter)) return { ok: false, already: d.cats.eventSeen }
-        d.cats.eventSeen = true
-        d.cats.unlocked = true
-        let item = null
-        if (!d.cats.rewardGiven) {
-          item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: C.rewardGrade }
-          d.inventory.push(item)
-          d.cats.rewardGiven = true
-          // worn at once when it is better than the weapon in use
-          const grades = D.balance.grades
-          const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
-          if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade)) d.equippedInstanceId = item.id
-        }
-        return { ok: true, item }
+        d.sound = !!on
+        return d.sound
       })
     },
 
@@ -466,6 +468,27 @@ function fuseEverything(D, d) {
     }
   }
   return { ok: fusions > 0, made, fusions, equipped: d.inventory.find((it) => it.id === d.equippedInstanceId) || null }
+}
+
+// A companion story claimed inside one write: due when its chapter has been
+// cleared for the first time and the story was never seen. Marks it seen,
+// makes the companion join and gives its weapon once (equipped when it beats
+// the one in use). Returns { ok, item } once, then { ok: false }.
+function claimStory(D, d, key, C) {
+  const f = d[key]
+  if (f.eventSeen || !d.firstCleared.includes(C.eventChapter)) return { ok: false, already: f.eventSeen }
+  f.eventSeen = true
+  f.unlocked = true
+  let item = null
+  if (!f.rewardGiven) {
+    item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: C.rewardGrade }
+    d.inventory.push(item)
+    f.rewardGiven = true
+    const grades = D.balance.grades
+    const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
+    if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade)) d.equippedInstanceId = item.id
+  }
+  return { ok: true, item }
 }
 
 // ── backup files ────────────────────────────────────────────────────────────
