@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun } from './survivor-bot.mjs'
@@ -778,6 +778,48 @@ const still = { x: 0, y: 0 }
   ok(full.player.hp === full.player.maxHp, 'at full HP it heals nothing past the maximum')
   ok(B.drops.healChance === 0.005, 'the normal heart drop chance is unchanged')
 }
+// Mano can stand still: the cats bring in nearly everything, and fast
+{
+  const run = newRun({ chapter: 8, cats: true, grade: 'SS', seed: 4, perma: { hp: 40, damage: 50, interval: 50, crit: 40 } })
+  run.player.hp = run.player.maxHp = 1e15
+  const born = new Map()
+  let dropped = 0
+  let byCats = 0
+  const waits = []
+  for (let i = 0; i < 90 * 60; i++) {
+    if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+    for (const o of run.orbs) if ((o.kind === 'xp' || o.kind === 'coin') && !born.has(o)) born.set(o, run.t), dropped++
+    const before = run.orbs.slice()
+    step(run, FIXED, still)
+    for (const o of before) if (o.byCat && born.has(o) && !run.orbs.includes(o)) byCats++, waits.push(run.t - born.get(o)), born.delete(o)
+  }
+  waits.sort((a, b) => a - b)
+  const lying = run.orbs.filter((o) => (o.kind === 'xp' || o.kind === 'coin') && run.t - born.get(o) > 2).length
+  ok(byCats / dropped > 0.85 && lying <= 2 && waits[waits.length >> 1] < 1, `90 s with Mano standing still: the cats took ${((100 * byCats) / dropped).toFixed(0)}% of ${dropped} coins and gems (the rest fell next to Mano), half within ${waits[waits.length >> 1].toFixed(2)} s; ${lying} left lying over 2 s`)
+}
+// later chapters: the middle and end of a run push harder, coming in step by step
+{
+  const L = B.lateGame
+  const at = (chapter, t) => {
+    const run = newRun({ chapter })
+    run.t = t
+    return lateGame(run)
+  }
+  const last = B.chapter.phases[B.chapter.phases.length - 1].from + 1
+  ok(at(L.fromChapter - 1, last).hp === 1 && at(1, last).damage === 1, `before chapter ${L.fromChapter}: nothing changes`)
+  const mid = at(L.fromChapter + 2, last)
+  const full = at(L.fullAtChapter, last)
+  const later = at(L.fullAtChapter + 10, last)
+  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1]) && near(later.hp, full.hp) && near(full.specialHp, L.specialHp), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss and elites ×${full.specialHp})`)
+  const run = newRun({ chapter: L.fullAtChapter, seed: 3 })
+  run.spawnT = -1e9
+  run.t = last
+  run.nextEvent = 2
+  step(run, FIXED * 2, still)
+  const boss = run.boss
+  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+}
+
 // the cats cost little with a full screen
 {
   const make = (cats) => {
