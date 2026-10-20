@@ -64,6 +64,11 @@
     "xpGain": {
       "name": "반짝 원석",
       "icon": "xp_gem"
+    },
+    "nyang": {
+      "name": "냥냥 연금술",
+      "icon": "cat_hodu_l_0",
+      "note": "only in runs with the cats; texts per level are built from balance.json → upgrades.effects.nyang"
     }
   }
 }

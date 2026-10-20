@@ -41,3 +41,23 @@ the hand-off asks). These are the places where the art itself falls short:
 | the final boss | — | there is no art of its own: it wears the crowned skull beast (`boss_*`, also used by elite 2) at a larger size |
 | the boss's slam | — | no slam pose: the wind-up frame is shown while the warning circle closes |
 | Mano hit, other facings | `hit_*` exist only for S / SE | other facings keep their frame and flash red instead (as the hand-off says) |
+
+## Cat companions and their story (added later)
+
+`cats/` holds what was delivered for the three cats (단추, 호두, 모루 — names
+live in `src/survivor/data/cats.json`, easy to change):
+
+| file | contents |
+| --- | --- |
+| `danchu_run.png`, `hodu_run.png`, `moru_run.png` | each cat running: 2 rows × 4 frames (top row facing right, bottom row facing left), transparent, as delivered |
+| `story_1.webp` … `story_3.webp` | the chapter-5 story pictures (the cats running, the cats in the grass, Mano finding the ball), high quality copies of the delivered PNGs |
+
+The game uses `src/survivor/assets/cats/cats.png`: every frame cut by the
+transparent gaps between them, shrunk to a quarter with premultiplied alpha
+(the drawings are not on an even pixel grid, so they are not resampled to
+"native" pixels) and set in equal cells with the feet on the cell's bottom
+line. `src/survivor/data/cats-frames.json` is its frame table, in the same
+shape as the v3 table (rect, content box, pivot), so the same renderer draws
+them. The story pictures in `src/survivor/assets/story/` are 1100 px webp.
+The 퍼센트 하트 has no art of its own: the renderer makes it from a small
+pixel heart with a % in it (`render.js`).

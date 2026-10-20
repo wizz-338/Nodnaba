@@ -1025,3 +1025,136 @@
 .ms-confirm p {
   margin: 0;
 }
+
+/* the cats' story: the scene's picture, Mano's line under it */
+.ms-story {
+  z-index: 5;
+  grid-template-rows: 1fr auto;
+  place-items: stretch;
+  gap: 10px;
+  padding: 12px;
+  background: #1d1622;
+  cursor: pointer;
+}
+
+.ms-story__pic {
+  position: relative;
+  min-height: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  background: #2a2030;
+}
+
+.ms-story__pic img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+
+.ms-story__pic img.is-on {
+  opacity: 1;
+}
+
+.ms-story__box {
+  position: relative;
+  min-height: 92px;
+  padding: 12px 16px 18px;
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.ms-story__name {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.ms-story__line {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.ms-story__more {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  font-size: 11px;
+  animation: ms-story-more 0.8s steps(2) infinite;
+}
+
+@keyframes ms-story-more {
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.ms-story__skip {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: rgba(255, 244, 226, 0.92);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ms-story__reward {
+  align-self: center;
+  justify-self: center;
+  width: min(100%, 320px);
+  text-align: center;
+}
+
+.ms-story__reward .ms-h {
+  margin: 0;
+}
+
+.ms-story__cats {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.ms-story__cats span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.ms-catline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ms-catline span {
+  margin-left: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-story__more {
+    animation: none;
+  }
+  .ms-story__pic img {
+    transition: none;
+  }
+}

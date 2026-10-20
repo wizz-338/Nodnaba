@@ -1,0 +1,469 @@
+{
+ "sheet": {
+  "file": "cats.png",
+  "width": 816,
+  "height": 258
+ },
+ "cell": [
+  102,
+  86
+ ],
+ "frames": {
+  "cat_danchu_r_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 0,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 3,
+    "y": 2,
+    "w": 96,
+    "h": 83
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_r_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 102,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 2,
+    "w": 98,
+    "h": 83
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_r_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 204,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 2,
+    "w": 99,
+    "h": 83
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_r_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 306,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 2,
+    "w": 98,
+    "h": 83
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_l_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 408,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 4,
+    "w": 98,
+    "h": 81
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_l_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 510,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 4,
+    "w": 98,
+    "h": 81
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_l_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 612,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 4,
+    "w": 100,
+    "h": 81
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_danchu_l_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 714,
+    "y": 0,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 4,
+    "w": 100,
+    "h": 81
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_r_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 0,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 3,
+    "y": 7,
+    "w": 96,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_r_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 102,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 3,
+    "y": 7,
+    "w": 96,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_r_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 204,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 7,
+    "w": 98,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_r_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 306,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 7,
+    "w": 100,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_l_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 408,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 7,
+    "w": 98,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_l_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 510,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 7,
+    "w": 97,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_l_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 612,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 7,
+    "w": 100,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_hodu_l_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 714,
+    "y": 86,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 1,
+    "y": 7,
+    "w": 100,
+    "h": 78
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_r_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 0,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 4,
+    "y": 1,
+    "w": 94,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_r_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 102,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 2,
+    "y": 1,
+    "w": 97,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_r_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 204,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 4,
+    "y": 1,
+    "w": 94,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_r_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 306,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 3,
+    "y": 1,
+    "w": 95,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_l_0": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 408,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 6,
+    "y": 1,
+    "w": 90,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_l_1": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 510,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 4,
+    "y": 1,
+    "w": 94,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_l_2": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 612,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 5,
+    "y": 1,
+    "w": 92,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  },
+  "cat_moru_l_3": {
+   "sheet": "cats.png",
+   "rect": {
+    "x": 714,
+    "y": 172,
+    "w": 102,
+    "h": 86
+   },
+   "contentBounds": {
+    "x": 4,
+    "y": 1,
+    "w": 94,
+    "h": 84
+   },
+   "pivot": [
+    51,
+    85
+   ]
+  }
+ }
+}
