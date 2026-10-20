@@ -717,6 +717,20 @@ const still = { x: 0, y: 0 }
   ok(Math.hypot(p.x - 180, p.y - (B.logicalArena.bounds[1] + B.logicalArena.bounds[3]) / 2 - 40) < 1e-9 && p.hp === p.maxHp, 'Mano was not moved or hurt by them')
   ok(run.cats.every((c) => !('hp' in c)), 'cats have no HP: nothing can hurt them')
 }
+// a pile goes in one sweep: everything within a cat's magnet flies to it
+{
+  const run = newRun({ chapter: 6, cats: true, seed: 8 })
+  run.spawnT = -1e9
+  run.nextEvent = 9
+  run.xp = -1e15
+  run.player.pickupR = 0
+  for (let i = 0; i < 30; i++) run.orbs.push({ kind: i % 3 ? 'xp' : 'coin', x: 300 + (i % 6) * 6, y: 140 + Math.floor(i / 6) * 6, v: 1, pull: false, age: -1e9 })
+  run.orbs.push({ kind: 'heal', x: 320, y: 150, v: 20, pull: false })
+  let t = 0
+  for (; t < 10 && run.orbs.some((o) => o.kind === 'coin' || o.kind === 'xp'); t += FIXED) step(run, FIXED, still)
+  ok(!run.orbs.some((o) => o.kind === 'coin' || o.kind === 'xp') && run.stats.catPicks === 30 && t < 3, `a pile of 30 is swept up in ${t.toFixed(1)} s (one run there, not 30 trips)`)
+  ok(run.orbs.some((o) => o.kind === 'heal'), 'a heart is never pulled in (without 냥냥 연금술 it stays where it is)')
+}
 // 냥냥 연금술: a normal heart becomes 퍼센트 하트; those are never turned again
 {
   const T = B.upgrades.effects.nyang.levels
