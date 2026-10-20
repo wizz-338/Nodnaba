@@ -76,6 +76,55 @@ function change(run, id, times = 1) {
   }
 }
 
+// where Mano stands in this run (for the level-up cards): every number a
+// card can change, as it is now, then the cards picked so far
+function RunStats({ run }) {
+  const w = run.weapon
+  const p = run.player
+  const rows = [
+    ['체력', `${big(p.hp)} / ${big(p.maxHp)}`],
+    ['피해', big(w.damage)],
+    ['공 개수', `${big(w.count)}개`],
+    ['발사 간격', `${fmt(w.interval, 4)}초`],
+    ['반사', `${big(w.bounces)}회`],
+    ['치명타', pctOf(w.critChance)],
+    ['치명타 피해', `×${fmt(w.critMul)}`],
+    ['분열', pctOf(w.splitChance)],
+    ['공 속도', Math.round(w.speed)],
+    ['공 지름', fmt(w.radius * 2)],
+    ['이동 속도', Math.round(p.speed)],
+    ['획득 반경', Math.round(p.pickupR)],
+    ['받는 피해', pctOf(p.armor)],
+    ['초당 회복', `${pctOf(p.regen)} (${big(p.regen * p.maxHp)})`],
+    ['코인', `×${fmt(p.coinMul, 2)}`],
+    ['경험치', `×${fmt(p.xpMul, 2)}`],
+  ]
+  if (run.nyang > 0) rows.push(['냥냥 연금술', `Lv.${run.nyang}`])
+  const build = buildSummary(run)
+  return (
+    <div className="ms-runstats">
+      <dl>
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {build.length > 0 && (
+        <ul className="ms-build" aria-label="이번 판에 고른 강화">
+          {build.map((b) => (
+            <li key={b.id}>
+              <Sprite name={b.icon} size={18} />
+              {b.name} ×{b.n}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // 냥냥 연금술: what level L brings, from the table in balance.json
 function nyangText(L) {
   const T = EFFECTS.nyang.levels
@@ -950,6 +999,8 @@ function Fusion({ save, onBack, onFuse }) {
 
 function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip, onChests, refresh, rerender }) {
   const stageRef = useRef(null)
+  // the level-up's "my stats" box: stays open or shut across a run's level-ups
+  const [showStats, setShowStats] = useState(false)
   const canvasRef = useRef(null)
   const joyRef = useRef(null)
   const knobRef = useRef(null)
@@ -1270,6 +1321,10 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
           <div className="ms-level">
             <h2 className="ms-h">이번 판의 행운은?</h2>
             <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
+            <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
+              {showStats ? '능력치 닫기' : '내 능력치 보기'}
+            </button>
+            {showStats && <RunStats run={run} />}
             {run.choices.map((id) => {
               const o = OPTIONS[id]
               // Tizzzz's rewrite: the pen crosses the card, the old number is
