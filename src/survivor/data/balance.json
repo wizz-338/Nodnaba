@@ -237,7 +237,8 @@
       "after": 240,
       "every": 30,
       "spawnFaster": 0.85,
-      "note": "the chapter is cleared only when the boss falls. Past 240 s with the boss alive the fight goes on (boss overtime): every 30 s monsters come 15% faster"
+      "note": "the chapter is cleared only when the boss falls. Past 240 s with the boss alive the fight goes on (boss overtime): every 30 s monsters come 15% faster; and monsters (and the boss) hit hitsHarder× harder every 30 s, so a run that can no longer win ends",
+      "hitsHarder": 1.6
     },
     "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply"
   },
@@ -569,6 +570,13 @@
         "brute": 14,
         "boss": 14
       }
+    },
+    "bossGuard": {
+      "note": "From fromChapter on the skull king loses at most maxShare of its HP each second (burst: seconds' worth that can go at once; damage over that is lost) and hits `hits`× harder (body, charge, slam). With 0.04 a fight lasts at least 25 s however strong the build, and the king can still hurt it. Tuned on bots that pick like a person (the 'human' policy).",
+      "fromChapter": 11,
+      "maxShare": 0.04,
+      "burst": 1,
+      "hits": 4
     }
   },
   "tizzzz": {

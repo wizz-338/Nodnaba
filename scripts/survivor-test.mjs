@@ -1,10 +1,10 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
-import { playRun } from './survivor-bot.mjs'
+import { playRun, pick } from './survivor-bot.mjs'
 
 let fails = 0
 const ok = (c, m) => {
@@ -340,6 +340,15 @@ const still = { x: 0, y: 0 }
   }
   ok(run.state === 'play' && overtime(run) && !run.result, `past 240 s with the boss standing: boss overtime, no clear (t = ${run.t.toFixed(0)} s)`)
   ok(spawnInterval(run) < iv, `in overtime monsters come faster (every ${spawnInterval(run).toFixed(2)} s instead of ${iv.toFixed(2)} s)`)
+  {
+    const o = B.chapter.overtime
+    const steps = Math.floor((run.t - o.after) / o.every) + 1
+    const hp0 = run.player.hp
+    run.player.inv = 0
+    run.player.hp = run.player.maxHp = 1e12
+    ok(near(overtimeHit(run), o.hitsHarder ** steps) && overtimeHit(run) > 1, `in overtime monsters hit ×${overtimeHit(run).toFixed(2)} harder (×${o.hitsHarder} each ${o.every} s), so a run that can no longer win ends`)
+    run.player.hp = hp0
+  }
   const b = run.boss
   b.hp = 1
   run.hurt(b, 5, b.x, b.y)
@@ -820,7 +829,7 @@ const still = { x: 0, y: 0 }
   run.nextEvent = 2
   step(run, FIXED * 2, still)
   const boss = run.boss
-  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss * W.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1] * W.damage[wl], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss * W.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1] * W.damage[wl] * (L.fullAtChapter >= L.bossGuard.fromChapter ? L.bossGuard.hits : 1), 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push (and its guard\'s harder hits)')
   // Tizzzz's answer: from her chapter on, once more per phase on top
   const k = Math.min(1, (W.fromChapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
   const before = at(W.fromChapter - 1, last)
@@ -829,6 +838,50 @@ const still = { x: 0, y: 0 }
   ok(near(before.hp, L.hp[wl] ** k0) && near(from.hp, L.hp[wl] ** k * W.hp[wl]) && near(from.damage, L.damage[wl] ** k * W.damage[wl]) && near(from.specialHp('boss'), L.specialHp.boss ** k * W.specialHp.boss) && from.specialHp('thief') === before.specialHp('thief') * W.specialHp.thief, `from chapter ${W.fromChapter} (Tizzzz) the end of a run gets ×${W.hp[wl]} HP and ×${W.damage[wl]} hits more, boss and mid-boss ×${W.specialHp.boss}, the thief ×${W.specialHp.thief}; chapter ${W.fromChapter - 1} has none of it`)
   const early = at(W.fromChapter, 0)
   ok(near(early.hp, L.hp[0] ** k * W.hp[0]) && W.hp[0] === 1, 'the first seconds of a run are left as they were')
+}
+// the skull king's guard: from its chapter on it loses at most maxShare of its
+// HP a second, whatever hits it, and hits harder; never before that chapter
+{
+  const G = B.lateGame.bossGuard
+  const kingAt = (chapter) => {
+    const run = newRun({ chapter, seed: 5 })
+    run.spawnT = -1e9
+    run.t = B.chapter.phases[B.chapter.phases.length - 1].from + 0.5
+    run.nextEvent = 2
+    step(run, FIXED * 2, still)
+    run.boss.state = 'live'
+    return run
+  }
+  const run = kingAt(G.fromChapter)
+  const b = run.boss
+  run.hurt(b, b.maxHp * 100, b.x, b.y)
+  const first = 1 - b.hp / b.maxHp
+  run.hurt(b, b.maxHp * 100, b.x, b.y)
+  const again = 1 - b.hp / b.maxHp
+  run.t += 1
+  run.hurt(b, b.maxHp * 100, b.x, b.y)
+  const later = 1 - b.hp / b.maxHp
+  ok(near(first, G.maxShare * G.burst, 1e-9) && near(again, first, 1e-9) && near(later, first + G.maxShare, 1e-9) && b.state === 'live', `chapter ${G.fromChapter}: a hit of 100× its HP takes ${(first * 100).toFixed(1)}% off the skull king, the next in the same instant nothing, one a second later ${(G.maxShare * 100).toFixed(0)}% more (a fight of at least ${(1 / G.maxShare).toFixed(0)} s)`)
+  const plain = kingAt(G.fromChapter - 1)
+  const pb = plain.boss
+  const hitOf = (r) => r.boss.damage / (B.enemies.boss.damage * r.factor.damage * lateGame(r).damage)
+  const mulOf = (r) => r.boss.damageMul / (r.factor.damage * lateGame(r).damage)
+  ok(near(hitOf(run), G.hits) && near(mulOf(run), G.hits) && near(hitOf(plain), 1) && near(mulOf(plain), 1), `from chapter ${G.fromChapter} the king hits ×${G.hits} harder (body, charge, slam); chapter ${G.fromChapter - 1} as before`)
+  plain.hurt(pb, pb.maxHp * 100, pb.x, pb.y)
+  ok(!pb.guard && pb.state === 'down', `chapter ${G.fromChapter - 1}: no guard, a big enough hit fells it`)
+}
+// the 'human' bot weighs Tizzzz's card: an edited HP card does not beat
+// plain damage, but it beats a plain card a few places lower
+{
+  const run = newRun({ chapter: 12, seed: 2 })
+  run.state = 'levelup'
+  run.choiceSeq = 7
+  run.choices = ['maxHp', 'damage', 'size']
+  run.edit = { id: 'maxHp', seq: 7 }
+  const a = pick(run, 'human')
+  run.choices = ['maxHp', 'interval', 'size']
+  const b2 = pick(run, 'human')
+  ok(a === 'damage' && b2 === 'maxHp', `human picks: plain damage over edited HP (${a}); edited HP over plain interval (${b2})`)
 }
 
 // ── the writer Tizzzz ───────────────────────────────────────────────────────

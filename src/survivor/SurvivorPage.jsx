@@ -1344,7 +1344,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       }
       for (const ev of run.events) {
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
-        else if (ev.type === 'boss') say(`${ev.name} 등장! 쓰러뜨려야 클리어예요`)
+        else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
         else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
       }
       if (overtime(run) && !g.overtimeSaid) {
@@ -1499,7 +1499,10 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         </div>
         {big && (
           <div className="ms-bossbar" style={box(H.bossBar)}>
-            <span className="ms-bossbar__name">{D.balance.enemies[big.type].name}</span>
+            <span className="ms-bossbar__name">
+              {D.balance.enemies[big.type].name}
+              {big.guard ? ` · 수호 (초당 최대 ${Math.round(D.balance.lateGame.bossGuard.maxShare * 100)}%)` : ''}
+            </span>
             <Bar w={H.bossBar[2] * k} h={10 * k} fill="hp_full" value={big.hp / big.maxHp} label={`${D.balance.enemies[big.type].name} 체력`} />
           </div>
         )}
