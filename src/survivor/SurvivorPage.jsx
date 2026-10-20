@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, previewTimes, isEdited, buildSummary, gradeMul, weaponDef, overtime } from './game.js'
+import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime } from './game.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
+import * as audio from './audio.js'
 import './survivor.css'
 import saveIcon from '../colony/assets/ui/save.png'
 
@@ -146,6 +147,15 @@ const STORY_IMG = {
   tizzzz_1: new URL('./assets/story/tizzzz_1.webp', import.meta.url).href,
 }
 
+// the lobby's art: the ruins of the skull king (its backdrop, soft and dim,
+// and the chapter card's picture), Mano and her ball, Tizzzz's face
+const LOBBY_IMG = {
+  bg: new URL('./assets/lobby/bg_skull.webp', import.meta.url).href,
+  scene: new URL('./assets/lobby/scene_skull.webp', import.meta.url).href,
+  mano: new URL('./assets/lobby/mano_ball.webp', import.meta.url).href,
+  tizzzz: new URL('./assets/lobby/tizzzz_face.webp', import.meta.url).href,
+}
+
 // 냥냥 연금술 several levels at once (Tizzzz's rewrite)
 function nyangJump(from, to) {
   const L = EFFECTS.nyang.levels[to - 1]
@@ -156,6 +166,15 @@ function nyangJump(from, to) {
 const CAT_NAMES = Object.fromEntries(D.cats.companions.map((c) => [c.id, c.name]))
 const withNames = (t) => t.replace(/\{(\w+)\}/g, (m, id) => CAT_NAMES[id] ?? m)
 
+// the best record's crown (drawn here: the art package has none)
+function Crown() {
+  return (
+    <svg className="ms-crown" viewBox="0 0 24 18" aria-hidden="true">
+      <path d="M2 15h20l1.5-11-6 4.5L12 1 6.5 8.5.5 4z" fill="#d9a441" stroke="#2f2537" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 // Tizzzz's pen (drawn here: the art package has no pen)
 function Pen() {
   return (
@@ -165,61 +184,6 @@ function Pen() {
       <path d="M3 21l1-3.5 2.5 2.5z" fill="#f2c14e" />
     </svg>
   )
-}
-
-// sounds are made on the spot (no sound files), quiet
-let audio = null
-function ac() {
-  audio ??= new (window.AudioContext || window.webkitAudioContext)()
-  if (audio.state === 'suspended') audio.resume()
-  return audio
-}
-
-// a short scratch of a pen
-function scribble() {
-  try {
-    const audio = ac()
-    const t = audio.currentTime
-    const len = Math.floor(audio.sampleRate * 0.22)
-    const buf = audio.createBuffer(1, len, audio.sampleRate)
-    const d = buf.getChannelData(0)
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / 90))
-    const src = audio.createBufferSource()
-    src.buffer = buf
-    const f = audio.createBiquadFilter()
-    f.type = 'bandpass'
-    f.frequency.value = 3200
-    f.Q.value = 1.4
-    const g = audio.createGain()
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.03)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22)
-    src.connect(f).connect(g).connect(audio.destination)
-    src.start(t)
-  } catch {
-    /* no sound here: the pen still shows */
-  }
-}
-
-// a card is picked: a soft rising "pip", 0.14 s
-function pickSound() {
-  try {
-    const audio = ac()
-    const t = audio.currentTime
-    const o = audio.createOscillator()
-    o.type = 'triangle'
-    o.frequency.setValueAtTime(700, t)
-    o.frequency.exponentialRampToValueAtTime(1050, t + 0.07)
-    const g = audio.createGain()
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.07, t + 0.012)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14)
-    o.connect(g).connect(audio.destination)
-    o.start(t)
-    o.stop(t + 0.15)
-  } catch {
-    /* no sound here: the card still shows */
-  }
 }
 
 // the picked card, drawn once more where it was, over the battle that has
@@ -247,6 +211,37 @@ function PickFx({ fx }) {
       ))}
     </div>
   )
+}
+
+// a fusion lands (already saved; this only shows it): the pieces fly in to
+// the new one from `from` (px from its middle), a small flash, the new one
+// swells to 115% and settles — 0.42 s, never takes a tap. The new one stays.
+const FUSE_FX_MS = 450
+function FuseBurst({ icon, grade, from, size = 40 }) {
+  return (
+    <span className="ms-burst" style={{ '--g': GRADE_COLOR[grade] }} aria-hidden="true">
+      {from.map((p, i) => (
+        <span key={i} className="ms-burst__in" style={{ '--x': `${p.x}px`, '--y': `${p.y}px` }}>
+          <Sprite name={icon} size={Math.round(size * 0.7)} />
+        </span>
+      ))}
+      <span className="ms-burst__flash" />
+      {[18, 90, 162, 234, 306].map((a) => (
+        <span key={a} className="ms-burst__spark" style={{ '--a': `${a}deg` }} />
+      ))}
+      <span className="ms-burst__out">
+        <Sprite name={icon} size={size} />
+      </span>
+    </span>
+  )
+}
+
+// an important button that worked: a short ring of light around it
+function popButton(el) {
+  if (!el) return
+  el.classList.remove('is-pop')
+  void el.offsetWidth // restart the animation on a quick second tap
+  el.classList.add('is-pop')
 }
 
 // one frame of the art as a DOM box `size` px on its long side
@@ -299,10 +294,6 @@ function Bar({ w, h, fill, value, label }) {
 }
 
 const weaponName = (id) => (weaponDef(D, id) || { name: id }).name
-const damageOf = (item) => {
-  const def = weaponDef(D, item.weaponId)
-  return def ? def.base.damage * gradeMul(D, item.grade) : 0
-}
 
 function Grade({ g }) {
   return (
@@ -392,14 +383,33 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     const prev = [root.style.overflow, document.body.style.overflow]
     root.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
+    // sound may start only after a touch: the first one (and any later one,
+    // after the phone put the page to sleep) wakes it
+    const wake = () => audio.unlock()
+    addEventListener('pointerdown', wake, true)
+    addEventListener('keydown', wake, true)
     return () => {
       ;[root.style.overflow, document.body.style.overflow] = prev
+      removeEventListener('pointerdown', wake, true)
+      removeEventListener('keydown', wake, true)
+      audio.stopAll()
     }
   }, [])
+
+  // the music: the battle tune while a fight is on, the menu tune everywhere
+  // else (lobby, gear, fusion, the result); the pause menu lowers the battle tune
+  const fighting = screen === 'battle' && G.current.run && G.current.run.state !== 'over'
+  const tune = screen === 'loading' ? null : fighting ? 'battle' : 'menu'
+  useEffect(() => audio.music(tune), [tune])
+  const paused = fighting && !!modal && (modal.kind === 'pause' || modal.kind === 'quit')
+  useEffect(() => audio.duck(paused), [paused])
+  useEffect(() => audio.setSfxOn(!save || save.sound !== false), [save])
 
   const equipped = save && (save.inventory.find((it) => it.id === save.equippedInstanceId) || save.inventory[0])
 
   const start = (ch = chapter) => {
+    // the lobby shows the next locked chapter, but never starts it
+    if (ch > P.current.get().unlockedChapter) return
     const r = P.current.startRun(ch)
     if (!r.weapon) return setNotice('장착할 무기가 없어요.')
     const g = G.current
@@ -439,8 +449,28 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       </div>
     )
 
+  // every button answers with a short sound (data-sfx picks which; "none"
+  // when the button makes its own), a button that cannot be used with a dull one
+  const onClickCapture = (e) => {
+    const b = e.target.closest && e.target.closest('button, a.ms-btn, a.ms-exit')
+    if (!b || b.disabled) return
+    const name = b.dataset.sfx || 'tap'
+    if (name !== 'none') audio.sfx(name)
+  }
+  // (a disabled button lets the touch through to what is under it — browsers
+  // send it nothing — so the one under the finger is found by its box)
+  const onPointerDownCapture = (e) => {
+    for (const b of e.currentTarget.querySelectorAll('button:disabled')) {
+      const r = b.getBoundingClientRect()
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        if (b.offsetParent) audio.sfx('deny')
+        return
+      }
+    }
+  }
+
   return (
-    <div className="ms">
+    <div className="ms" onClickCapture={onClickCapture} onPointerDownCapture={onPointerDownCapture}>
       {screen === 'loading' && <div className="ms-loading">마노가 주머니를 챙기는 중…</div>}
       {screen === 'lobby' && save && (
         <Lobby
@@ -557,7 +587,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
     ['settings', '설정'],
   ]
   return (
-    <div className="ms-page">
+    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${LOBBY_IMG.bg})` }}>
       <header className="ms-top">
         <a className="ms-exit" href={exitHref}>
           ◀ 나가기
@@ -590,76 +620,160 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
   )
 }
 
+// the chapters one at a time: ‹ › (or a swipe) to the one before or after, a
+// grid of them all behind "전체 장 보기". The next locked chapter can be seen,
+// never started.
+const LAST_CHAPTER = 99
+const chapterName = () => `${D.balance.enemies.boss.name} · ${D.ui.lobby.area}`
+const clock2 = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+
 function Go({ save, equipped, chapter, setChapter, onStart }) {
   const best = save.bestResults[chapter]
-  const R = D.balance.rewards
-  const first = !save.firstCleared.includes(chapter)
-  const most = R.elite1.chests + R.elite2.chests + R.boss.chests + R.clear.chests + (first ? R.firstClear.chests : 0)
-  const time = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+  const furthest = Math.min(LAST_CHAPTER, save.unlockedChapter + 1)
+  const locked = chapter > save.unlockedChapter
+  const [grid, setGrid] = useState(false)
+  const dir = useRef('next')
+  const swipe = useRef(null)
+  const go = (n) => {
+    const c = Math.max(1, Math.min(furthest, n))
+    if (c === chapter) return
+    dir.current = c > chapter ? 'next' : 'prev'
+    setChapter(c)
+  }
+  const cats = save.cats.unlocked
+  const catsOn = chapter >= D.balance.cats.activeFromChapter
+  const tz = save.tizzzz.unlocked
+  const tzOn = chapter >= D.balance.tizzzz.activeFromChapter
   return (
     <>
-      <section className="ms-panel ms-equip">
-        <Sprite name="menu_wave" size={96} className="ms-preview" />
-        <div className="ms-slot">
-          <span className="ms-slot__label">장착 무기 (하나만)</span>
-          {equipped ? (
-            <div className="ms-slot__item" style={{ '--g': GRADE_COLOR[equipped.grade] }}>
-              <Sprite name={weaponIcon(equipped.weaponId)} size={36} />
-              <div>
-                <p className="ms-slot__name">
-                  {weaponName(equipped.weaponId)} <Grade g={equipped.grade} />
-                </p>
-                <p className="ms-dim">기본 피해 {fmt(damageOf(equipped))}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="ms-dim">비어 있어요</p>
-          )}
-        </div>
-      </section>
-      <section className="ms-panel ms-go">
-        <div className="ms-chapters" role="group" aria-label="장 고르기">
-          {Array.from({ length: save.unlockedChapter }, (_, i) => i + 1).map((c) => (
-            <button key={c} type="button" className={`ms-chip ${c === chapter ? 'is-on' : ''} ${save.firstCleared.includes(c) ? 'is-done' : ''}`} onClick={() => setChapter(c)} aria-pressed={c === chapter}>
-              {c}장
-            </button>
-          ))}
-        </div>
-        {save.cats.unlocked && (
-          <p className="ms-catline">
-            {D.cats.companions.map((c) => (
-              <Sprite key={c.id} name={`${c.frames}_r_0`} size={26} />
-            ))}
-            <span>
-              {chapter >= D.balance.cats.activeFromChapter
-                ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요`
-                : `${D.balance.cats.activeFromChapter}장부터 고양이들이 함께해요`}
-            </span>
-          </p>
-        )}
-        {save.tizzzz.unlocked && (
-          <p className="ms-catline">
-            <Pen />
-            <span>
-              {chapter >= D.balance.tizzzz.activeFromChapter
-                ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요`
-                : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 선택지를 고쳐 써 줘요`}
-            </span>
-          </p>
-        )}
-        <p className="ms-dim">
-          70초 보물 도둑 · 145초 왕관 해골 짐승 · 210초 해골 왕. 해골 왕을 쓰러뜨리면 클리어예요. 이 장에서 받을 수 있는 상자 최대 {most}개{first ? ' (첫 클리어 보너스 포함)' : ''}.
-        </p>
-        {best && (
-          <p className="ms-dim">
-            최고 기록: {best.cleared ? '클리어' : `${time(best.time)} 버팀`} · 처치 {best.kills} · 엘리트 {best.elites}
-          </p>
-        )}
-        <button type="button" className="ms-btn ms-btn--primary ms-btn--big" onClick={onStart} disabled={!equipped}>
-          {chapter}장 출발
+      <section className="ms-stagecard">
+        <button type="button" className="ms-arrow ms-arrow--prev" data-sfx="tick" aria-label="이전 장" disabled={chapter <= 1} onClick={() => go(chapter - 1)}>
+          ‹
         </button>
+        <div
+          className="ms-stagecard__frame"
+          onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
+          onPointerUp={(e) => {
+            const s0 = swipe.current
+            swipe.current = null
+            if (!s0) return
+            const dx = e.clientX - s0.x
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - s0.y) * 1.5) {
+              if ((dx < 0 && chapter < furthest) || (dx > 0 && chapter > 1)) audio.sfx('tick')
+              go(chapter + (dx < 0 ? 1 : -1))
+            }
+          }}
+        >
+          <div key={chapter} className={`ms-stagecard__inner is-${dir.current}`}>
+            <p className="ms-stagecard__no">{chapter}장</p>
+            <p className="ms-stagecard__name">{chapterName(chapter)}</p>
+            <div className="ms-stagecard__art">
+              <img src={LOBBY_IMG.scene} alt="" draggable="false" />
+              <span className="ms-ember" style={{ '--x': '18%', '--d': '7.5s', '--w': '-1.2s' }} />
+              <span className="ms-ember" style={{ '--x': '46%', '--d': '9.8s', '--w': '-4.1s' }} />
+              <span className="ms-ember" style={{ '--x': '71%', '--d': '8.6s', '--w': '-6.3s' }} />
+              <span className="ms-ember" style={{ '--x': '88%', '--d': '11.2s', '--w': '-2.7s' }} />
+              {locked && <span className="ms-stagecard__lock">{chapter - 1}장을 깨면 열려요</span>}
+              {save.firstCleared.includes(chapter) && <span className="ms-stagecard__done">클리어</span>}
+            </div>
+          </div>
+        </div>
+        <button type="button" className="ms-arrow ms-arrow--next" data-sfx="tick" aria-label="다음 장" disabled={chapter >= furthest} onClick={() => go(chapter + 1)}>
+          ›
+        </button>
+        <img className="ms-lobbymano" src={LOBBY_IMG.mano} alt="" draggable="false" />
       </section>
+      {cats && (
+        <p className="ms-crew">
+          <span className="ms-crew__cats">
+            {D.cats.companions.map((c) => (
+              <span key={c.id} className="ms-crew__cat">
+                <Sprite name={`${c.frames}_r_0`} size={34} />
+              </span>
+            ))}
+          </span>
+          <span className="ms-crew__text">
+            {catsOn ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요` : `${D.balance.cats.activeFromChapter}장부터 함께해요`}
+          </span>
+        </p>
+      )}
+      {tz && (
+        <p className="ms-crew ms-crew--tz">
+          <img className="ms-crew__face" src={LOBBY_IMG.tizzzz} alt="" />
+          <Pen />
+          <span className="ms-crew__text">
+            {tzOn ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요` : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 함께해요`}
+          </span>
+        </p>
+      )}
+      <p className="ms-best">
+        <Crown />
+        {best ? (
+          <>
+            최고 기록: {best.cleared ? '클리어' : `${clock2(best.time)} 버팀`} <i>|</i> 처치 {best.kills} <i>|</i> 엘리트 {best.elites}
+          </>
+        ) : locked ? (
+          '아직 열리지 않은 장이에요'
+        ) : (
+          '아직 기록이 없어요'
+        )}
+      </p>
+      <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
+        {locked ? `${chapter}장 잠김` : `${chapter}장 출발`}
+      </button>
+      <button type="button" className="ms-btn ms-btn--small ms-allbtn" onClick={() => setGrid(true)}>
+        전체 장 보기
+      </button>
+      {grid && (
+        <ChapterGrid
+          save={save}
+          chapter={chapter}
+          onPick={(c) => {
+            go(c)
+            setGrid(false)
+          }}
+          onClose={() => setGrid(false)}
+        />
+      )}
     </>
+  )
+}
+
+// every chapter in a grid: cleared ones ticked, locked ones greyed out
+function ChapterGrid({ save, chapter, onPick, onClose }) {
+  const on = useRef(null)
+  useEffect(() => on.current && on.current.scrollIntoView({ block: 'center' }), [])
+  return (
+    <div className="ms-modal" role="dialog" aria-modal="true" aria-label="전체 장" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ms-panel ms-chgrid">
+        <div className="ms-row">
+          <h2 className="ms-sub">전체 장</h2>
+          <button type="button" className="ms-btn ms-btn--small" onClick={onClose}>
+            닫기
+          </button>
+        </div>
+        <p className="ms-dim">{save.unlockedChapter}장까지 열렸어요.</p>
+        <div className="ms-chgrid__list">
+          {Array.from({ length: LAST_CHAPTER }, (_, i) => i + 1).map((c) => {
+            const open = c <= save.unlockedChapter
+            return (
+              <button
+                key={c}
+                ref={c === chapter ? on : null}
+                type="button"
+                data-sfx="tick"
+                className={`ms-chgrid__ch ${c === chapter ? 'is-on' : ''} ${save.firstCleared.includes(c) ? 'is-done' : ''}`}
+                disabled={!open}
+                aria-pressed={c === chapter}
+                onClick={() => onPick(c)}
+              >
+                {c}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -672,6 +786,7 @@ const madeText = (made) =>
 function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
   const groups = groupInventory(save)
   const [fused, setFused] = useState(null)
+  const [popped, setPopped] = useState(null) // the item just equipped: its icon hops once
   const plan = fuseAllPreview(D, save)
   return (
     <>
@@ -697,11 +812,16 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
             <button
               type="button"
               className="ms-btn ms-btn--small ms-btn--primary"
+              data-sfx="none"
               disabled={!plan.ok}
-              onClick={() => {
+              onClick={(e) => {
                 // a second tap finds nothing left to fuse
                 const r = onFuseAll()
-                if (r.ok) setFused(r)
+                if (r.ok) {
+                  audio.sfx('fuse')
+                  popButton(e.currentTarget)
+                  setFused({ ...r, key: performance.now() })
+                } else audio.sfx('deny')
               }}
             >
               모두 합성
@@ -710,17 +830,43 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
         </div>
         {plan.ok && <p className="ms-dim">모두 합성하면: {madeText(plan.made)}</p>}
         {fused && (
-          <p className="ms-ok">
-            {madeText(fused.made)} 완성!{fused.equipped ? ` ${weaponName(fused.equipped.weaponId)} ${fused.equipped.grade} 장착!` : ''}
-          </p>
+          <div className="ms-fused">
+            <span className="ms-fused__icon">
+              <FuseBurst
+                key={fused.key}
+                icon={weaponIcon(fused.equipped ? fused.equipped.weaponId : 'bouncy_ball')}
+                grade={fused.equipped ? fused.equipped.grade : GRADES.filter((g) => fused.made[g]).pop()}
+                from={[
+                  { x: -46, y: 6 },
+                  { x: 0, y: -30 },
+                  { x: 46, y: 6 },
+                ]}
+                size={34}
+              />
+            </span>
+            <p className="ms-ok">
+              {madeText(fused.made)} 완성!{fused.equipped ? ` ${weaponName(fused.equipped.weaponId)} ${fused.equipped.grade} 장착!` : ''}
+            </p>
+          </div>
         )}
         <ul className="ms-inv">
           {groups.map((g) => {
             const on = equipped && equipped.weaponId === g.weaponId && equipped.grade === g.grade
             return (
               <li key={g.weaponId + g.grade}>
-                <button type="button" className={`ms-inv__item ${on ? 'is-on' : ''}`} style={{ '--g': GRADE_COLOR[g.grade] }} onClick={() => onEquip(g.items[0].id)} aria-pressed={on}>
-                  <Sprite name={weaponIcon(g.weaponId)} size={28} />
+                <button
+                  type="button"
+                  className={`ms-inv__item ${on ? 'is-on' : ''}`}
+                  style={{ '--g': GRADE_COLOR[g.grade] }}
+                  onClick={() => {
+                    if (!on) setPopped({ id: g.weaponId + g.grade, key: performance.now() })
+                    onEquip(g.items[0].id)
+                  }}
+                  aria-pressed={on}
+                >
+                  <span key={popped && popped.id === g.weaponId + g.grade ? popped.key : 'still'} className={popped && popped.id === g.weaponId + g.grade ? 'ms-hop' : undefined}>
+                    <Sprite name={weaponIcon(g.weaponId)} size={28} />
+                  </span>
                   <span>
                     {weaponName(g.weaponId)} <Grade g={g.grade} />
                   </span>
@@ -764,6 +910,11 @@ function download(text, name) {
 
 function Settings({ save, P, onImported }) {
   const file = useRef(null)
+  const [snd, setSnd] = useState(audio.getPrefs)
+  const setAudio = (p) => {
+    audio.setPrefs(p)
+    setSnd(audio.getPrefs())
+  }
   const [msg, setMsg] = useState(null) // { text, bad }
   const [pending, setPending] = useState(null) // a checked backup waiting for "불러오기"
   const err = P.error()
@@ -844,16 +995,51 @@ function Settings({ save, P, onImported }) {
         )}
         {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
       </section>
-      <section className="ms-panel">
+      <section className="ms-panel ms-sound">
+        <div className="ms-row">
+          <span className="ms-sub">배경음악</span>
+          <button type="button" className="ms-btn ms-btn--small" aria-pressed={snd.musicOn} onClick={() => setAudio({ musicOn: !snd.musicOn })}>
+            {snd.musicOn ? '켜짐' : '꺼짐'}
+          </button>
+        </div>
+        <input
+          type="range"
+          className="ms-volume"
+          min="0"
+          max="100"
+          step="5"
+          value={Math.round(snd.music * 100)}
+          aria-label="배경음악 크기"
+          disabled={!snd.musicOn}
+          onChange={(e) => setAudio({ music: +e.target.value / 100 })}
+        />
         <div className="ms-row">
           <span className="ms-sub">효과음</span>
-          <button type="button" className="ms-btn ms-btn--small" aria-pressed={save.sound} onClick={() => {
+          <button
+            type="button"
+            className="ms-btn ms-btn--small"
+            aria-pressed={save.sound}
+            onClick={() => {
               P.setSound(!save.sound)
               onImported(P.get())
-            }}>
+            }}
+          >
             {save.sound ? '켜짐' : '꺼짐'}
           </button>
         </div>
+        <input
+          type="range"
+          className="ms-volume"
+          min="0"
+          max="100"
+          step="5"
+          value={Math.round(snd.sfx * 100)}
+          aria-label="효과음 크기"
+          disabled={!save.sound}
+          onChange={(e) => setAudio({ sfx: +e.target.value / 100 })}
+          onPointerUp={() => audio.sfx('tap')}
+        />
+        <p className="ms-dim">소리는 화면을 처음 누른 뒤부터 나와요 (브라우저 규칙). 음악 크기는 이 브라우저에만 저장돼요.</p>
       </section>
     </>
   )
@@ -888,14 +1074,17 @@ function Stats({ save, onBuy }) {
               <button
                 type="button"
                 className="ms-btn ms-btn--small ms-btn--primary"
+                data-sfx="none"
                 disabled={atMax || save.currency < price}
-                onClick={() => {
+                onClick={(e) => {
                   // a double tap buys one level, not two
                   const now = performance.now()
                   if (now - last.current < TAP_GAP) return
                   last.current = now
                   const r = onBuy(k, L)
                   setMsg(r.ok ? `${s.name} Lv.${r.level}!` : r.reason)
+                  if (r.ok) audio.sfx('confirm'), popButton(e.currentTarget)
+                  else audio.sfx('deny')
                 }}
               >
                 {atMax ? '최대' : (
@@ -920,6 +1109,8 @@ function Fusion({ save, onBack, onFuse }) {
   const [sel, setSel] = useState([])
   const [done, setDone] = useState(null)
   const busy = useRef(false)
+  const slots = useRef([])
+  const out = useRef(null)
   const toggle = (id) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length < 3 ? [...s, id] : s))
   const check = sel.length === 3 ? canFuse(D, save, sel) : { ok: false, reason: '같은 무기·같은 등급 3개를 골라 주세요.' }
   const first = save.inventory.find((it) => it.id === sel[0])
@@ -940,16 +1131,22 @@ function Fusion({ save, onBack, onFuse }) {
           {[0, 1, 2].map((i) => {
             const it = save.inventory.find((x) => x.id === sel[i])
             return (
-              <span key={i} className="ms-fuse__slot" style={it ? { '--g': GRADE_COLOR[it.grade] } : undefined}>
+              <span key={i} ref={(el) => (slots.current[i] = el)} className="ms-fuse__slot" style={it ? { '--g': GRADE_COLOR[it.grade] } : undefined}>
                 {it ? <Sprite name={weaponIcon(it.weaponId)} size={34} /> : '+'}
                 {it && <Grade g={it.grade} />}
               </span>
             )
           })}
           <span className="ms-fuse__arrow">→</span>
-          <span className="ms-fuse__slot ms-fuse__slot--out" style={check.ok ? { '--g': GRADE_COLOR[next] } : undefined}>
-            {check.ok ? <Sprite name={weaponIcon(first.weaponId)} size={40} /> : '?'}
-            {check.ok && <Grade g={next} />}
+          <span ref={out} className="ms-fuse__slot ms-fuse__slot--out" style={check.ok ? { '--g': GRADE_COLOR[next] } : !sel.length && done ? { '--g': GRADE_COLOR[done.item.grade] } : undefined}>
+            {check.ok ? (
+              <Sprite name={weaponIcon(first.weaponId)} size={40} />
+            ) : !sel.length && done ? (
+              <FuseBurst key={done.key} icon={weaponIcon(done.item.weaponId)} grade={done.item.grade} from={done.from} />
+            ) : (
+              '?'
+            )}
+            {check.ok ? <Grade g={next} /> : !sel.length && done ? <Grade g={done.item.grade} /> : null}
           </span>
         </div>
         {!check.ok && <p className="ms-why">{check.reason}</p>}
@@ -957,13 +1154,22 @@ function Fusion({ save, onBack, onFuse }) {
         <button
           type="button"
           className="ms-btn ms-btn--primary"
+          data-sfx="none"
           disabled={!check.ok || busy.current}
-          onClick={() => {
+          onClick={(e) => {
             if (busy.current) return
             busy.current = true
+            // where the three pieces sit, seen from the result: they fly in from there
+            const o = out.current.getBoundingClientRect()
+            const from = slots.current.map((el) => {
+              const r = el.getBoundingClientRect()
+              return { x: r.left + r.width / 2 - (o.left + o.width / 2), y: r.top + r.height / 2 - (o.top + o.height / 2) }
+            })
             const r = onFuse(sel)
             setSel([])
-            setDone(r.ok ? r : null)
+            setDone(r.ok ? { ...r, from, key: performance.now() } : null)
+            if (r.ok) audio.sfx('fuse'), popButton(e.currentTarget)
+            else audio.sfx('deny')
             busy.current = false
           }}
         >
@@ -1172,7 +1378,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         g.cardsAt = performance.now()
         release()
         rerender()
-        if (run.edit && run.edit.seq === run.choiceSeq && P.current.get().sound) setTimeout(scribble, 250)
+        if (run.edit && run.edit.seq === run.choiceSeq) setTimeout(() => audio.sfx('scribble'), 250)
       }
       if (run.state === 'over' && !g.paid) {
         g.paid = true
@@ -1336,6 +1542,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
                 <button
                   key={id + run.choiceSeq}
                   type="button"
+                  data-sfx="none"
                   className={`ms-card${ed ? ' is-edited' : ''}`}
                   style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
                   onClick={(e) => {
@@ -1352,7 +1559,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
                     setTimeout(() => {
                       if (g.fx && g.fx.key === key) (g.fx = null), rerender()
                     }, PICK_FX_MS)
-                    if (P.current.get().sound) pickSound()
+                    audio.sfx('pick')
                     choose(run, id, run.choiceSeq)
                     g.cardsAt = performance.now()
                     g.choosing = false
