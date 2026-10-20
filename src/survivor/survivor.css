@@ -1462,3 +1462,59 @@
     }
   }
 }
+
+/* the level-up's "my stats": every number a card can change, two columns */
+.ms-runstats__toggle {
+  justify-self: center;
+}
+
+.ms-runstats {
+  display: grid;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 2px dashed var(--ink);
+  background: var(--panel);
+}
+
+.ms-runstats dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.ms-runstats dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ms-runstats dt {
+  color: #6a5d6f;
+  white-space: nowrap;
+}
+
+.ms-runstats dd {
+  margin: 0;
+  font-weight: 800;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.ms-runstats .ms-build {
+  gap: 4px;
+}
+
+.ms-runstats .ms-build li {
+  font-size: 11px;
+}
+
+@container (max-width: 300px) {
+  .ms-runstats dl > div {
+    font-size: 10.5px;
+  }
+}
