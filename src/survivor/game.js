@@ -199,11 +199,23 @@ function makeGrid(run) {
 
 // ── the clock: phases and events ────────────────────────────────────────────
 
-export const phaseAt = (run) => {
+export const phaseIndex = (run) => {
   const P = run.D.balance.chapter.phases
   let i = 0
   while (i + 1 < P.length && P[i + 1].from <= run.t) i++
-  return P[i]
+  return i
+}
+export const phaseAt = (run) => run.D.balance.chapter.phases[phaseIndex(run)]
+
+// the later chapters' extra push in the middle and end of a run: none before
+// fromChapter, then growing a step each chapter until fullAtChapter
+export function lateGame(run) {
+  const L = run.D.balance.lateGame
+  if (run.chapter < L.fromChapter) return { hp: 1, damage: 1, specialHp: 1 }
+  const k = Math.min(1, (run.chapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
+  const i = phaseIndex(run)
+  const part = (m) => m ** k // ×m at full strength, a share of it (on the log scale) before
+  return { hp: part(L.hp[i]), damage: part(L.damage[i]), specialHp: part(L.specialHp) }
 }
 
 // boss overtime: the clock has run out and the boss still stands
@@ -259,7 +271,8 @@ function spawn(run, type = pickType(run), at = null) {
   if (!pt) return null
   const phase = phaseAt(run)
   const special = !!def.rank // elites and the boss have their own strength
-  const hp = def.hp * (special ? 1 : phase.hpMultiplier) * run.factor.hp
+  const late = lateGame(run)
+  const hp = def.hp * (special ? late.specialHp : phase.hpMultiplier * late.hp) * run.factor.hp
   const e = {
     id: run.nextId++,
     type,
@@ -271,7 +284,8 @@ function spawn(run, type = pickType(run), at = null) {
     hp,
     maxHp: hp,
     speed: def.speed * (special ? 1 : phase.speedMultiplier),
-    damage: def.damage * run.factor.damage,
+    damage: def.damage * run.factor.damage * late.damage,
+    damageMul: run.factor.damage * late.damage, // for the boss's charge and slam
     xp: def.xp,
     state: 'spawn', // spawn | live | die | down | gone
     t: 0,
@@ -434,7 +448,7 @@ function stomp(run, e, def) {
   const p = run.player
   run.events.push({ type: 'stomp', x: e.x, y: e.y, r: def.stompRadius })
   if (p.inv > 0) return
-  if ((p.x - e.x) ** 2 + (p.y - e.y) ** 2 < (def.stompRadius + p.hitR) ** 2) hurtPlayer(run, def.stompDamage * run.factor.damage)
+  if ((p.x - e.x) ** 2 + (p.y - e.y) ** 2 < (def.stompRadius + p.hitR) ** 2) hurtPlayer(run, def.stompDamage * e.damageMul)
 }
 
 // the charge path while it winds up: exactly where the charge will go (a band
@@ -527,7 +541,7 @@ function movePlayer(run, dt, input) {
 }
 
 // what touching this enemy costs right now (a charging boss hits harder)
-const touchDamage = (run, e) => (e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * run.factor.damage : e.damage)
+const touchDamage = (run, e) => (e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage)
 
 function hurtPlayer(run, dmg) {
   const p = run.player
@@ -815,6 +829,7 @@ function catTake(run, c, o) {
   }
   // coins and experience: exactly as if Mano had picked them up
   run.stats.catPicks = (run.stats.catPicks || 0) + 1
+  o.byCat = true
   collect(run, o)
 }
 

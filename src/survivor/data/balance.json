@@ -502,18 +502,42 @@
     "eventChapter": 5,
     "rewardGrade": "S",
     "activeFromChapter": 6,
-    "speed": 190,
+    "speed": 300,
     "wanderSpeed": 70,
     "scale": 0.36,
     "reach": 9,
-    "lookEverySeconds": 0.25,
-    "stayNearMano": 70,
+    "lookEverySeconds": 0.1,
+    "stayNearMano": 150,
     "eatSeconds": 0.55,
-    "magnet": 48,
-    "magnetSpeed": 420
+    "magnet": 140,
+    "magnetSpeed": 800
   },
   "percentHeart": {
     "note": "a 퍼센트 하트 heals this share of the maximum HP (set per 냥냥 연금술 level). Only cats make them, from a normal heart; they are never turned again and only Mano picks them up.",
     "spread": 14
+  },
+  "lateGame": {
+    "note": "From fromChapter on, each phase of the chapter (same order as chapter.phases) multiplies the monsters' HP and their hits on top of everything else, so the middle and the end of a run stay a fight; elites and the boss get specialHp. It comes in step by step: a little at fromChapter, all of it from fullAtChapter on. Chapters before fromChapter are untouched.",
+    "fromChapter": 6,
+    "hp": [
+      0.6,
+      0.8,
+      1.3,
+      3,
+      10,
+      35,
+      80
+    ],
+    "damage": [
+      0.8,
+      0.9,
+      1.1,
+      1.5,
+      2.4,
+      3.4,
+      4
+    ],
+    "specialHp": 60.0,
+    "fullAtChapter": 15
   }
 }
