@@ -1,0 +1,17 @@
+{
+  "note": "The writer Tizzzz: her chapter-10 story and her ability's texts. Numbers live in balance.json → tizzzz.",
+  "name": "Tizzzz",
+  "story": {
+    "title": "작가 Tizzzz가 나타났다!!",
+    "speaker": "Tizzzz",
+    "scenes": [
+      { "image": "tizzzz_1", "lines": ["흐음… 여기까지 잘 왔네.", "앞으로 네 이야기는 내가 조금 고쳐줄게.", "아, 그리고 이건 선물이야."] }
+    ],
+    "rewardLines": ["SS급 탱탱볼 ×1 획득!", "작가 Tizzzz가 동료가 되었습니다!"],
+    "rewardNote": "{from}장부터 레벨업할 때마다 Tizzzz가 선택지 하나를 고쳐 써서 더 강하게 만들어 줘요."
+  },
+  "edit": {
+    "badge": "Tizzzz 수정",
+    "how": "같은 강화를 두 번 고른 만큼"
+  }
+}
