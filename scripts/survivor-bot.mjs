@@ -6,12 +6,17 @@
 //   core     the attached simulator's order: count > interval > damage >
 //            bounce > whatever comes first
 //   survival hp / armor / regen / move first
+//   human    a person's order (see POLICIES.human), Tizzzz's card when it is one
 //   natural  the first card shown (cards come in random order)
 import { createRun, step, choose, chargePath, FIXED } from '../src/survivor/game.js'
 
 export const POLICIES = {
   core: ['count', 'interval', 'damage', 'bounce'],
   survival: ['maxHp', 'armor', 'regen', 'move', 'pickup'],
+  // how a person played chapter 28 (a screenshot of the picks at the boss):
+  // damage first and most, then count, then crit / HP / hood / coins / XP,
+  // then the rest; pickup, split and move only when nothing else is there
+  human: ['damage', 'count', 'crit', 'maxHp', 'armor', 'luck', 'xpGain', 'interval', 'regen', 'bounce', 'nyang', 'critDamage', 'ballSpeed', 'size'],
   natural: [],
 }
 
@@ -70,8 +75,15 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
 export function pick(run, policy) {
   const c = run.choices
   const want = POLICIES[policy] || []
-  // a card Tizzzz rewrote is taken whenever it is one the bot wants at all
-  if (run.edit && run.edit.seq === run.choiceSeq && want.includes(run.edit.id) && c.includes(run.edit.id)) return run.edit.id
+  const edited = run.edit && run.edit.seq === run.choiceSeq && c.includes(run.edit.id) ? run.edit.id : null
+  // a person weighs Tizzzz's card: worth a couple of places in their order,
+  // not more (an edited HP card does not beat plain damage)
+  if (policy === 'human') {
+    const score = (id) => (want.includes(id) ? want.indexOf(id) : 99) - (id === edited ? 2.5 : 0)
+    return c.slice().sort((a, b) => score(a) - score(b))[0]
+  }
+  // the other bots take a card Tizzzz rewrote whenever it is one they want at all
+  if (edited && want.includes(edited)) return edited
   for (const id of want) if (c.includes(id)) return id
   return c[0]
 }

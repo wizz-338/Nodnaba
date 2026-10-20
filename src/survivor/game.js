@@ -322,17 +322,24 @@ function spawnSpecial(run, ev) {
   const e = spawn(run, ev.enemy, { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 })
   e.key = ev.key
   run.elites[ev.key] = e
-  if (ev.key === 'boss') run.boss = e
+  if (ev.key === 'boss') {
+    run.boss = e
+    // its guard from bossGuard.fromChapter on (full from the start)
+    const G = run.D.balance.lateGame.bossGuard
+    // and hits harder (body, charge, slam), so those seconds are a fight
+    if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
+  }
   run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: def.name })
 }
 
 function hurtEnemy(run, e, dmg, x, y) {
   if (e.state !== 'live') return
+  if (e.guard) dmg = guarded(run, e, dmg)
   e.hp -= dmg
   e.hitT = FLASH
   run.stats.hits++
   run.stats.damage += Math.min(dmg, e.hp + dmg)
-  run.events.push({ type: 'hit', x, y, n: dmg })
+  if (dmg > 0) run.events.push({ type: 'hit', x, y, n: dmg })
   if (e.hp > 0) return
   e.t = 0
   run.kills++
@@ -357,6 +364,20 @@ function hurtEnemy(run, e, dmg, x, y) {
   if (e.rank) return
   if (run.rng() < B.drops.coinChance) run.orbs.push({ kind: 'coin', x: e.x + 6, y: e.y + 3, v: B.drops.coinAmount * chapterCoins(run.D, run.chapter), pull: false })
   if (run.rng() < B.drops.healChance) run.orbs.push({ kind: 'heal', x: e.x - 6, y: e.y + 2, v: B.drops.healAmount, pull: false })
+}
+
+// the skull king's guard (lateGame.bossGuard): it loses at most maxShare of
+// its HP a second (a second's worth can be spent at once), so even a build
+// that has grown past all measure fights it for a while; what is over the
+// guard is lost
+function guarded(run, e, dmg) {
+  const G = run.D.balance.lateGame.bossGuard
+  const rate = e.maxHp * G.maxShare
+  e.guardLeft = Math.min(rate * G.burst, e.guardLeft + (run.t - e.guardT) * rate)
+  e.guardT = run.t
+  const n = Math.min(dmg, Math.max(0, e.guardLeft))
+  e.guardLeft -= n
+  return n
 }
 
 const toward = (e, x, y) => {
@@ -555,9 +576,15 @@ function movePlayer(run, dt, input) {
 // what touching this enemy costs right now (a charging boss hits harder)
 const touchDamage = (run, e) => (e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage)
 
+// boss overtime hits harder and harder: a run that can no longer win ends
+export const overtimeHit = (run) => {
+  const o = run.D.balance.chapter.overtime
+  return overtime(run) ? o.hitsHarder ** (Math.floor((run.t - o.after) / o.every) + 1) : 1
+}
+
 function hurtPlayer(run, dmg) {
   const p = run.player
-  const n = dmg * p.armor
+  const n = dmg * p.armor * overtimeHit(run)
   p.hp = Math.max(0, p.hp - n)
   p.inv = run.D.balance.player.contactInvulnerability
   p.hitT = HIT_ANIM
