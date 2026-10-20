@@ -801,6 +801,8 @@ const still = { x: 0, y: 0 }
 // later chapters: the middle and end of a run push harder, coming in step by step
 {
   const L = B.lateGame
+  const W = L.writer
+  const wl = W.hp.length - 1
   const at = (chapter, t) => {
     const run = newRun({ chapter })
     run.t = t
@@ -811,14 +813,22 @@ const still = { x: 0, y: 0 }
   const mid = at(L.fromChapter + 2, last)
   const full = at(L.fullAtChapter, last)
   const later = at(L.fullAtChapter + 10, last)
-  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1]) && near(later.hp, full.hp) && near(full.specialHp('boss'), L.specialHp.boss), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss ×${full.specialHp('boss')}, mid-boss ×${full.specialHp('brute')}, thief only ×${full.specialHp('thief')})`)
+  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1] * W.hp[wl]) && near(later.hp, full.hp) && near(full.specialHp('boss'), L.specialHp.boss * W.specialHp.boss), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss ×${full.specialHp('boss')}, mid-boss ×${full.specialHp('brute')}, thief only ×${full.specialHp('thief')})`)
   const run = newRun({ chapter: L.fullAtChapter, seed: 3 })
   run.spawnT = -1e9
   run.t = last
   run.nextEvent = 2
   step(run, FIXED * 2, still)
   const boss = run.boss
-  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss * W.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1] * W.damage[wl], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+  // Tizzzz's answer: from her chapter on, once more per phase on top
+  const k = Math.min(1, (W.fromChapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
+  const before = at(W.fromChapter - 1, last)
+  const from = at(W.fromChapter, last)
+  const k0 = Math.min(1, (W.fromChapter - L.fromChapter) / (L.fullAtChapter - L.fromChapter + 1))
+  ok(near(before.hp, L.hp[wl] ** k0) && near(from.hp, L.hp[wl] ** k * W.hp[wl]) && near(from.damage, L.damage[wl] ** k * W.damage[wl]) && near(from.specialHp('boss'), L.specialHp.boss ** k * W.specialHp.boss) && from.specialHp('thief') === before.specialHp('thief') * W.specialHp.thief, `from chapter ${W.fromChapter} (Tizzzz) the end of a run gets ×${W.hp[wl]} HP and ×${W.damage[wl]} hits more, boss and mid-boss ×${W.specialHp.boss}, the thief ×${W.specialHp.thief}; chapter ${W.fromChapter - 1} has none of it`)
+  const early = at(W.fromChapter, 0)
+  ok(near(early.hp, L.hp[0] ** k * W.hp[0]) && W.hp[0] === 1, 'the first seconds of a run are left as they were')
 }
 
 // ── the writer Tizzzz ───────────────────────────────────────────────────────
