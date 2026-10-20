@@ -124,5 +124,9 @@
     "SS": "#e28a50",
     "SSS": "#db657d",
     "EX": "#78d8d3"
+  },
+  "lobby": {
+    "note": "The lobby's chapter card reads '<boss> · <area>' under the chapter number; the area is the place of the lobby's art (the skull king's ruins) until chapters get places of their own.",
+    "area": "해골"
   }
 }
