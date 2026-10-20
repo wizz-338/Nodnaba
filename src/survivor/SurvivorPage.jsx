@@ -24,6 +24,7 @@ const effectTag = (id) => {
   const e = EFFECTS[id]
   if (id === 'crit' || id === 'split') return `+${fmt(e.add * 100)}%p`
   if (id === 'regen') return `최대 체력의 +${e.addMaxHpShare * 100}%/초`
+  if (id === 'nyang') return '고양이'
   if (id === 'critDamage') return `+${e.add}배`
   return `×${e.mul}`
 }
@@ -67,10 +68,36 @@ function change(run, id) {
       return `받는 피해 ${pctOf(p.armor)} → ${pctOf(n.armor)}`
     case 'xpGain':
       return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
+    case 'nyang':
+      return nyangText(run.nyang + 1)
     default:
       return ''
   }
 }
+
+// 냥냥 연금술: what level L brings, from the table in balance.json
+function nyangText(L) {
+  const T = EFFECTS.nyang.levels
+  const now = T[L - 1]
+  const pct = (v) => `${fmt(v * 100)}%`
+  if (L === 1) return `Lv.1 · 고양이가 일반 하트를 먹고 ${pct(now.share)} 회복 하트 ${now.hearts}개를 생성합니다.`
+  const was = T[L - 2]
+  const parts = []
+  if (now.hearts !== was.hearts) parts.push(`퍼센트 하트 생성량이 ${now.hearts}개로`)
+  if (now.share !== was.share) parts.push(`퍼센트 하트 회복량이 ${pct(now.share)}로`)
+  return `Lv.${L} · ${parts.join(', ')} 증가합니다.`
+}
+
+// the pictures of the cats' story (scenes name them by file)
+const STORY_IMG = {
+  story_1: new URL('./assets/story/story_1.webp', import.meta.url).href,
+  story_2: new URL('./assets/story/story_2.webp', import.meta.url).href,
+  story_3: new URL('./assets/story/story_3.webp', import.meta.url).href,
+}
+
+// the cats' names from data/cats.json, put into a text ({danchu} → 단추)
+const CAT_NAMES = Object.fromEntries(D.cats.companions.map((c) => [c.id, c.name]))
+const withNames = (t) => t.replace(/\{(\w+)\}/g, (m, id) => CAT_NAMES[id] ?? m)
 
 // one frame of the art as a DOM box `size` px on its long side
 function Sprite({ name, size, flip, whole, className = '' }) {
@@ -201,6 +228,13 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       .then((i) => {
         setImg(i)
         setScreen('lobby')
+        // a save that cleared chapter 5 before the cats existed sees their
+        // story (once) when the game opens
+        const story = P.current.claimCatEvent()
+        if (story.ok) {
+          setSave(P.current.get())
+          setModal({ kind: 'story', item: story.item })
+        }
       })
       .catch((e) => setError(e.message))
     // the page behind does not scroll while the game is open
@@ -224,7 +258,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -326,6 +360,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           rerender={() => setBeat((x) => x + 1)}
         />
       )}
+      {modal && modal.kind === 'story' && <Story item={modal.item} onDone={() => setModal(modal.after || null)} />}
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
@@ -440,6 +475,18 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
             </button>
           ))}
         </div>
+        {save.cats.unlocked && (
+          <p className="ms-catline">
+            {D.cats.companions.map((c) => (
+              <Sprite key={c.id} name={`${c.frames}_r_0`} size={26} />
+            ))}
+            <span>
+              {chapter >= D.balance.cats.activeFromChapter
+                ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요`
+                : `${D.balance.cats.activeFromChapter}장부터 고양이들이 함께해요`}
+            </span>
+          </p>
+        )}
         <p className="ms-dim">
           70초 보물 도둑 · 145초 왕관 해골 짐승 · 210초 해골 왕. 해골 왕을 쓰러뜨리면 클리어예요. 이 장에서 받을 수 있는 상자 최대 {most}개{first ? ' (첫 클리어 보너스 포함)' : ''}.
         </p>
@@ -958,8 +1005,11 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         release()
         const reward = P.current.finishRun(g.runId, g.chapter, run.result)
         g.reward = { ...reward, earned: { ...g.earned } }
+        // the cats' story, once, right after the chapter-5 clear is saved;
+        // the result comes after it
+        const story = run.result.cleared ? P.current.claimCatEvent() : { ok: false }
         refresh()
-        setModal({ kind: 'result' })
+        setModal(story.ok ? { kind: 'story', item: story.item, after: { kind: 'result' } } : { kind: 'result' })
       }
       hudT += dt
       if (hudT > 0.1) {
@@ -1174,6 +1224,88 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       {modal && modal.kind === 'result' && run.result && (
         <Result run={run} reward={G.current.reward} save={save} onRetry={onRetry} onEquip={onEquip} onChests={onChests} />
       )}
+    </div>
+  )
+}
+
+// The cats' story: each scene's picture with Mano's lines under it, one line
+// per tap (or Enter / Space); 건너뛰기 goes straight to what was given. The
+// save was already written when it started, so leaving at any point loses
+// nothing and can never give twice.
+function Story({ item, onDone }) {
+  const S = D.cats.story
+  const steps = []
+  for (const sc of S.scenes) for (const line of sc.lines) steps.push({ image: sc.image, text: withNames(line) })
+  const [i, setI] = useState(0)
+  const last = useRef(0)
+  const end = i >= steps.length
+  const next = () => {
+    const now = performance.now()
+    if (now - last.current < 250) return // a double tap moves one line
+    last.current = now
+    if (!end) setI(i + 1)
+  }
+  useEffect(() => {
+    const key = (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      if (end) onDone()
+      else next()
+    }
+    addEventListener('keydown', key)
+    return () => removeEventListener('keydown', key)
+  })
+  if (end)
+    return (
+      <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label="보상">
+        <div className="ms-panel ms-story__reward">
+          {item && <Sprite name={weaponIcon(item.weaponId)} size={56} className="ms-mascot" />}
+          {S.rewardLines.map((t) => (
+            <p key={t} className="ms-h">
+              {withNames(t)}
+            </p>
+          ))}
+          <div className="ms-story__cats" aria-label={D.cats.companions.map((c) => c.name).join(', ')}>
+            {D.cats.companions.map((c) => (
+              <span key={c.id}>
+                <Sprite name={`${c.frames}_r_0`} size={44} />
+                <small>{c.name}</small>
+              </span>
+            ))}
+          </div>
+          <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요.</p>
+          <button type="button" className="ms-btn ms-btn--primary" onClick={onDone}>
+            확인
+          </button>
+        </div>
+      </div>
+    )
+  const st = steps[i]
+  return (
+    <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label="이야기" onClick={next}>
+      <div className="ms-story__pic">
+        {/* every picture is loaded at once, so a change of scene never flashes */}
+        {Object.entries(STORY_IMG).map(([k, src]) => (
+          <img key={k} src={src} alt="" className={k === st.image ? 'is-on' : ''} decoding="async" />
+        ))}
+      </div>
+      <div className="ms-story__box">
+        <p className="ms-story__name">{S.speaker}</p>
+        <p className="ms-story__line">{st.text}</p>
+        <span className="ms-story__more" aria-hidden="true">
+          ▼
+        </span>
+      </div>
+      <button
+        type="button"
+        className="ms-story__skip"
+        onClick={(e) => {
+          e.stopPropagation()
+          setI(steps.length)
+        }}
+      >
+        건너뛰기
+      </button>
     </div>
   )
 }

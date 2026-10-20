@@ -52,8 +52,15 @@ export function fresh(D) {
     activeRun: null,
     seenHelp: false,
     perma: zeroPerma(),
+    // the cat companions: kept for good once earned
+    cats: freshCats(),
   }
 }
+
+// eventSeen: the chapter-5 story has been started (it never plays again);
+// unlocked: the cats come along from cats.activeFromChapter; rewardGiven: its
+// S-grade weapon was put in the pocket (exactly once)
+const freshCats = () => ({ unlocked: false, eventSeen: false, rewardGiven: false })
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
 const int = (v) => Number.isInteger(v)
@@ -93,6 +100,7 @@ function validate(D, d) {
   out.activeRun = isObj(d.activeRun) && typeof d.activeRun.runId === 'string' ? { runId: d.activeRun.runId, chapter: int(d.activeRun.chapter) ? d.activeRun.chapter : 1 } : null
   out.seenHelp = d.seenHelp === true
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
+  if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
   // ids must keep growing past every id in use
   for (const it of inventory) {
     const n = +String(it.id).slice(1)
@@ -255,7 +263,7 @@ export function createProgress(D, storage) {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
         d.activeRun = { runId, chapter }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma } }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked }
       })
     },
 
@@ -348,6 +356,33 @@ export function createProgress(D, storage) {
         const wasEquipped = ids.includes(d.equippedInstanceId)
         if (wasEquipped) d.equippedInstanceId = item.id
         return { ok: true, item, equipped: wasEquipped }
+      })
+    },
+
+    // The cats' story: due once the event chapter has been cleared for the
+    // first time (also for a save that cleared it before the cats existed)
+    // and never seen. Claiming it is one write: the story is marked seen, the
+    // cats join and the S-grade weapon is given, so closing the page in the
+    // middle of the story, skipping it or a second tab can never give twice
+    // or play it again. The weapon is equipped when it beats the one in use.
+    // Returns { ok, item } once, then { ok: false }.
+    claimCatEvent() {
+      return change((d) => {
+        const C = D.balance.cats
+        if (d.cats.eventSeen || !d.firstCleared.includes(C.eventChapter)) return { ok: false, already: d.cats.eventSeen }
+        d.cats.eventSeen = true
+        d.cats.unlocked = true
+        let item = null
+        if (!d.cats.rewardGiven) {
+          item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: C.rewardGrade }
+          d.inventory.push(item)
+          d.cats.rewardGiven = true
+          // worn at once when it is better than the weapon in use
+          const grades = D.balance.grades
+          const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
+          if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade)) d.equippedInstanceId = item.id
+        }
+        return { ok: true, item }
       })
     },
 

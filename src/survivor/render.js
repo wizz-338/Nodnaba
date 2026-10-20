@@ -27,6 +27,14 @@ const DIRS = ['S', 'SE', 'E', 'NE', 'N', 'SW', 'W', 'NW']
 const DIR_ANGLE = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: -135, N: -90, NE: -45 }
 const MANO_SCALE = 0.9 // a 50 px tall frame → 45 logical px
 const BALL_LIFT = 7 // balls fly a little above the ground (their shadow stays on it)
+const CAT_STRIDE = 7 // logical px run per leg frame
+const POP = 0.35 // s a 퍼센트 하트 takes to jump out of a cat
+
+// A 퍼센트 하트 (the art package has none): a pixel heart brighter pink than
+// the normal one, with a magenta edge, a light shine and a small white % in it
+const HEART_W = 13
+const HEART_H = 12
+const PERCENT = ['ww..w', 'ww.w.', '..w..', '.w.ww', 'w..ww']
 const MAX_FX = 80
 const MAX_NUMBERS = 40
 const ENEMY_DIE = 0.28
@@ -59,6 +67,32 @@ export function createRenderer(canvas, img, D) {
   const small = new Map() // smoothed copies of frames drawn smaller than their pixels
   const tints = new Map() // white / red silhouettes of each sheet, for flashes
   const E = D.balance.enemies
+  const CATS = D.balance.cats
+  let pheart = null // the 퍼센트 하트 bitmap, made once
+
+  function makeHeart() {
+    // inside the heart curve (x² + y² − 1)³ − x²y³ ≤ 0, on a 13 × 12 grid
+    const inside = (i, j) => {
+      if (i < 0 || j < 0 || i >= HEART_W || j >= HEART_H) return false
+      const x = ((i + 0.5) / HEART_W - 0.5) * 2.5
+      const y = (0.5 - (j + 0.5) / HEART_H) * 2.5 + 0.2
+      return (x * x + y * y - 1) ** 3 - x * x * y ** 3 <= 0
+    }
+    const c = document.createElement('canvas')
+    c.width = HEART_W
+    c.height = HEART_H
+    const g = c.getContext('2d')
+    for (let j = 0; j < HEART_H; j++)
+      for (let i = 0; i < HEART_W; i++) {
+        if (!inside(i, j)) continue
+        const edge = !inside(i - 1, j) || !inside(i + 1, j) || !inside(i, j - 1) || !inside(i, j + 1)
+        g.fillStyle = edge ? '#c93c86' : i < 5 && j < 4 ? '#ffd0e8' : '#ff8cc6'
+        g.fillRect(i, j, 1, 1)
+      }
+    g.fillStyle = '#ffffff'
+    PERCENT.forEach((row, y) => [...row].forEach((ch, x) => ch === 'w' && g.fillRect(4 + x, 3 + y, 1, 1)))
+    return c
+  }
 
   function resize(cssW, cssH, dpr) {
     // past 2 the art has no more detail to show, only more pixels to fill
@@ -339,6 +373,72 @@ export function createRenderer(canvas, img, D) {
     if (o.kind === 'xp') put('xp_gem', o.x, o.y - 5 + bob, (9 + Math.min(5, Math.sqrt(o.v))) / 24)
     else if (o.kind === 'coin') put('coin', o.x, o.y - 5 + bob, 10 / 24)
     else if (o.kind === 'heal') put('heal', o.x, o.y - 6 + bob, 13 / 24)
+    else if (o.kind === 'pheal') drawPHeart(o, now, bob)
+  }
+
+  // a 퍼센트 하트: jumps out of the cat in a little arc, then lies there with
+  // a small twinkle
+  function drawPHeart(o, now, bob) {
+    pheart ??= makeHeart()
+    let x = o.x
+    let y = o.y - 6 + bob
+    if (o.pop > 0) {
+      const k = 1 - o.pop / POP
+      x = o.fromX + (o.x - o.fromX) * k
+      y = o.fromY + (o.y - o.fromY) * k - 6 - Math.sin(Math.PI * k) * 12
+    }
+    // whole screen pixels per heart pixel (about 1.25 logical px), so it stays sharp
+    const K = kd()
+    const n = Math.max(1, Math.round(1.25 * K))
+    const s = n / K
+    device()
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(pheart, Math.round((x - (HEART_W * s) / 2) * K), Math.round((y - HEART_H * s) * K), HEART_W * n, HEART_H * n)
+    // twinkle: a tiny four-point sparkle that comes and goes
+    const tw = (Math.sin(now / 180 + o.x * 0.7) + 1) / 2
+    if (tw > 0.55) {
+      world()
+      const sx = x + 6
+      const sy = y - HEART_H * s
+      const r = 1 + (tw - 0.55) * 4
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+      ctx.fillRect(sx - r, sy - 0.5, r * 2, 1)
+      ctx.fillRect(sx - 0.5, sy - r, 1, r * 2)
+    }
+  }
+
+  // ── the cats ──
+  // legs follow the distance run; sitting, the first two frames take turns
+  // (tail and paws going); a hop lifts it a little; eating, it bobs in place
+  function drawCat(c, now) {
+    const side = c.face > 0 ? 'r' : 'l'
+    let f
+    let lift = 0
+    let squash = 1
+    if (c.mode === 'eat') {
+      f = 2
+      squash = 1 - 0.08 * Math.abs(Math.sin(now / 70))
+    } else if (Math.hypot(c.vx, c.vy) > 1) f = Math.floor(c.step / CAT_STRIDE) % 4
+    else f = Math.floor(now / 450 + c.eats + c.x) % 2
+    if (c.hop > 0) lift = Math.sin((Math.PI * (0.3 - c.hop)) / 0.3) * 7
+    const name = `${c.frames}_${side}_${f}`
+    if (squash !== 1) {
+      // squashed from the feet up while it munches
+      const K = kd()
+      ctx.setTransform(K, 0, 0, K * squash, 0, c.y * K * (1 - squash))
+      putWorld(name, c.x, c.y, CATS.scale)
+      return
+    }
+    put(name, c.x, c.y - lift, CATS.scale)
+  }
+
+  // put() for a frame under a world transform already set (used for squash)
+  function putWorld(name, x, y, s) {
+    const f = FRAMES[name]
+    const b = f.contentBounds
+    const [px, py] = f.pivot
+    ctx.imageSmoothingEnabled = true
+    ctx.drawImage(img[f.sheet], f.rect.x + b.x, f.rect.y + b.y, b.w, b.h, x - (px - b.x) * s, y - (py - b.y) * s, b.w * s, b.h * s)
   }
 
   // ── one frame ──
@@ -352,6 +452,7 @@ export function createRenderer(canvas, img, D) {
     // things back to front by their feet; then balls and hits in the air
     const p = run.player
     shadow(p.x, p.y, 13, 4.5)
+    for (const c of run.cats) shadow(c.x, c.y, 10 - (c.hop > 0 ? 2 : 0), 3.2)
     for (const e of run.enemies) {
       const w = e.r * 1.15
       if (e.state === 'spawn') {
@@ -373,8 +474,9 @@ export function createRenderer(canvas, img, D) {
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
     list.push([p.y + 0.01, 1, p])
+    for (const c of run.cats) list.push([c.y, 2, c])
     list.sort((a, b) => a[0] - b[0])
-    for (const [, kind, o] of list) (kind ? drawMano(run, dt) : drawEnemy(run, o))
+    for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
     const maxFx = busy ? MAX_FX / 3 : MAX_FX
     const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
@@ -394,6 +496,10 @@ export function createRenderer(canvas, img, D) {
         }
       } else if (ev.type === 'hurt') {
         if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: '#d9524a' })
+      } else if (ev.type === 'catEat') {
+        numbers.push({ x: ev.x, y: ev.y - 30, text: '냠!', t: 0, color: '#c93c86' })
+      } else if (ev.type === 'catSpit') {
+        fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.5 })
       } else if (ev.type === 'heal') {
         numbers.push({ x: ev.x, y: ev.y - 52, text: `+${Math.round(ev.n)}`, t: 0, color: '#3f9d5a' })
       }

@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, applyPreview, nextNeed, chargePath, overtime, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun } from './survivor-bot.mjs'
@@ -612,6 +612,181 @@ const still = { x: 0, y: 0 }
   ok(r.data.inventory.length === 1 && mem.getItem('nodnaba:survivor:corrupt') === '{broken', 'an unreadable save is kept aside and a new one starts')
   const N = createProgress(D, null)
   ok(N.boot().data.inventory.length === 1 && !N.available, 'with no storage the game still plays (nothing is kept, and it says so)')
+}
+
+// ── the cat companions ──────────────────────────────────────────────────────
+// the chapter-5 first-clear story: once, with exactly one S-grade ball
+{
+  const C = B.cats
+  const mem = new Mem()
+  mem.setItem('nodnaba:colony:save', 'COLONY')
+  const P = createProgress(D, mem)
+  P.boot()
+  ok(!P.claimCatEvent().ok && !P.get().cats.unlocked, 'before chapter 5 is cleared there is no cat story')
+  const r4 = P.startRun(4)
+  P.finishRun(r4.runId, 4, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  ok(!P.claimCatEvent().ok, 'clearing chapter 4 is not enough')
+  const r5 = P.startRun(C.eventChapter)
+  ok(r5.cats === false, 'a chapter-5 run starts without cats')
+  P.finishRun(r5.runId, C.eventChapter, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  const sBefore = P.get().inventory.filter((it) => it.grade === C.rewardGrade).length
+  const ev = P.claimCatEvent()
+  const after = P.get()
+  ok(ev.ok && ev.item.grade === 'S' && ev.item.weaponId === D.weapons.initialWeaponId && after.inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'the first chapter-5 clear: the story plays and one S-grade bouncy ball is given')
+  ok(after.cats.unlocked && after.cats.eventSeen && after.cats.rewardGiven, 'the cats have joined, the story is marked seen, the reward is recorded (all in that one save)')
+  ok(after.equippedInstanceId === ev.item.id, 'the S ball is equipped (it beats the D ball in use)')
+  ok(!P.claimCatEvent().ok && P.get().inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'asking again (double tap, skip, second tab) gives nothing and plays nothing')
+  const r5b = P.startRun(C.eventChapter)
+  P.finishRun(r5b.runId, C.eventChapter, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  ok(!P.claimCatEvent().ok, 'clearing chapter 5 again: no story')
+  const again = createProgress(D, mem)
+  const re = again.boot().data
+  ok(re.cats.unlocked && re.cats.eventSeen && !again.claimCatEvent().ok && re.inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'after a reload the cats are still there and the story stays seen')
+  ok(again.startRun(C.activeFromChapter).cats === true, 'a run started now brings the cats')
+  ok(parseBackup(D, again.exportText()).data.cats.unlocked, 'a backup keeps the cats')
+  ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "the other games' saves are untouched")
+}
+// a save that cleared chapter 5 before the cats existed sees the story once
+{
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.firstCleared = [1, 2, 3, 4, 5, 6, 7]
+  d.unlockedChapter = 8
+  delete d.cats
+  mem.setItem(KEY, JSON.stringify(d))
+  const P2 = createProgress(D, mem)
+  const b = P2.boot().data
+  ok(!b.cats.unlocked && !b.cats.eventSeen, 'an older save loads with the cats not yet met')
+  const ev = P2.claimCatEvent()
+  ok(ev.ok && ev.item.grade === 'S' && !P2.claimCatEvent().ok, 'it gets the story and the S ball once')
+}
+// in battle: from chapter 6 on, with the cats; the magnet makes room for 냥냥 연금술
+{
+  const C = B.cats
+  const r5 = newRun({ chapter: 5, cats: true })
+  ok(r5.cats.length === 0 && r5.pool.includes('pickup') && !r5.pool.includes('nyang'), 'chapter 5 (cats unlocked): no cats yet, the magnet card is there')
+  const r6n = newRun({ chapter: 6, cats: false })
+  ok(r6n.cats.length === 0 && r6n.pool.includes('pickup'), 'chapter 6 without the cats: unchanged')
+  const r6 = newRun({ chapter: 6, cats: true, seed: 21 })
+  ok(r6.cats.length === 3 && r6.cats.map((c) => c.id).join() === D.cats.companions.map((c) => c.id).join(), `chapter ${C.activeFromChapter} with the cats: ${D.cats.companions.map((c) => c.name).join(', ')} come along`)
+  ok(!r6.pool.includes('pickup') && r6.pool.includes('nyang') && r6.pool.length === r6n.pool.length, `the magnet's place goes to 냥냥 연금술 (still ${r6.pool.length} cards, 3 shown)`)
+  let shown = 0
+  let seen = 0
+  for (let i = 0; i < 4000; i++) {
+    const c = drawChoices(r6)
+    if (c.length !== 3 || new Set(c).size !== 3 || c.includes('pickup')) shown++
+    if (c.includes('nyang')) seen++
+  }
+  ok(shown === 0 && Math.abs(seen / 4000 - 3 / 16) < 0.03, `three different cards, never the magnet; 냥냥 연금술 comes up like any card (${((seen / 4000) * 100).toFixed(1)}%)`)
+  // its five levels, from the table
+  const T = B.upgrades.effects.nyang.levels
+  for (let L = 1; L <= T.length; L++) {
+    r6.state = 'levelup'; r6.pending = 1; r6.choices = ['nyang', 'count', 'damage']; r6.choiceSeq++
+    choose(r6, 'nyang', r6.choiceSeq)
+  }
+  ok(r6.nyang === T.length && maxed(r6, 'nyang'), `냥냥 연금술 goes up to Lv.${T.length}`)
+  let after = 0
+  for (let i = 0; i < 2000; i++) if (drawChoices(r6).includes('nyang')) after++
+  ok(after === 0, 'at its last level it no longer comes up')
+}
+// the cats fetch coins and experience: run there, picked up as by Mano
+{
+  const run = newRun({ chapter: 6, cats: true, seed: 5 })
+  run.spawnT = -1e9
+  run.nextEvent = 9
+  run.xp = -1e15 // no level-up pauses
+  const p = run.player
+  p.pickupR = 0 // Mano picks nothing up herself
+  const far = [[40, 120], [320, 120], [40, 600], [320, 600], [180, 110], [180, 610]]
+  // (the experience is kept from flying to Mano by itself, to see the cats at work)
+  for (const [x, y] of far) run.orbs.push({ kind: 'coin', x, y, v: 5, pull: false }, { kind: 'xp', x: x + 4, y, v: 7, pull: false, age: -1e9 })
+  const coins0 = run.coins
+  const xp0 = run.xp
+  let distinct = true
+  let t = 0
+  for (; t < 20 && run.orbs.some((o) => o.kind === 'coin' || o.kind === 'xp'); t += FIXED) {
+    step(run, FIXED, still)
+    const tg = run.cats.map((c) => c.target).filter(Boolean)
+    if (new Set(tg).size !== tg.length) distinct = false
+  }
+  ok(!run.orbs.some((o) => o.kind === 'coin' || o.kind === 'xp') && run.stats.catPicks === 12, `the cats ran to all 12 pickups across the field and took them (${t.toFixed(1)} s; Mano stood still)`)
+  ok(near(run.coins - coins0, 6 * 5 * p.coinMul) && near(run.xp - xp0, 6 * 7 * p.xpMul), 'coins and experience count exactly as when Mano picks them up')
+  ok(distinct, 'never two cats after the same pickup')
+  ok(Math.hypot(p.x - 180, p.y - (B.logicalArena.bounds[1] + B.logicalArena.bounds[3]) / 2 - 40) < 1e-9 && p.hp === p.maxHp, 'Mano was not moved or hurt by them')
+  ok(run.cats.every((c) => !('hp' in c)), 'cats have no HP: nothing can hurt them')
+}
+// 냥냥 연금술: a normal heart becomes 퍼센트 하트; those are never turned again
+{
+  const T = B.upgrades.effects.nyang.levels
+  const heartRun = (L) => {
+    const run = newRun({ chapter: 6, cats: true, seed: 9 })
+    run.spawnT = -1e9
+    run.nextEvent = 9
+    run.xp = -1e15
+    run.player.pickupR = 0
+    for (let i = 0; i < L; i++) {
+      run.state = 'levelup'; run.pending = 1; run.choices = ['nyang', 'count', 'damage']; run.choiceSeq++
+      choose(run, 'nyang', run.choiceSeq)
+    }
+    run.orbs.push({ kind: 'heal', x: 60, y: 140, v: B.drops.healAmount, pull: false })
+    for (let t = 0; t < 6; t += FIXED) step(run, FIXED, still)
+    return run
+  }
+  const r0 = heartRun(0)
+  ok(r0.orbs.some((o) => o.kind === 'heal') && !r0.orbs.some((o) => o.kind === 'pheal'), 'without 냥냥 연금술 the cats leave hearts alone')
+  for (let L = 1; L <= T.length; L++) {
+    const r = heartRun(L)
+    const ph = r.orbs.filter((o) => o.kind === 'pheal')
+    const apart = ph.every((a, i) => ph.every((b, j) => i === j || Math.hypot(a.x - b.x, a.y - b.y) > 6))
+    ok(!r.orbs.some((o) => o.kind === 'heal') && ph.length === T[L - 1].hearts && ph.every((o) => o.v === T[L - 1].share) && apart, `Lv.${L}: one heart eaten → ${T[L - 1].hearts} 퍼센트 하트 of ${T[L - 1].share * 100}% each, not on top of each other`)
+  }
+  // 퍼센트 하트 lying around for a long time: no cat ever eats or carries them
+  const r = heartRun(T.length)
+  const n0 = r.orbs.filter((o) => o.kind === 'pheal').length
+  for (let t = 0; t < 30; t += FIXED) step(r, FIXED, still)
+  ok(r.orbs.filter((o) => o.kind === 'pheal').length === n0 && r.stats.catEats === 1, `30 s later the same ${n0} 퍼센트 하트 lie there: never turned again, never picked up by a cat`)
+  // Mano picks one up: a share of her maximum HP, never past it
+  for (const maxHp of [1000, 10000]) {
+    const run = newRun({ chapter: 6, cats: true })
+    run.spawnT = -1e9
+    run.player.maxHp = maxHp
+    run.player.hp = maxHp / 2
+    run.orbs.push({ kind: 'pheal', x: run.player.x, y: run.player.y, v: 0.02, pull: false })
+    step(run, FIXED * 2, still)
+    ok(near(run.player.hp, maxHp / 2 + maxHp * 0.02, 1e-6), `a 2% 퍼센트 하트 at max HP ${maxHp} heals ${maxHp * 0.02}`)
+  }
+  const full = newRun({ chapter: 6, cats: true })
+  full.spawnT = -1e9
+  full.orbs.push({ kind: 'pheal', x: full.player.x, y: full.player.y, v: 0.04, pull: false })
+  step(full, FIXED * 2, still)
+  ok(full.player.hp === full.player.maxHp, 'at full HP it heals nothing past the maximum')
+  ok(B.drops.healChance === 0.005, 'the normal heart drop chance is unchanged')
+}
+// the cats cost little with a full screen
+{
+  const make = (cats) => {
+    const run = newRun({ chapter: 6, cats, seed: 33 })
+    run.player.hp = run.player.maxHp = 1e12
+    run.xp = -1e15
+    run.t = 185
+    run.nextEvent = 9
+    for (let i = 0; i < 300; i++) run.orbs.push({ kind: i % 2 ? 'xp' : 'coin', x: 20 + ((i * 37) % 320), y: 100 + ((i * 53) % 500), v: 1, pull: false })
+    for (let i = 0; i < 8; i++) run.orbs.push({ kind: 'heal', x: 30 + i * 40, y: 300, v: 20, pull: false })
+    return run
+  }
+  const time = (cats) => {
+    const run = make(cats)
+    if (cats) run.nyang = 5
+    const t0 = performance.now()
+    for (let i = 0; i < 600; i++) step(run, FIXED, still)
+    return { ms: (performance.now() - t0) / 600, run }
+  }
+  time(true)
+  const a = time(false)
+  const b = time(true)
+  ok(b.ms < a.ms + 0.5, `10 s with 300 pickups and a full screen: ${a.ms.toFixed(3)} ms a step without cats, ${b.ms.toFixed(3)} ms with them (${b.run.enemies.length} monsters, ${b.run.stats.catPicks || 0} pickups fetched)`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────

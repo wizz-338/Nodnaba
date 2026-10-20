@@ -8,4 +8,6 @@ export const D = {
   upgrades: read('upgrades'),
   ui: read('ui'),
   art: read('assets-v3'),
+  cats: read('cats'),
+  catFrames: read('cats-frames'),
 }

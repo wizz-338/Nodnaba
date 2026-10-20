@@ -65,7 +65,8 @@ function perma(D, levels = {}) {
 
 // ── a new run ───────────────────────────────────────────────────────────────
 
-// opts: { chapter, weaponId, grade, seed, runId, perma: { hp: L, damage: L, … } }
+// opts: { chapter, weaponId, grade, seed, runId, perma: { hp: L, damage: L, … },
+//         cats: true once the cat companions have joined }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
@@ -83,6 +84,11 @@ export function createRun(D, opts) {
   weapon.critMul = B.player.critMultiplier
   const hp = B.player.hp * pm.hp
   const chapter = opts.chapter || 1
+  // the cats come along from their chapter on, once they have joined
+  const withCats = !!opts.cats && chapter >= B.cats.activeFromChapter
+  const pool = [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))]
+  // with the cats, the magnet's place among the cards goes to 냥냥 연금술
+  if (withCats) pool[pool.indexOf(B.upgrades.catSwap.from)] = B.upgrades.catSwap.to
   const run = {
     D,
     id: opts.runId || 'run',
@@ -119,7 +125,9 @@ export function createRun(D, opts) {
     weapon,
     grade,
     // the weapon's own four core cards, then the general ones
-    pool: [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))],
+    pool,
+    cats: [],
+    nyang: 0, // 냥냥 연금술 level this run (0: the cats leave hearts alone)
     fireT: 0.4,
     enemies: [],
     balls: [],
@@ -146,6 +154,7 @@ export function createRun(D, opts) {
     stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0 },
     acc: 0,
   }
+  if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
   run.hurt = (e, dmg, x, y) => hurtEnemy(run, e, dmg, x, y)
   return run
@@ -574,7 +583,13 @@ function collect(run, o) {
   else if (o.kind === 'heal') {
     p.hp = Math.min(p.maxHp, p.hp + o.v)
     run.events.push({ type: 'heal', x: p.x, y: p.y, n: o.v })
+  } else if (o.kind === 'pheal') {
+    // a 퍼센트 하트: a share of the maximum HP, never past it
+    const n = p.maxHp * o.v
+    p.hp = Math.min(p.maxHp, p.hp + n)
+    run.events.push({ type: 'heal', x: p.x, y: p.y, n })
   }
+  o.done = true // gone: a cat after it looks elsewhere
 }
 
 function moveOrbs(run, dt) {
@@ -582,6 +597,13 @@ function moveOrbs(run, dt) {
   const pullAfter = run.D.balance.xp.pullAfter
   const keep = []
   for (const o of run.orbs) {
+    if (o.done) continue // picked up by a cat this step
+    if (o.pop > 0) {
+      // a 퍼센트 하트 still jumping out of a cat: not there to pick up yet
+      o.pop -= dt
+      keep.push(o)
+      continue
+    }
     // experience left lying comes to Mano by itself after a while
     if (o.kind === 'xp' && (o.age = (o.age || 0) + dt) >= pullAfter) o.pull = true
     const dx = p.x - o.x
@@ -605,11 +627,191 @@ function moveOrbs(run, dt) {
     const out = []
     for (const o of run.orbs) {
       const m = !o.pull && (o.kind === 'xp' || o.kind === 'coin') && out.find((q) => q.kind === o.kind && !q.pull && Math.abs(q.x - o.x) < 26 && Math.abs(q.y - o.y) < 26)
-      if (m) m.v += o.v
+      if (m) (m.v += o.v), (o.done = true)
       else out.push(o)
     }
     run.orbs = out
   }
+}
+
+// ── the cat companions ──────────────────────────────────────────────────────
+// They fetch coins and experience lying on the field (each cat its own pick,
+// never the same one as another cat), and with 냥냥 연금술 they eat a normal
+// heart and spit out 퍼센트 하트. They never fight, have no HP, touch nothing
+// and never get in Mano's way. With nothing to fetch they play near her.
+
+function makeCats(run) {
+  const p = run.player
+  return run.D.cats.companions.map((c, i) => ({
+    id: c.id,
+    frames: c.frames,
+    x: p.x + (i - 1) * 24,
+    y: p.y + 20,
+    vx: 0,
+    vy: 0,
+    face: i % 2 ? -1 : 1,
+    mode: 'sit', // go (to a pickup) | roam | sit | eat
+    modeT: 0.4 + i * 0.35,
+    target: null,
+    roam: null,
+    look: i * 0.08, // the three look around at different moments
+    hop: 0, // time left of a little jump (drawn)
+    step: 0, // distance run, for the legs
+    eats: 0,
+  }))
+}
+
+// what a cat goes for: coins and experience, and normal hearts once it knows
+// 냥냥 연금술. Never a 퍼센트 하트 (so nothing is ever turned twice), never
+// one already flying to Mano.
+const catWants = (run, o) => !o.done && !o.pull && !(o.pop > 0) && (o.kind === 'xp' || o.kind === 'coin' || (o.kind === 'heal' && run.nyang > 0))
+
+// the nearest wanted pickup no other cat is after (hearts count a little nearer)
+function catTarget(run, cat) {
+  let best = null
+  let bd = Infinity
+  for (const o of run.orbs) {
+    if (!catWants(run, o)) continue
+    if (run.cats.some((c) => c !== cat && c.target === o)) continue
+    const d = Math.hypot(o.x - cat.x, o.y - cat.y) * (o.kind === 'heal' ? 0.6 : 1)
+    if (d < bd) (bd = d), (best = o)
+  }
+  return best
+}
+
+function updateCats(run, dt) {
+  if (!run.cats.length) return
+  const C = run.D.balance.cats
+  const p = run.player
+  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const inX = (x) => Math.max(x0 + 8, Math.min(x1 - 8, x))
+  const inY = (y) => Math.max(y0 + 8, Math.min(y1 - 4, y))
+  for (const c of run.cats) {
+    if (c.hop > 0) c.hop -= dt
+    if (c.mode === 'eat') {
+      // munching a heart: stands still, then out come the 퍼센트 하트
+      c.vx = c.vy = 0
+      c.modeT -= dt
+      if (c.modeT <= 0) {
+        spitHearts(run, c)
+        c.mode = 'roam'
+        c.roam = null
+        c.hop = 0.3
+      }
+      continue
+    }
+    if (c.target && !catWants(run, c.target)) c.target = null
+    if ((c.look -= dt) <= 0) {
+      c.look = C.lookEverySeconds
+      c.target = catTarget(run, c) || c.target
+    }
+    let tx = c.x
+    let ty = c.y
+    let sp = 0
+    if (c.target) {
+      c.mode = 'go'
+      tx = c.target.x
+      ty = c.target.y
+      sp = C.speed
+    } else {
+      if (c.mode === 'go') (c.mode = 'roam'), (c.roam = null)
+      c.modeT -= dt
+      if (c.mode === 'sit') {
+        if (c.modeT <= 0) (c.mode = 'roam'), (c.roam = null)
+      } else if (!c.roam || c.modeT <= 0 || (!c.roam.follow && Math.hypot(c.roam.x - c.x, c.roam.y - c.y) < 3)) {
+        const r = run.rng()
+        if (r < 0.25 && c.roam) {
+          // sit a moment (tail going)
+          c.mode = 'sit'
+          c.modeT = 0.6 + run.rng() * 1.2
+          c.roam = null
+        } else if (r < 0.4) {
+          // run after another cat for a while
+          const others = run.cats.filter((o) => o !== c)
+          c.roam = { follow: others[Math.floor(run.rng() * others.length)] }
+          c.modeT = 1 + run.rng()
+          if (run.rng() < 0.5) c.hop = 0.3
+        } else {
+          // a spot somewhere near Mano
+          const a = run.rng() * 2 * Math.PI
+          const d = C.stayNearMano * (0.35 + 0.65 * run.rng())
+          c.roam = { x: inX(p.x + Math.cos(a) * d), y: inY(p.y + Math.sin(a) * d) }
+          c.modeT = 1.5 + run.rng() * 1.5
+          if (run.rng() < 0.2) c.hop = 0.3
+        }
+      }
+      if (c.mode === 'roam' && c.roam) {
+        const g = c.roam.follow || c.roam
+        tx = g.x
+        ty = g.y
+        sp = c.roam.follow ? C.speed * 0.8 : C.wanderSpeed
+      }
+      // strayed far from Mano: back to her at a run
+      if (Math.hypot(p.x - c.x, p.y - c.y) > C.stayNearMano * 2.2) {
+        c.mode = 'roam'
+        c.roam = null
+        tx = p.x
+        ty = p.y
+        sp = C.speed
+      }
+    }
+    const dx = tx - c.x
+    const dy = ty - c.y
+    const d = Math.hypot(dx, dy)
+    if (sp > 0 && d > 0.5) {
+      const m = Math.min(d, sp * dt)
+      c.vx = (dx / d) * sp
+      c.vy = (dy / d) * sp
+      c.x = inX(c.x + (dx / d) * m)
+      c.y = inY(c.y + (dy / d) * m)
+      c.step += m
+      if (Math.abs(c.vx) > sp * 0.2) c.face = c.vx > 0 ? 1 : -1
+    } else c.vx = c.vy = 0
+    if (c.target && Math.hypot(c.target.x - c.x, c.target.y - c.y) <= C.reach) catTake(run, c, c.target)
+  }
+}
+
+function catTake(run, c, o) {
+  c.target = null
+  if (o.kind === 'heal') {
+    // a normal heart is eaten (not healing anyone) and turned into 퍼센트 하트
+    o.done = true
+    c.mode = 'eat'
+    c.modeT = run.D.balance.cats.eatSeconds
+    c.eats++
+    run.stats.catEats = (run.stats.catEats || 0) + 1
+    run.events.push({ type: 'catEat', x: c.x, y: c.y })
+    return
+  }
+  // coins and experience: exactly as if Mano had picked them up
+  run.stats.catPicks = (run.stats.catPicks || 0) + 1
+  collect(run, o)
+}
+
+// the 퍼센트 하트 of the current 냥냥 연금술 level, spread around the cat so
+// they never lie on top of each other
+function spitHearts(run, c) {
+  const L = run.D.balance.upgrades.effects.nyang.levels[run.nyang - 1]
+  if (!L) return
+  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const spread = run.D.balance.percentHeart.spread
+  const a0 = run.rng() * 2 * Math.PI
+  for (let i = 0; i < L.hearts; i++) {
+    const a = a0 + (i / L.hearts) * 2 * Math.PI + (run.rng() - 0.5) * 0.5
+    const d = spread * (0.8 + 0.4 * run.rng())
+    run.orbs.push({
+      kind: 'pheal',
+      x: Math.max(x0 + 8, Math.min(x1 - 8, c.x + Math.cos(a) * d)),
+      y: Math.max(y0 + 8, Math.min(y1 - 8, c.y + Math.sin(a) * d)),
+      v: L.share,
+      pull: false,
+      pop: 0.35, // jumping out of the cat (drawn as an arc), not yet to pick up
+      fromX: c.x,
+      fromY: c.y,
+    })
+  }
+  run.stats.pHearts = (run.stats.pHearts || 0) + L.hearts
+  run.events.push({ type: 'catSpit', x: c.x, y: c.y, n: L.hearts })
 }
 
 export const nextNeed = (D, need) => Math.round(need * D.balance.xp.growth + D.balance.xp.add)
@@ -670,6 +872,11 @@ export function applyPreview(run, id) {
       return { armor: p.armor * E.mul }
     case 'xpGain':
       return { xpMul: p.xpMul * E.mul }
+    case 'nyang': {
+      // the next level of the table: how many 퍼센트 하트 and how much each heals
+      const L = Math.min(E.levels.length, run.nyang + 1)
+      return { nyang: L, ...E.levels[L - 1] }
+    }
     default:
       return {}
   }
@@ -678,11 +885,15 @@ export function applyPreview(run, id) {
 // Three different options, all with the same chance; an option chosen before
 // stays in the pool and can come back at every later level.
 export function drawChoices(run) {
-  const left = run.pool.slice()
+  // a card with levels (냥냥 연금술) leaves the pool at its last level
+  const left = run.pool.filter((id) => !maxed(run, id))
   const out = []
   while (out.length < 3 && left.length) out.push(left.splice(Math.floor(run.rng() * left.length), 1)[0])
   return out
 }
+
+const levelsOf = (run, id) => run.D.balance.upgrades.effects[id].levels
+export const maxed = (run, id) => !!levelsOf(run, id) && (run.picks[id] || 0) >= levelsOf(run, id).length
 
 function openChoice(run) {
   run.state = 'levelup'
@@ -701,6 +912,7 @@ export function choose(run, id, seq) {
   if ('ballSpeed' in ch) w.speed = ch.ballSpeed
   for (const k of ['pickupR', 'speed', 'coinMul', 'regen', 'armor', 'xpMul']) if (k in ch) p[k] = ch[k]
   if ('maxHp' in ch) (p.maxHp = ch.maxHp), (p.hp = ch.hp)
+  if ('nyang' in ch) run.nyang = ch.nyang
   run.picks[id] = (run.picks[id] || 0) + 1
   run.log.push(id)
   run.pending--
@@ -789,6 +1001,7 @@ function tick(run, dt, input) {
   if (run.enemies.some(gone)) run.enemies = run.enemies.filter((e) => !gone(e))
   contact(run)
   if (run.state !== 'play') return
+  updateCats(run, dt)
   moveOrbs(run, dt)
   if (run.state !== 'play') return
   advanceClock(run)

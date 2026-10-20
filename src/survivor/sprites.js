@@ -5,9 +5,13 @@
 // their rect, never by splitting a sheet evenly or trimming each frame.
 
 import art from './data/assets-v3.json'
+import catFrames from './data/cats-frames.json'
 
 export const ART = art
-export const FRAMES = art.frames
+// the v3 frames, and the cat companions' frames (their own sheet, cut the
+// same way: rect, content box, pivot on the feet)
+export const FRAMES = { ...art.frames, ...catFrames.frames }
+const SHEETS = { ...art.sheets, [catFrames.sheet.file]: catFrames.sheet }
 
 export const SHEET_URLS = {
   '01_mano_run.png': new URL('./assets/v3/01_mano_run.png', import.meta.url).href,
@@ -19,6 +23,7 @@ export const SHEET_URLS = {
   '07_ui.png': new URL('./assets/v3/07_ui.png', import.meta.url).href,
   '08_profile.png': new URL('./assets/v3/08_profile.png', import.meta.url).href,
   '09_ground.png': new URL('./assets/v3/09_ground.png', import.meta.url).href,
+  'cats.png': new URL('./assets/cats/cats.png', import.meta.url).href,
 }
 
 const load = (src) =>
@@ -31,7 +36,7 @@ const load = (src) =>
   })
 
 let loading = null
-// every sheet, by file name; resolves once all nine are in
+// every sheet, by file name; resolves once all are in
 export function loadImages() {
   loading ??= Promise.all(Object.entries(SHEET_URLS).map(async ([k, src]) => [k, await load(src)]))
     .then((list) => Object.fromEntries(list))
@@ -55,7 +60,7 @@ export function animFrame(name, ms, loop = true) {
 // `size` px tall (or wide, for wide frames), pixels kept square
 export function spriteStyle(name, size, { whole = false, flip = false } = {}) {
   const f = FRAMES[name]
-  const sheet = art.sheets[f.sheet]
+  const sheet = SHEETS[f.sheet]
   const b = whole ? { x: 0, y: 0, w: f.rect.w, h: f.rect.h } : f.contentBounds
   const s = size / Math.max(b.w, b.h)
   return {
