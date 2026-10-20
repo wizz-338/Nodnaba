@@ -663,15 +663,15 @@ function makeCats(run) {
 
 // what a cat goes for: coins and experience, and normal hearts once it knows
 // 냥냥 연금술. Never a 퍼센트 하트 (so nothing is ever turned twice), never
-// one already flying to Mano.
-const catWants = (run, o) => !o.done && !o.pull && !(o.pop > 0) && (o.kind === 'xp' || o.kind === 'coin' || (o.kind === 'heal' && run.nyang > 0))
+// one already flying to Mano, or to another cat.
+const catWants = (run, o, cat) => !o.done && !o.pull && !(o.cat && o.cat !== cat) && !(o.pop > 0) && (o.kind === 'xp' || o.kind === 'coin' || (o.kind === 'heal' && run.nyang > 0))
 
 // the nearest wanted pickup no other cat is after (hearts count a little nearer)
 function catTarget(run, cat) {
   let best = null
   let bd = Infinity
   for (const o of run.orbs) {
-    if (!catWants(run, o)) continue
+    if (!catWants(run, o, cat)) continue
     if (run.cats.some((c) => c !== cat && c.target === o)) continue
     const d = Math.hypot(o.x - cat.x, o.y - cat.y) * (o.kind === 'heal' ? 0.6 : 1)
     if (d < bd) (bd = d), (best = o)
@@ -700,7 +700,8 @@ function updateCats(run, dt) {
       }
       continue
     }
-    if (c.target && !catWants(run, c.target)) c.target = null
+    // a pickup gone (taken, flown to Mano): look for the next one at once
+    if (c.target && !catWants(run, c.target, c)) (c.target = null), (c.look = 0)
     if ((c.look -= dt) <= 0) {
       c.look = C.lookEverySeconds
       c.target = catTarget(run, c) || c.target
@@ -768,6 +769,35 @@ function updateCats(run, dt) {
       if (Math.abs(c.vx) > sp * 0.2) c.face = c.vx > 0 ? 1 : -1
     } else c.vx = c.vy = 0
     if (c.target && Math.hypot(c.target.x - c.x, c.target.y - c.y) <= C.reach) catTake(run, c, c.target)
+    catMagnet(run, c, dt)
+  }
+}
+
+// Coins and experience within a cat's magnet fly to it and are taken when
+// they arrive, so a cat sweeps a whole pile instead of fetching one by one.
+// (Hearts are never pulled: a cat has to go and eat those.) What Mano's own
+// pull has caught stays hers.
+function catMagnet(run, c, dt) {
+  if (c.mode === 'eat') return
+  const C = run.D.balance.cats
+  const r2 = C.magnet * C.magnet
+  for (const o of run.orbs) {
+    if (o.done || o.pull || o.pop > 0 || (o.kind !== 'xp' && o.kind !== 'coin')) continue
+    if (o.cat && o.cat !== c) continue
+    const dx = c.x - o.x
+    const dy = c.y - o.y
+    const d2 = dx * dx + dy * dy
+    if (!o.cat && d2 > r2) continue
+    o.cat = c
+    const d = Math.sqrt(d2)
+    if (d <= C.reach) {
+      if (c.target === o) c.target = null
+      catTake(run, c, o)
+      continue
+    }
+    const m = Math.min(d, C.magnetSpeed * dt)
+    o.x += (dx / d) * m
+    o.y += (dy / d) * m
   }
 }
 
