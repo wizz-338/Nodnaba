@@ -810,14 +810,14 @@ const still = { x: 0, y: 0 }
   const mid = at(L.fromChapter + 2, last)
   const full = at(L.fullAtChapter, last)
   const later = at(L.fullAtChapter + 10, last)
-  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1]) && near(later.hp, full.hp) && near(full.specialHp, L.specialHp), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss and elites ×${full.specialHp})`)
+  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1]) && near(later.hp, full.hp) && near(full.specialHp('boss'), L.specialHp.boss), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss ×${full.specialHp('boss')}, mid-boss ×${full.specialHp('brute')}, thief only ×${full.specialHp('thief')})`)
   const run = newRun({ chapter: L.fullAtChapter, seed: 3 })
   run.spawnT = -1e9
   run.t = last
   run.nextEvent = 2
   step(run, FIXED * 2, still)
   const boss = run.boss
-  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
+  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1], 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push')
 }
 
 // the cats cost little with a full screen

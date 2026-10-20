@@ -211,11 +211,11 @@ export const phaseAt = (run) => run.D.balance.chapter.phases[phaseIndex(run)]
 // fromChapter, then growing a step each chapter until fullAtChapter
 export function lateGame(run) {
   const L = run.D.balance.lateGame
-  if (run.chapter < L.fromChapter) return { hp: 1, damage: 1, specialHp: 1 }
+  if (run.chapter < L.fromChapter) return { hp: 1, damage: 1, specialHp: () => 1 }
   const k = Math.min(1, (run.chapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
   const i = phaseIndex(run)
   const part = (m) => m ** k // ×m at full strength, a share of it (on the log scale) before
-  return { hp: part(L.hp[i]), damage: part(L.damage[i]), specialHp: part(L.specialHp) }
+  return { hp: part(L.hp[i]), damage: part(L.damage[i]), specialHp: (type) => part(L.specialHp[type] ?? 1) }
 }
 
 // boss overtime: the clock has run out and the boss still stands
@@ -272,7 +272,7 @@ function spawn(run, type = pickType(run), at = null) {
   const phase = phaseAt(run)
   const special = !!def.rank // elites and the boss have their own strength
   const late = lateGame(run)
-  const hp = def.hp * (special ? late.specialHp : phase.hpMultiplier * late.hp) * run.factor.hp
+  const hp = def.hp * (special ? late.specialHp(type) : phase.hpMultiplier * late.hp) * run.factor.hp
   const e = {
     id: run.nextId++,
     type,
