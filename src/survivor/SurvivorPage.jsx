@@ -118,12 +118,18 @@ function Pen() {
   )
 }
 
-// a short scratch of a pen (made on the spot: no sound files), quiet
+// sounds are made on the spot (no sound files), quiet
 let audio = null
+function ac() {
+  audio ??= new (window.AudioContext || window.webkitAudioContext)()
+  if (audio.state === 'suspended') audio.resume()
+  return audio
+}
+
+// a short scratch of a pen
 function scribble() {
   try {
-    audio ??= new (window.AudioContext || window.webkitAudioContext)()
-    if (audio.state === 'suspended') audio.resume()
+    const audio = ac()
     const t = audio.currentTime
     const len = Math.floor(audio.sampleRate * 0.22)
     const buf = audio.createBuffer(1, len, audio.sampleRate)
@@ -144,6 +150,54 @@ function scribble() {
   } catch {
     /* no sound here: the pen still shows */
   }
+}
+
+// a card is picked: a soft rising "pip", 0.14 s
+function pickSound() {
+  try {
+    const audio = ac()
+    const t = audio.currentTime
+    const o = audio.createOscillator()
+    o.type = 'triangle'
+    o.frequency.setValueAtTime(700, t)
+    o.frequency.exponentialRampToValueAtTime(1050, t + 0.07)
+    const g = audio.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(0.07, t + 0.012)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14)
+    o.connect(g).connect(audio.destination)
+    o.start(t)
+    o.stop(t + 0.15)
+  } catch {
+    /* no sound here: the card still shows */
+  }
+}
+
+// the picked card, drawn once more where it was, over the battle that has
+// already gone on: it swells to 110%, a small flash and six sparks leave its
+// middle, its effect lights up, and all of it is gone within 0.5 s (CSS only,
+// never takes a tap)
+const PICK_FX_MS = 500
+function PickFx({ fx }) {
+  return (
+    <div className="ms-pickfx" style={{ left: fx.x, top: fx.y, width: fx.w, height: fx.h }} aria-hidden="true">
+      <div className="ms-card ms-pickfx__card">
+        <span className="ms-card__icon">
+          <Sprite name={fx.icon} size={36} />
+        </span>
+        <span className="ms-card__body">
+          <span className="ms-card__name">{fx.name}</span>
+          <span className="ms-card__num">
+            <b className="ms-pickfx__tag">{fx.tag}</b> {fx.text}
+          </span>
+        </span>
+      </div>
+      <span className="ms-pickfx__flash" />
+      {[0, 60, 120, 180, 240, 300].map((a) => (
+        <span key={a} className="ms-pickfx__spark" style={{ '--a': `${a + 30}deg` }} />
+      ))}
+    </div>
+  )
 }
 
 // one frame of the art as a DOM box `size` px on its long side
@@ -1229,10 +1283,21 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
                   type="button"
                   className={`ms-card${ed ? ' is-edited' : ''}`}
                   style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
-                  onClick={() => {
+                  onClick={(e) => {
                     const g = G.current
                     if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
                     g.choosing = true
+                    // the pick's flourish, measured before the cards go away;
+                    // the pick itself is made right now and the fight goes on
+                    const r = e.currentTarget.getBoundingClientRect()
+                    const st = stageRef.current.getBoundingClientRect()
+                    const n = ed ? T : 1
+                    const key = `${run.choiceSeq}:${id}`
+                    g.fx = { key, x: r.left - st.left, y: r.top - st.top, w: r.width, h: r.height, icon: o.icon, name: o.name, tag: effectTag(id, n), text: change(run, id, n) }
+                    setTimeout(() => {
+                      if (g.fx && g.fx.key === key) (g.fx = null), rerender()
+                    }, PICK_FX_MS)
+                    if (P.current.get().sound) pickSound()
                     choose(run, id, run.choiceSeq)
                     g.cardsAt = performance.now()
                     g.choosing = false
@@ -1277,6 +1342,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
           </div>
         </div>
       )}
+
+      {G.current.fx && <PickFx key={G.current.fx.key} fx={G.current.fx} />}
 
       {modal && modal.kind === 'pause' && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
