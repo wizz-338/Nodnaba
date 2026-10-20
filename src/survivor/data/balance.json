@@ -517,7 +517,7 @@
     "spread": 14
   },
   "lateGame": {
-    "note": "From fromChapter on, each phase of the chapter (same order as chapter.phases) multiplies the monsters' HP and their hits on top of everything else, so the middle and the end of a run stay a fight; elites and the boss get specialHp. It comes in step by step: a little at fromChapter, all of it from fullAtChapter on. Chapters before fromChapter are untouched.",
+    "note": "From fromChapter on, each phase of the chapter (same order as chapter.phases) multiplies the monsters' HP and their hits on top of everything else, so the middle and the end of a run stay a fight; elites and the boss get specialHp, each its own (the thief comes early, at 70 s, and must be catchable in its 30 s, so it gets no extra). It comes in step by step: a little at fromChapter, all of it from fullAtChapter on. Chapters before fromChapter are untouched.",
     "fromChapter": 6,
     "hp": [
       0.6,
@@ -537,7 +537,11 @@
       3.4,
       4
     ],
-    "specialHp": 60.0,
+    "specialHp": {
+      "thief": 1,
+      "brute": 60,
+      "boss": 60
+    },
     "fullAtChapter": 15
   }
 }
