@@ -69,7 +69,10 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
 
 export function pick(run, policy) {
   const c = run.choices
-  for (const id of POLICIES[policy] || []) if (c.includes(id)) return id
+  const want = POLICIES[policy] || []
+  // a card Tizzzz rewrote is taken whenever it is one the bot wants at all
+  if (run.edit && run.edit.seq === run.choiceSeq && want.includes(run.edit.id) && c.includes(run.edit.id)) return run.edit.id
+  for (const id of want) if (c.includes(id)) return id
   return c[0]
 }
 

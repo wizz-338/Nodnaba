@@ -220,7 +220,14 @@ export function lateGame(run) {
   const k = Math.min(1, (run.chapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
   const i = phaseIndex(run)
   const part = (m) => m ** k // ×m at full strength, a share of it (on the log scale) before
-  return { hp: part(L.hp[i]), damage: part(L.damage[i]), specialHp: (type) => part(L.specialHp[type] ?? 1) }
+  // from Tizzzz's chapter on, her rewritten cards are answered by tougher monsters
+  const W = L.writer
+  const w = run.chapter >= W.fromChapter ? { hp: W.hp[i], damage: W.damage[i], special: W.specialHp } : { hp: 1, damage: 1, special: {} }
+  return {
+    hp: part(L.hp[i]) * w.hp,
+    damage: part(L.damage[i]) * w.damage,
+    specialHp: (type) => part(L.specialHp[type] ?? 1) * (w.special[type] ?? 1),
+  }
 }
 
 // boss overtime: the clock has run out and the boss still stands

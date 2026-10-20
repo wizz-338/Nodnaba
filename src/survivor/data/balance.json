@@ -542,7 +542,34 @@
       "brute": 60,
       "boss": 60
     },
-    "fullAtChapter": 15
+    "fullAtChapter": 15,
+    "writer": {
+      "note": "From Tizzzz's chapter on (she rewrites a card at every level-up, so a run's build ends far stronger than before), each phase of the run multiplies the monsters' HP and hits once more, on top of the push above; mid-boss and boss get specialHp (the thief none, so it stays catchable). Tuned so a bot that takes her edits clears chapter 21 a little less often than it did before she came.",
+      "fromChapter": 11,
+      "hp": [
+        1,
+        2.2,
+        4.5,
+        8,
+        13,
+        18,
+        23
+      ],
+      "damage": [
+        1,
+        1.08,
+        1.2,
+        1.35,
+        1.5,
+        1.6,
+        1.7
+      ],
+      "specialHp": {
+        "thief": 1,
+        "brute": 14,
+        "boss": 14
+      }
+    }
   },
   "tizzzz": {
     "note": "The writer Tizzzz joins for good after the event of chapter 10's first clear (which also gives one SS-grade weapon of the starting kind, once). From activeFromChapter on, at every level-up she rewrites one of the three cards at random: that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone.",
