@@ -775,7 +775,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
       <section
         className="ms-eps"
         aria-label="에피소드"
-        onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
+        onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY, card: e.target.closest('.ms-ep') })}
         onPointerUp={(e) => {
           const s1 = swipe.current
           swipe.current = null
@@ -787,15 +787,21 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
             pickEpisode(to)
             return
           }
-          // a tap or a click on the fan: the card under it, found by the
-          // cards' boxes (the front one first) rather than by the browser's
-          // hit test, which some get wrong for tilted cards in a zoomed page
+          // a tap or a click on the fan picks the card it went down on (a
+          // little wobble while pressing does not change it): the card the
+          // browser found there, else the one whose box holds that point
+          // (the front one first; some browsers' hit test is off for tilted
+          // cards in a zoomed page)
           if (Math.abs(dx) > 10 || Math.abs(e.clientY - s1.y) > 10 || e.target.closest('.ms-arrow')) return
           const cards = [...e.currentTarget.querySelectorAll('.ms-ep')]
-          const hit = cards
-            .map((c, i) => ({ i, r: c.getBoundingClientRect(), a: Math.abs(i - ep), seen: getComputedStyle(c).opacity !== '0' }))
-            .filter((c) => c.seen && e.clientX >= c.r.left && e.clientX <= c.r.right && e.clientY >= c.r.top && e.clientY <= c.r.bottom)
-            .sort((x, y) => x.a - y.a)[0]
+          const at = s1.card ? { i: cards.indexOf(s1.card) } : null
+          const hit =
+            at && at.i >= 0
+              ? at
+              : cards
+                  .map((c, i) => ({ i, r: c.getBoundingClientRect(), a: Math.abs(i - ep), seen: getComputedStyle(c).opacity !== '0' }))
+                  .filter((c) => c.seen && s1.x >= c.r.left && s1.x <= c.r.right && s1.y >= c.r.top && s1.y <= c.r.bottom)
+                  .sort((x, y) => x.a - y.a)[0]
           if (hit && hit.i !== ep) {
             audio.sfx('tick')
             tapped.current = performance.now()
