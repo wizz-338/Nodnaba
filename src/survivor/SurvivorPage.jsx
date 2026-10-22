@@ -685,7 +685,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
     ['settings', '설정'],
   ]
   return (
-    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${artUrl(pf.backdrop(region.background))})` }}>
+    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${artUrl(region.cover) || artUrl(pf.backdrop(region.background))})` }}>
       {/* the PC game: a rail at the left (these three) and the tab's own
           content beside it; on the phone neither wrapper is a box at all */}
       <div className="ms-lobby__rail">
@@ -725,122 +725,174 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
   )
 }
 
-// the chapters one at a time: ‹ › (or a swipe) to the one before or after, a
-// grid of them all behind "전체 장 보기". The next locked chapter can be seen,
-// never started.
+// 출발: the story's regions as episode cards (‹ › or a swipe to the one
+// before or after; a card to pick it), the chosen one's line, record and
+// chapters below, and the start button. A grid of all the chapters is behind
+// "전체 장". The next locked chapter can be seen, never started.
 const LAST_CHAPTER = 99
-// the chapter card's name line: the region, then its boss
-const chapterName = (chapter) => {
-  const r = regionOf(D, chapter)
-  return `${r.name} · ${enemyName(D, r, 'boss')}`
-}
+const REGIONS = D.story.regions
+// the last region runs on to the last chapter
+const lastOf = (r) => (r === REGIONS[REGIONS.length - 1] ? LAST_CHAPTER : r.to)
+const rangeText = (r) => (lastOf(r) === r.to ? `${r.from}~${r.to}장` : `${r.from}장~`)
+// a chapter's picture in the strip: the region's monsters in turn, its boss last
+const STRIP_ROLES = ['imp', 'spider', 'slime', 'brute', 'boss']
+const stripArt = (r, n) => r.skins[n === r.to ? 'boss' : STRIP_ROLES[(n - r.from) % 4]]
 const clock2 = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
 
 function Go({ save, equipped, chapter, setChapter, onStart }) {
-  const best = save.bestResults[chapter]
-  const furthest = Math.min(LAST_CHAPTER, save.unlockedChapter + 1)
-  const locked = chapter > save.unlockedChapter
-  const [grid, setGrid] = useState(false)
-  const dir = useRef('next')
-  const swipe = useRef(null)
-  const go = (n) => {
-    const c = Math.max(1, Math.min(furthest, n))
-    if (c === chapter) return
-    dir.current = c > chapter ? 'next' : 'prev'
-    setChapter(c)
-  }
   const pf = usePlatform()
+  const best = save.bestResults[chapter]
+  const unlocked = save.unlockedChapter
+  const furthest = Math.min(LAST_CHAPTER, unlocked + 1)
+  const locked = chapter > unlocked
+  const [grid, setGrid] = useState(false)
+  const swipe = useRef(null)
   const region = regionOf(D, chapter)
+  const ep = REGIONS.indexOf(region)
   // this region's pictures start loading while its card is on show
   useEffect(() => {
     preloadRegion(region, pf.background)
   }, [region.id])
+  // an episode: where it is played from now (its furthest open chapter; a
+  // locked one shows its first)
+  const pickEpisode = (i) => {
+    const r = REGIONS[Math.max(0, Math.min(REGIONS.length - 1, i))]
+    if (r === region) return
+    setChapter(r.from > unlocked ? r.from : Math.min(lastOf(r), unlocked))
+  }
+  const go = (n) => setChapter(Math.max(1, Math.min(furthest, n)))
+  const regionDone = (r) => save.firstCleared.includes(r.to)
+  // the strip: the region's chapters (the last region's: five around the chosen one)
+  const s0 = lastOf(region) === region.to ? region.from : Math.max(region.from, Math.min(chapter - 2, Math.max(region.from, furthest - 4)))
+  const strip = Array.from({ length: Math.min(5, lastOf(region) - s0 + 1) }, (_, k) => s0 + k)
   const cats = save.cats.unlocked
   const catsOn = chapter >= D.balance.cats.activeFromChapter
   const tz = save.tizzzz.unlocked
   const tzOn = chapter >= D.balance.tizzzz.activeFromChapter
   return (
     <>
-      <section className="ms-stagecard">
-        <button type="button" className="ms-arrow ms-arrow--prev" data-sfx="tick" aria-label="이전 장" disabled={chapter <= 1} onClick={() => go(chapter - 1)}>
+      <section
+        className="ms-eps"
+        aria-label="에피소드"
+        onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
+        onPointerUp={(e) => {
+          const s1 = swipe.current
+          swipe.current = null
+          if (!s1) return
+          const dx = e.clientX - s1.x
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - s1.y) * 1.5) {
+            const to = ep + (dx < 0 ? 1 : -1)
+            if (to >= 0 && to < REGIONS.length) audio.sfx('tick')
+            pickEpisode(to)
+          }
+        }}
+      >
+        <div className="ms-eps__track">
+          {REGIONS.map((r, i) => {
+            const shut = r.from > unlocked
+            return (
+              <button
+                key={r.id}
+                type="button"
+                data-sfx="tick"
+                className={`ms-ep is-a${Math.min(4, Math.abs(i - ep))}${i === ep ? ' is-on' : ''}${shut ? ' is-locked' : ''}`}
+                style={{ '--d': i - ep, '--a': Math.abs(i - ep) }}
+                aria-current={i === ep}
+                aria-label={`에피소드 ${i + 1} ${r.name}${shut ? ' (잠김)' : ''}`}
+                onClick={() => pickEpisode(i)}
+              >
+                <Art id={r.cover} className="ms-ep__art" />
+                <span className="ms-ep__head">
+                  <small>에피소드 {i + 1}</small>
+                  <b>{r.name}</b>
+                  <small>{rangeText(r)}</small>
+                </span>
+                {shut && <span className="ms-ep__tag">잠김</span>}
+                {!shut && regionDone(r) && <span className="ms-ep__tag ms-ep__tag--done">클리어</span>}
+              </button>
+            )
+          })}
+        </div>
+        <button type="button" className="ms-arrow ms-arrow--prev" data-sfx="tick" aria-label="이전 에피소드" disabled={ep <= 0} onClick={() => pickEpisode(ep - 1)}>
           ‹
         </button>
-        <div
-          className="ms-stagecard__frame"
-          onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
-          onPointerUp={(e) => {
-            const s0 = swipe.current
-            swipe.current = null
-            if (!s0) return
-            const dx = e.clientX - s0.x
-            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - s0.y) * 1.5) {
-              if ((dx < 0 && chapter < furthest) || (dx > 0 && chapter > 1)) audio.sfx('tick')
-              go(chapter + (dx < 0 ? 1 : -1))
-            }
-          }}
-        >
-          <div key={chapter} className={`ms-stagecard__inner is-${dir.current}`}>
-            <p className="ms-stagecard__no">{chapter}장</p>
-            <p className="ms-stagecard__name">{chapterName(chapter)}</p>
-            <div className="ms-stagecard__art" style={{ '--ground': `url(${artUrl(pf.background(region.background))})` }}>
-              <Art id={region.skins.boss} className="ms-stagecard__boss" alt={enemyName(D, region, 'boss')} />
-              <span className="ms-ember" style={{ '--x': '18%', '--d': '7.5s', '--w': '-1.2s' }} />
-              <span className="ms-ember" style={{ '--x': '46%', '--d': '9.8s', '--w': '-4.1s' }} />
-              <span className="ms-ember" style={{ '--x': '71%', '--d': '8.6s', '--w': '-6.3s' }} />
-              <span className="ms-ember" style={{ '--x': '88%', '--d': '11.2s', '--w': '-2.7s' }} />
-              {locked && <span className="ms-stagecard__lock">{chapter - 1}장을 깨면 열려요</span>}
-              {save.firstCleared.includes(chapter) && <span className="ms-stagecard__done">클리어</span>}
-            </div>
-          </div>
-        </div>
-        <button type="button" className="ms-arrow ms-arrow--next" data-sfx="tick" aria-label="다음 장" disabled={chapter >= furthest} onClick={() => go(chapter + 1)}>
+        <button type="button" className="ms-arrow ms-arrow--next" data-sfx="tick" aria-label="다음 에피소드" disabled={ep >= REGIONS.length - 1} onClick={() => pickEpisode(ep + 1)}>
           ›
         </button>
-        <img className="ms-lobbymano" src={LOBBY_IMG.mano} alt="" draggable="false" />
       </section>
-      <div className="ms-go__side">
-        {cats && (
-          <p className="ms-crew">
-            <span className="ms-crew__cats">
-              {D.cats.companions.map((c) => (
-                <span key={c.id} className="ms-crew__cat">
-                  <Art id={c.image} alt={c.name} />
-                </span>
-              ))}
-            </span>
-            <span className="ms-crew__text">
-              {catsOn ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요` : `${D.balance.cats.activeFromChapter}장부터 함께해요`}
-            </span>
+      <section className="ms-epinfo">
+        <div className="ms-epinfo__text">
+          <p className="ms-epinfo__ep">
+            에피소드 {ep + 1} · {rangeText(region)}
           </p>
-        )}
-        {tz && (
-          <p className="ms-crew ms-crew--tz">
-            <Art id="tizzzz_face" className="ms-crew__face" />
-            <Pen />
-            <span className="ms-crew__text">
-              {tzOn ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요` : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 함께해요`}
-            </span>
-          </p>
-        )}
-        <p className="ms-best">
-          <Crown />
-          {best ? (
-            <>
-              최고 기록: {best.cleared ? '클리어' : `${clock2(best.time)} 버팀`} <i>|</i> 처치 {best.kills} <i>|</i> 엘리트 {best.elites}
-            </>
-          ) : locked ? (
-            '아직 열리지 않은 장이에요'
-          ) : (
-            '아직 기록이 없어요'
+          <h2 className="ms-epinfo__name">{region.name}</h2>
+          <p className="ms-epinfo__blurb">{region.blurb}</p>
+          {(cats || tz) && (
+            <p className="ms-epinfo__crew">
+              {cats &&
+                D.cats.companions.map((c) => (
+                  <span key={c.id} className="ms-crew__cat">
+                    <Art id={c.image} alt={c.name} />
+                  </span>
+                ))}
+              {tz && <Art id="tizzzz_face" className="ms-crew__face" alt={D.tizzzz.name} />}
+              <span>
+                {[cats && (catsOn ? '고양이들이 함께해요' : `고양이들은 ${D.balance.cats.activeFromChapter}장부터`), tz && (tzOn ? `${D.tizzzz.name}가 선택지를 고쳐 써 줘요` : `${D.tizzzz.name}는 ${D.balance.tizzzz.activeFromChapter}장부터`)].filter(Boolean).join(' · ')}
+              </span>
+            </p>
           )}
-        </p>
-        <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
-          {locked ? `${chapter}장 잠김` : `${chapter}장 출발`}
-        </button>
+        </div>
+        <dl className="ms-epinfo__rec">
+          <div>
+            <dt>
+              <Crown /> 최고 기록
+            </dt>
+            <dd>{best ? (best.cleared ? '클리어' : `${clock2(best.time)} 버팀`) : '-'}</dd>
+          </div>
+          <div>
+            <dt>처치</dt>
+            <dd>{best ? best.kills : '-'}</dd>
+          </div>
+          <div>
+            <dt>엘리트</dt>
+            <dd>{best ? best.elites : '-'}</dd>
+          </div>
+          <div>
+            <dt>보스</dt>
+            <dd>{enemyName(D, region, 'boss')}</dd>
+          </div>
+        </dl>
+        <div className="ms-epinfo__go">
+          <img className="ms-lobbymano" src={LOBBY_IMG.mano} alt="" draggable="false" />
+          <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
+            {locked ? `${chapter - 1}장을 깨면 열려요` : `${chapter}장 출발`}
+          </button>
+        </div>
+      </section>
+      <section className="ms-chapters" aria-label={`${region.name}의 장`}>
+        {strip.map((n) => {
+          const open = n <= furthest
+          return (
+            <button
+              key={n}
+              type="button"
+              data-sfx="tick"
+              className={`ms-chapter${n === chapter ? ' is-on' : ''}${n > unlocked ? ' is-locked' : ''}`}
+              style={{ '--ground': `url(${artUrl(pf.background(region.background))})` }}
+              disabled={!open}
+              aria-current={n === chapter}
+              onClick={() => go(n)}
+            >
+              <span className="ms-chapter__no">{n}장</span>
+              <Art id={stripArt(region, n)} className="ms-chapter__art" />
+              {save.firstCleared.includes(n) && <span className="ms-chapter__done">✓</span>}
+            </button>
+          )
+        })}
         <button type="button" className="ms-btn ms-btn--small ms-allbtn" onClick={() => setGrid(true)}>
-          전체 장 보기
+          전체 장
         </button>
-      </div>
+      </section>
       {grid && (
         <ChapterGrid
           save={save}
