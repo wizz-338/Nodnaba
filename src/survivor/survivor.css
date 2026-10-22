@@ -1451,17 +1451,24 @@
 /* every button gives a little under the finger and springs back at once
    (the press itself is never held up). `scale` (the property) is left free
    for the start button's slow breathing. */
-.ms button,
+/* (not the episode cards: their transform is where they stand in the fan,
+   and a press that moved one would lose its click) */
+.ms button:not(.ms-ep),
 .ms .ms-btn,
 .ms .ms-exit {
   transition: transform 0.09s ease-out;
 }
 
-.ms button:active:not(:disabled),
+.ms button:active:not(:disabled):not(.ms-ep),
 .ms .ms-btn:active,
 .ms .ms-exit:active {
   transform: scale(0.95);
   transition-duration: 0.04s;
+}
+
+/* an episode card answers a press with light instead */
+.ms .ms-ep:active {
+  filter: brightness(1.15);
 }
 
 /* an important button that worked: one ring of light, gone in 0.35 s */
