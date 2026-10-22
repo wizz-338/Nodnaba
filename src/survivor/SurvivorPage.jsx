@@ -494,6 +494,23 @@ function Game({ exitHref }) {
     refresh()
   }
 
+  // the chapter after a cleared one (it is open now), or the same at the last
+  const nextChapter = (ch) => {
+    const n = Math.min(LAST_CHAPTER, ch + 1)
+    return n <= P.current.get().unlockedChapter ? n : ch
+  }
+  // leaving a fight's end: after a clear the lobby has the next chapter
+  // chosen (its card, picture and start button); the chapter's clear
+  // cutscene (once ever) plays first, after the rewards were shown
+  const leaveResult = (then) => {
+    const g = G.current
+    const groups = g.clearCuts || []
+    g.clearCuts = null
+    if (g.run && g.run.result && g.run.result.cleared) setChapter(nextChapter(g.chapter))
+    if (groups.length) setModal({ kind: 'cut', groups, then })
+    else then()
+  }
+
   // ── chests: one, or all at once; the results show, then back ──
   const openChests = (all) => {
     const g = G.current
@@ -611,12 +628,15 @@ function Game({ exitHref }) {
           firstTime={save && !save.seenHelp}
           modal={modal}
           setModal={setModal}
-          onRetry={() => start(G.current.chapter)}
-          onEquip={() => {
-            setModal(null)
-            setScreen('lobby')
-            refresh()
-          }}
+          onRetry={() => leaveResult(() => start(G.current.chapter))}
+          onNext={() => leaveResult(() => start(nextChapter(G.current.chapter)))}
+          onEquip={() =>
+            leaveResult(() => {
+              setModal(null)
+              setScreen('lobby')
+              refresh()
+            })
+          }
           onChests={openChests}
           refresh={refresh}
           rerender={() => setBeat((x) => x + 1)}
@@ -634,6 +654,7 @@ function Game({ exitHref }) {
           onDone={() => {
             refresh()
             setModal(modal.after || null)
+            if (modal.then) modal.then()
           }}
         />
       )}
@@ -1394,7 +1415,7 @@ function Fusion({ save, onBack, onFuse }) {
 
 // ── battle ───────────────────────────────────────────────────────────────────
 
-function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip, onChests, refresh, rerender }) {
+function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, onEquip, onChests, refresh, rerender }) {
   const pf = usePlatform()
   const [SW, SH] = pf.screen
   const stageRef = useRef(null)
@@ -1611,11 +1632,13 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         release()
         const reward = P.current.finishRun(g.runId, g.chapter, run.result)
         g.reward = { ...reward, earned: { ...g.earned } }
-        // the chapter's clear cutscene (once), then the result; a region's
-        // reward was given in that same save, whatever the cutscene does
-        const cuts = run.result.cleared ? CUT_GROUPS.filter((c) => c.chapter === g.chapter && c.when === 'clear' && !g.seen.has(c.id)) : []
+        // the result (its rewards) first, then the chapter's clear cutscene
+        // (once) on the way out; a region's reward was given in that same
+        // save, whatever the cutscene does (one closed before it was seen
+        // plays when the game is next opened)
+        g.clearCuts = run.result.cleared ? CUT_GROUPS.filter((c) => c.chapter === g.chapter && c.when === 'clear' && !g.seen.has(c.id)).map((c) => c.id) : []
         refresh()
-        setModal(cuts.length ? { kind: 'cut', groups: cuts.map((c) => c.id), after: { kind: 'result' } } : { kind: 'result' })
+        setModal({ kind: 'result' })
       }
       hudT += dt
       if (hudT > 0.1) {
@@ -1880,7 +1903,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         </div>
       )}
       {modal && modal.kind === 'result' && run.result && (
-        <Result run={run} reward={G.current.reward} save={save} onRetry={onRetry} onEquip={onEquip} onChests={onChests} />
+        <Result run={run} reward={G.current.reward} save={save} onRetry={onRetry} onNext={onNext} onEquip={onEquip} onChests={onChests} />
       )}
     </div>
   )
@@ -1981,7 +2004,10 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
         ))}
       </div>
       <div className="ms-cut__box">
-        <p className="ms-cut__text">{cut.text}</p>
+        <p className="ms-cut__text">
+          <span className="ms-cut__who">{cut.who || D.story.cutscenes.speaker}</span>
+          {cut.text}
+        </p>
         <div className="ms-cut__row">
           <span className="ms-cut__count">
             {i + 1} / {cuts.length}
@@ -1998,7 +2024,7 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
   )
 }
 
-function Result({ run, reward, save, onRetry, onEquip, onChests }) {
+function Result({ run, reward, save, onRetry, onNext, onEquip, onChests }) {
   const r = run.result
   const build = buildSummary(run)
   const busy = useRef(false)
@@ -2008,6 +2034,7 @@ function Result({ run, reward, save, onRetry, onEquip, onChests }) {
     fn()
   }
   const rw = reward || { chests: [], coins: 0, earned: { chests: 0, coins: 0 } }
+  const next = r.cleared && run.chapter < LAST_CHAPTER
   const chests = rw.chests.length + rw.earned.chests
   const coins = rw.coins + rw.earned.coins
   const time = `${Math.floor(r.time / 60)}:${String(Math.floor(r.time % 60)).padStart(2, '0')}`
@@ -2067,8 +2094,9 @@ function Result({ run, reward, save, onRetry, onEquip, onChests }) {
           <button type="button" className="ms-btn" onClick={once(onEquip)}>
             로비로
           </button>
-          <button type="button" className="ms-btn ms-btn--primary" onClick={once(onRetry)}>
-            다시 도전
+          {/* cleared: on to the next chapter (the last one: again) */}
+          <button type="button" className="ms-btn ms-btn--primary" onClick={once(next ? onNext : onRetry)}>
+            {next ? `다음 장 (${run.chapter + 1}장)` : '다시 도전'}
           </button>
         </div>
       </div>

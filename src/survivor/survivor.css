@@ -1732,6 +1732,14 @@
   word-break: keep-all;
 }
 
+.ms-cut__who {
+  display: block;
+  margin-bottom: 2px;
+  color: #c93c86;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .ms-cut__row {
   display: flex;
   align-items: center;

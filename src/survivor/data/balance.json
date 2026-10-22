@@ -123,7 +123,7 @@
       "chargeSeconds": 0.45,
       "chargeDamage": 22,
       "restSeconds": 0.6,
-      "downSeconds": 0.6,
+      "downSeconds": 1.0,
       "stomp": false
     },
     "boss": {
@@ -143,7 +143,7 @@
       "chargeSeconds": 0.5,
       "chargeDamage": 30,
       "restSeconds": 0.55,
-      "downSeconds": 1.1,
+      "downSeconds": 1.5,
       "stomp": true,
       "stompRadius": 72,
       "stompWindup": 0.9,
@@ -633,6 +633,411 @@
     },
     "final": {
       "chanceMul": 1.5
+    }
+  },
+  "specialBosses": {
+    "note": "The story's special bosses (bosses.js): each episode's 3rd chapter has the region's mid-boss (its brute character), its 5th its final boss (its boss character), at the chapter's usual boss time with the boss's usual HP and hits (no new multipliers): only how they fight is their own. Every attack: warn (its warning shows on the ground from the start, in its real shape), its blows land once each, then recover; walk: seconds walking between attacks. Distances are logical px (the phone field is 340 × 536; Mano's base speed 125/s, her hit circle 9). The demon king's phases change with its HP (above: share of HP), with phasePause seconds of rest and its field cleared at each change. In a mid-boss chapter the 145 s elite wears the region's bone_beast character, so the boss is not met twice.",
+    "midChapter": 3,
+    "walkSeconds": 1.6,
+    "recoverSeconds": 0.7,
+    "strikeShow": 0.3,
+    "phasePause": 1.6,
+    "minWarn": 0.75,
+    "bosses": {
+      "mossgolem": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "cone",
+            "warn": 1.0,
+            "range": 120,
+            "angle": 70,
+            "damage": 24,
+            "recover": 1.1
+          }
+        ]
+      },
+      "flowerguard": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "radial",
+            "warn": 0.95,
+            "count": 12,
+            "gap": 2,
+            "speed": 72,
+            "r": 6,
+            "damage": 16,
+            "look": "seed"
+          },
+          {
+            "type": "cone",
+            "warn": 1.0,
+            "range": 110,
+            "angle": 60,
+            "damage": 24,
+            "recover": 1.1
+          },
+          {
+            "type": "radial",
+            "warn": 0.95,
+            "count": 14,
+            "gap": 3,
+            "speed": 78,
+            "r": 6,
+            "damage": 16,
+            "look": "seed"
+          }
+        ]
+      },
+      "lanterntree": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "marks",
+            "count": 3,
+            "every": 0.5,
+            "delay": 1.15,
+            "r": 34,
+            "damage": 22
+          }
+        ]
+      },
+      "treelord": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "roots",
+            "warn": 1.4,
+            "cols": 5,
+            "rows": 3,
+            "spacing": 70,
+            "r": 34,
+            "safe": 2,
+            "step": 0.22,
+            "damage": 24,
+            "recover": 0.8
+          },
+          {
+            "type": "marks",
+            "count": 4,
+            "every": 0.45,
+            "delay": 1.15,
+            "r": 34,
+            "damage": 22
+          }
+        ]
+      },
+      "skullbeast": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "charge",
+            "warn": 1.1,
+            "lock": 0.6,
+            "speed": 300,
+            "seconds": 0.5,
+            "damage": 30,
+            "recover": 0.9
+          }
+        ]
+      },
+      "skullking": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "fan",
+            "warn": 0.9,
+            "lock": 0.7,
+            "count": 5,
+            "spread": 64,
+            "speed": 140,
+            "r": 6,
+            "damage": 18,
+            "look": "bone"
+          },
+          {
+            "type": "summon",
+            "warn": 0.9,
+            "count": 3,
+            "cap": 5,
+            "enemy": "imp",
+            "recover": 0.6
+          },
+          {
+            "type": "fan",
+            "warn": 0.9,
+            "lock": 0.7,
+            "count": 7,
+            "spread": 84,
+            "speed": 140,
+            "r": 6,
+            "damage": 18,
+            "look": "bone"
+          }
+        ]
+      },
+      "sandworm": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "burrow",
+            "warn": 1.2,
+            "dig": 0.35,
+            "r": 46,
+            "damage": 26,
+            "recover": 0.9
+          }
+        ]
+      },
+      "crystalguard": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "lines",
+            "warn": 1.0,
+            "count": 4,
+            "width": 30,
+            "len": 420,
+            "step": 0.3,
+            "rotate": 45,
+            "damage": 24,
+            "recover": 0.8
+          },
+          {
+            "type": "radial",
+            "warn": 0.95,
+            "count": 10,
+            "gap": 2,
+            "speed": 80,
+            "r": 6,
+            "damage": 16,
+            "look": "crystal"
+          },
+          {
+            "type": "lines",
+            "warn": 1.0,
+            "count": 6,
+            "width": 26,
+            "len": 420,
+            "step": 0.22,
+            "rotate": 30,
+            "damage": 24,
+            "recover": 0.8
+          }
+        ]
+      },
+      "frostbear": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "slams",
+            "warn": 0.9,
+            "count": 3,
+            "every": 0.45,
+            "reach": 46,
+            "r": 40,
+            "damage": 22,
+            "recover": 1.0
+          }
+        ]
+      },
+      "icegolem": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "floor",
+            "warn": 0.8,
+            "count": 3,
+            "r": 42,
+            "spread": 90,
+            "life": 5,
+            "cap": 5,
+            "slow": 0.72,
+            "recover": 0.6
+          },
+          {
+            "type": "fan",
+            "warn": 1.0,
+            "lock": 0.7,
+            "count": 5,
+            "spread": 70,
+            "speed": 130,
+            "r": 6,
+            "damage": 18,
+            "look": "ice"
+          }
+        ]
+      },
+      "skygolem": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "wind",
+            "warn": 0.8,
+            "range": 150,
+            "push": 120,
+            "seconds": 0.3,
+            "recover": 0.3
+          },
+          {
+            "type": "bolts",
+            "warn": 1.1,
+            "count": 3,
+            "r": 34,
+            "spread": 80,
+            "step": 0.35,
+            "damage": 24,
+            "recover": 0.8
+          }
+        ]
+      },
+      "thunderspirit": {
+        "role": "final",
+        "walk": 1.3,
+        "attacks": [
+          {
+            "type": "chain",
+            "warn": 1.0,
+            "count": 6,
+            "spacing": 56,
+            "r": 30,
+            "step": 0.25,
+            "damage": 22,
+            "recover": 0.8
+          },
+          {
+            "type": "radial",
+            "warn": 0.95,
+            "count": 14,
+            "gap": 3,
+            "speed": 90,
+            "r": 6,
+            "damage": 16,
+            "look": "spark"
+          },
+          {
+            "type": "bolts",
+            "warn": 1.0,
+            "count": 4,
+            "r": 32,
+            "spread": 90,
+            "step": 0.3,
+            "damage": 22,
+            "recover": 0.8
+          }
+        ]
+      },
+      "voidgolem": {
+        "role": "mid",
+        "attacks": [
+          {
+            "type": "combo",
+            "parts": [
+              {
+                "type": "marks",
+                "count": 3,
+                "every": 0.45,
+                "delay": 1.1,
+                "r": 34,
+                "damage": 22
+              },
+              {
+                "type": "charge",
+                "warn": 1.1,
+                "lock": 0.6,
+                "speed": 300,
+                "seconds": 0.5,
+                "damage": 30,
+                "recover": 0.9,
+                "after": 1.7
+              }
+            ]
+          }
+        ]
+      },
+      "demonking": {
+        "role": "final",
+        "walk": 1.1,
+        "phases": [
+          {
+            "above": 0.66,
+            "attacks": [
+              {
+                "type": "cone",
+                "warn": 1.0,
+                "range": 130,
+                "angle": 80,
+                "damage": 28,
+                "recover": 1.1
+              },
+              {
+                "type": "radial",
+                "warn": 0.95,
+                "count": 14,
+                "gap": 3,
+                "speed": 80,
+                "r": 6,
+                "damage": 16,
+                "look": "void"
+              }
+            ]
+          },
+          {
+            "above": 0.33,
+            "attacks": [
+              {
+                "type": "marks",
+                "count": 4,
+                "every": 0.45,
+                "delay": 1.15,
+                "r": 34,
+                "damage": 26
+              },
+              {
+                "type": "fan",
+                "warn": 0.9,
+                "lock": 0.7,
+                "count": 7,
+                "spread": 80,
+                "speed": 140,
+                "r": 6,
+                "damage": 20,
+                "look": "void"
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "attacks": [
+              {
+                "type": "chain",
+                "warn": 1.0,
+                "count": 6,
+                "spacing": 56,
+                "r": 30,
+                "step": 0.25,
+                "damage": 26,
+                "recover": 0.8
+              },
+              {
+                "type": "charge",
+                "warn": 1.1,
+                "lock": 0.6,
+                "speed": 300,
+                "seconds": 0.5,
+                "damage": 34,
+                "recover": 0.9
+              }
+            ]
+          }
+        ]
+      }
     }
   }
 }

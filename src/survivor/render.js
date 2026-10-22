@@ -27,6 +27,11 @@ export function short(n) {
 const DIRS = ['S', 'SE', 'E', 'NE', 'N', 'SW', 'W', 'NW']
 const DIR_ANGLE = { E: 0, SE: 45, S: 90, SW: 135, W: 180, NW: -135, N: -90, NE: -45 }
 const MANO_SCALE = 0.9 // a 50 px tall frame → 45 logical px
+// Mano's ↘ / ↙ run frames are drawn about a fifth smaller in the sheet (her
+// head and body 39.5 px tall against 49.3 px in every other direction):
+// those two get this one fixed correction, always the same, around her feet
+// (never a fit frame by frame)
+const MANO_FIX = { run_se: 49.3 / 39.5, run_sw: 49.3 / 39.5 }
 const BALL_LIFT = 7 // balls fly a little above the ground (their shadow stays on it)
 const CAT_STRIDE = 7 // logical px run per leg frame
 const POP = 0.35 // s a 퍼센트 하트 takes to jump out of a cat
@@ -41,6 +46,10 @@ const MAX_NUMBERS = 40
 const ENEMY_DIE = 0.28
 const BOLT = 0.18 // s a lightning stroke stays
 const MAX_BOLTS = 12
+const MOVE_PACE = 6 // px/s: slower than this a walking monster stands (its feet stop)
+const DANGER = '214, 58, 58' // the colour of a blow to come
+// the special bosses' shots: core and glow
+const SHOT_LOOK = { seed: ['#7a5a2a', '#cbe58a'], spark: ['#fff6b0', '#ffd23f'], bone: ['#f4ecd8', '#9c8f7a'], crystal: ['#e9fbff', '#7fd4f0'], ice: ['#f2fbff', '#9fdcff'], void: ['#e6c8ff', '#7a3fc4'] }
 
 // idle frames there are: S/SE/E two, NE/N one; the left side mirrors the right
 const IDLE = { S: ['idle_s', false], SE: ['idle_se', false], E: ['idle_e', false], NE: ['idle_ne', false], N: ['idle_n', false], SW: ['idle_se', true], W: ['idle_e', true], NW: ['idle_ne', true] }
@@ -80,6 +89,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const small = new Map() // smoothed copies of frames drawn smaller than their pixels
   const tints = new Map() // white / red silhouettes of each sheet, for flashes
   const skins = new Map() // the story's monsters, scaled once per size: { base, white, ice }
+  const motions = new Map() // their animation frames, scaled once per size (see motionSet)
+  const MOTION = D.motion.characters
   const bolts = [] // lightning of the thunder blessing, a moment each
   const E = D.balance.enemies
   const CATS = D.balance.cats
@@ -120,6 +131,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     field = null
     small.clear()
     skins.clear()
+    motions.clear()
   }
   const kd = () => view.k * view.dpr
   const world = () => ctx.setTransform(kd(), 0, 0, kd(), -cam.x * kd(), -cam.y * kd())
@@ -342,6 +354,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     mano.downT = 0
     let name
     let flip = false
+    let fix = 1
     if (mano.hitT > 0) {
       mano.hitT -= dt
       opt.flash = 0.55
@@ -355,7 +368,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       // step rate follows her real speed (faster after speed upgrades)
       const rate = Math.max(0.75, Math.min(1.4, Math.hypot(p.vx, p.vy) / p.baseSpeed))
       mano.phase += dt * 1000 * rate
-      name = animFrame('run_' + dir.toLowerCase(), mano.phase)
+      const anim = 'run_' + dir.toLowerCase()
+      name = animFrame(anim, mano.phase)
+      fix = MANO_FIX[anim] || 1
     }
     if (!name) {
       mano.idleT += run.state === 'play' ? dt : 0
@@ -363,7 +378,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       name = animFrame(a, mano.idleT * 1000)
       flip = f
     }
-    put(name, p.x, p.y, MANO_SCALE, { ...opt, flip })
+    put(name, p.x, p.y, MANO_SCALE * fix, { ...opt, flip })
   }
 
   // ── monsters ──
@@ -443,7 +458,128 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.globalAlpha = 1
   }
 
+  // ── the animated monsters (data/motion.json) ──
+  // One scale for every frame of a character (its size over the long side of
+  // its first walking pose), each frame's pivot (feet; a flyer's body centre)
+  // on its spot, turned round about that pivot. Frames are cut out of the
+  // atlas and scaled once per size, each into its own canvas with a clear
+  // edge (so a neighbour never bleeds in), with white and pale-blue copies
+  // for the hit flash and the frost.
+  const sizeOf = (e) => (D.story.monsters[e.skin] || {}).size || D.story.roleSize[e.type] || 32
+  function motionSet(id, atlas, size) {
+    const m = MOTION[id]
+    const s = size / m.refLong
+    const q = Math.min(1, s * kd()) // canvas px per atlas px (never more than the atlas has)
+    const key = id + '|' + size + '|' + q.toFixed(4)
+    let set = motions.get(key)
+    if (set) return set
+    const make = (f, color) => {
+      const c = document.createElement('canvas')
+      c.width = Math.ceil(f[2] * q) + 2
+      c.height = Math.ceil(f[3] * q) + 2
+      const g = c.getContext('2d')
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = 'high'
+      g.drawImage(atlas, f[0], f[1], f[2], f[3], 1, 1, f[2] * q, f[3] * q)
+      if (color) {
+        g.globalCompositeOperation = 'source-in'
+        g.fillStyle = color
+        g.fillRect(0, 0, c.width, c.height)
+      }
+      return c
+    }
+    const f0 = m.frames[m.animations.move.frames[0]]
+    set = {
+      s,
+      q,
+      // a flyer hangs its body centre this far above its spot (its first
+      // pose's bottom on the ground), the same for every frame
+      lift: m.fly ? (f0[3] - f0[5]) * s : 0,
+      frames: m.frames.map((f) => ({ f, base: make(f, null), white: make(f, '#ffffff'), ice: make(f, '#bfeaff') })),
+    }
+    motions.set(key, set)
+    return set
+  }
+
+  // which frame of an animation plays ms into it (looped, or held on its last)
+  function frameAt(m, name, ms, loop) {
+    const fr = m.animations[name].frames
+    let total = 0
+    for (const i of fr) total += m.durations[i]
+    let t = loop ? ms % total : Math.min(ms, total - 1)
+    for (const i of fr) if ((t -= m.durations[i]) < 0) return i
+    return fr[fr.length - 1]
+  }
+
+  // its attack pose now (0 getting ready, 1 the blow, 2 coming back), or -1
+  function attackPose(e) {
+    if (e.behavior === 'special') return e.stage === 'windup' ? 0 : e.stage === 'strike' ? 1 : e.stage === 'recover' ? 2 : -1
+    if (e.behavior !== 'boss') return -1
+    return e.mode === 'windup' || e.mode === 'stompWind' ? 0 : e.mode === 'charge' ? 1 : e.mode === 'rest' ? 2 : -1
+  }
+
+  // A monster from its frames: walking (four frames by time; a walker that
+  // stands still stands on its first, a flyer keeps flapping), its attack's
+  // three poses with the attack's own stages, its death once (bosses and
+  // mid-bosses: then held, then faded), an ordinary monster's end a flash
+  // and a fade on the pose it had. Burrowed, it is not drawn.
+  function drawMotion(run, e, m, atlas) {
+    if (e.under) return
+    const set = motionSet(e.skin, atlas, sizeOf(e))
+    const A = m.animations
+    const big = e.behavior === 'boss' || e.behavior === 'special'
+    const walking = m.fly || (e.pace || 0) > MOVE_PACE
+    const step = () => (walking ? frameAt(m, 'move', e.life * 1000 + e.id * 37, true) : A.move.frames[0])
+    let i
+    let alpha = 1
+    let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
+    if (e.state === 'spawn') (i = A.move.frames[0]), (alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35))
+    else if (e.state === 'live') {
+      const pose = A.attack ? attackPose(e) : -1
+      i = pose >= 0 ? A.attack.frames[pose] : step()
+    } else if (e.state === 'down') {
+      flash = 0
+      if (A.death) {
+        i = frameAt(m, 'death', e.t * 1000, false)
+        // the chapter's boss: held a while, then faded as the chapter ends
+        // (a mid-boss lies until its own fade, below)
+        if (e === run.boss) {
+          const end = E[e.type].downSeconds
+          alpha = Math.max(0, Math.min(1, (end - e.t) / (end / 3)))
+        }
+      } else (i = A.move.frames[0]), (alpha = 0.85)
+    } else if (e.state === 'die') (i = step()), (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
+    else if (e.state === 'gone') (i = big && A.death ? A.death.frames[A.death.frames.length - 1] : step()), (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0)
+    if (alpha <= 0) return
+    const fr = set.frames[i]
+    const [, , fw, fh, px, py] = fr.f
+    const { s, q } = set
+    const K = kd()
+    const pad = s / q // one canvas px, in logical px
+    const flip = e.face < 0 // the art faces right
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x - cam.x) * K, (e.y + 3 - set.lift - cam.y) * K)
+    ctx.imageSmoothingEnabled = true
+    const x = -px * s - pad
+    const y = -py * s - pad
+    const w = fr.base.width * pad
+    const h = fr.base.height * pad
+    ctx.globalAlpha = alpha
+    ctx.drawImage(fr.base, x, y, w, h)
+    if (e.freezeT > 0) {
+      ctx.globalAlpha = alpha * 0.55
+      ctx.drawImage(fr.ice, x, y, w, h)
+    }
+    if (flash > 0) {
+      ctx.globalAlpha = alpha * flash
+      ctx.drawImage(fr.white, x, y, w, h)
+    }
+    ctx.globalAlpha = 1
+  }
+
   function drawEnemy(run, e) {
+    const m = e.skin && MOTION[e.skin]
+    const atlas = m && art.now('motion:' + e.skin)
+    if (atlas) return drawMotion(run, e, m, atlas)
     const pic = e.skin && art.now(e.skin)
     if (pic) return drawSkin(run, e, pic)
     const def = E[e.type]
@@ -537,6 +673,142 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.arc(e.x, e.y, def.stompRadius * Math.max(0.05, k), 0, Math.PI * 2)
     ctx.strokeStyle = 'rgba(214, 58, 58, 0.5)'
     ctx.stroke()
+  }
+
+  // ── the special bosses' attacks ──
+  // Warnings are their real shapes: under everyone, a fill that darkens as
+  // the blow nears; over everything (balls, pickups, monsters), their edge
+  // and order number, so a warning is never hidden. A blow flashes where it
+  // landed. Green: a safe spot; blue: frost; pale: wind; purple: a summoning.
+  function shape(h, grow = 1) {
+    ctx.beginPath()
+    if (h.kind === 'circle' || h.kind === 'safe') ctx.arc(h.x, h.y, h.r * grow, 0, Math.PI * 2)
+    else if (h.kind === 'cone') {
+      ctx.moveTo(h.x, h.y)
+      ctx.arc(h.x, h.y, h.range * grow, h.dir - h.angle / 2, h.dir + h.angle / 2)
+      ctx.closePath()
+    } else if (h.kind === 'line') {
+      const nx = -h.dy * h.half
+      const ny = h.dx * h.half
+      const ex = h.x + h.dx * h.len * grow
+      const ey = h.y + h.dy * h.len * grow
+      ctx.moveTo(h.x + nx, h.y + ny)
+      ctx.lineTo(ex + nx, ey + ny)
+      ctx.arc(ex, ey, h.half, Math.atan2(ny, nx), Math.atan2(-ny, -nx), true)
+      ctx.lineTo(h.x - nx, h.y - ny)
+      ctx.arc(h.x, h.y, h.half, Math.atan2(-ny, -nx), Math.atan2(ny, nx), true)
+      ctx.closePath()
+    }
+  }
+  const hazardColor = (h) => (h.kind === 'safe' ? '72, 176, 96' : h.frost ? '110, 190, 240' : h.wind ? '200, 225, 240' : h.summon ? '150, 90, 200' : h.bolt ? '240, 140, 20' : DANGER)
+  const nearing = (run, h) => Math.max(0, Math.min(1, (run.t - h.born) / Math.max(0.01, h.at - h.born)))
+
+  function drawHazardsUnder(run) {
+    if (!run.hazards.length && !run.floors.length) return
+    world()
+    // frost on the ground: fades in, and out at its end
+    for (const f of run.floors) {
+      const a = Math.min(1, (run.t - f.from) / 0.2, (f.until - run.t) / 0.5)
+      ctx.beginPath()
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(190, 232, 255, ${0.42 * a})`
+      ctx.fill()
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = `rgba(120, 196, 240, ${0.8 * a})`
+      ctx.stroke()
+    }
+    for (const h of run.hazards) {
+      if (h.kind === 'ray') continue
+      const c = hazardColor(h)
+      if (run.t < h.at) {
+        const k = nearing(run, h)
+        shape(h)
+        ctx.fillStyle = `rgba(${c}, ${0.18 + 0.2 * k})`
+        ctx.fill()
+        // how close it is: the same shape growing from the middle
+        if (!h.harmless || h.frost) {
+          shape(h, Math.max(0.04, k))
+          ctx.fillStyle = `rgba(${c}, 0.16)`
+          ctx.fill()
+        }
+      } else if (h.dash) {
+        // the charge's path while it charges along it
+        shape(h)
+        ctx.fillStyle = `rgba(${c}, 0.16)`
+        ctx.fill()
+      } else if (!h.harmless) {
+        // the blow: a bright flash where it landed
+        const k = 1 - (run.t - h.at) / h.linger
+        shape(h)
+        ctx.fillStyle = `rgba(255, 240, 200, ${0.55 * k})`
+        ctx.fill()
+      }
+    }
+  }
+
+  function drawHazardsOver(run) {
+    if (!run.hazards.length && !run.shots.length) return
+    world()
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([5, 4])
+    for (const h of run.hazards) {
+      const c = hazardColor(h)
+      if (h.kind === 'ray') {
+        // a shot's lane: from the boss out, solid while it is coming, then fading
+        const a = run.t < h.at ? 0.45 + 0.4 * nearing(run, h) : Math.max(0, 0.5 * (1 - (run.t - h.at) / (h.keep || 1)))
+        ctx.beginPath()
+        ctx.moveTo(h.x, h.y)
+        ctx.lineTo(h.x + h.dx * h.len, h.y + h.dy * h.len)
+        ctx.strokeStyle = `rgba(${c}, ${a})`
+        ctx.lineWidth = 3
+        ctx.stroke()
+        ctx.lineWidth = 1.5
+        continue
+      }
+      if (run.t >= h.at && !h.dash) continue
+      const k = nearing(run, h)
+      // a dark edge under the coloured one: seen on light ground and in a crowd
+      shape(h)
+      ctx.lineWidth = 3.5
+      ctx.strokeStyle = 'rgba(30, 20, 25, 0.3)'
+      ctx.stroke()
+      ctx.lineWidth = 2
+      ctx.strokeStyle = `rgba(${c}, ${0.65 + 0.35 * k})`
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+    // the order the blows come in
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = '800 11px system-ui, -apple-system, sans-serif'
+    ctx.lineWidth = 3
+    for (const h of run.hazards) {
+      if (!h.order || run.t >= h.at) continue
+      const y = h.kind === 'line' ? h.y + h.dy * h.len * 0.6 : h.y
+      const x = h.kind === 'line' ? h.x + h.dx * h.len * 0.6 : h.x
+      ctx.strokeStyle = 'rgba(255, 250, 240, 0.9)'
+      ctx.strokeText(h.order, x, y)
+      ctx.fillStyle = `rgb(${hazardColor(h)})`
+      ctx.fillText(h.order, x, y)
+    }
+    ctx.textBaseline = 'alphabetic'
+    // shots, over the warnings
+    for (const sh of run.shots) {
+      const [core, glow] = SHOT_LOOK[sh.kind] || SHOT_LOOK.seed
+      ctx.beginPath()
+      ctx.arc(sh.x, sh.y, sh.r + 2, 0, Math.PI * 2)
+      ctx.fillStyle = glow
+      ctx.globalAlpha = 0.55
+      ctx.fill()
+      ctx.globalAlpha = 1
+      ctx.beginPath()
+      ctx.arc(sh.x, sh.y, sh.r, 0, Math.PI * 2)
+      ctx.fillStyle = core
+      ctx.fill()
+      ctx.lineWidth = 1
+      ctx.strokeStyle = 'rgba(40, 30, 40, 0.6)'
+      ctx.stroke()
+    }
   }
 
   function drawBall(b, trails) {
@@ -637,8 +909,19 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   // a region's monsters made at their sizes as soon as their pictures are
   // in, so the first mid-boss or boss never pays for it in the middle of a fight
   let warmed = ''
+  let warmedMotion = ''
   function warm(run) {
     const R = run.region
+    if (R && warmedMotion !== R.id + kd()) {
+      // their frames too (each once, and only when all are in)
+      // (at every size they come in: a mid-boss chapter's boss wears the
+      // mid-boss's look, its second elite the bone beast's)
+      const ids = [...Object.entries(R.skins), ['boss', R.skins.brute], ['brute', R.skins.bone_beast]].filter(([, id]) => MOTION[id])
+      if (ids.every(([, id]) => art.now('motion:' + id))) {
+        for (const [role, id] of ids) motionSet(id, art.now('motion:' + id), sizeOf({ skin: id, type: role }))
+        warmedMotion = R.id + kd()
+      }
+    }
     if (!R || warmed === R.id + kd()) return
     const roles = Object.entries(R.skins)
     if (!roles.every(([, id]) => art.now(id))) return
@@ -650,6 +933,12 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   }
 
   function draw(run, dt) {
+    // a canvas with no size yet (or for a moment while the screen changes):
+    // nothing to draw on, and a picture of no size cannot be copied
+    if (!canvas.width || !canvas.height) {
+      run.events.length = 0
+      return
+    }
     const now = performance.now()
     warm(run)
     if (inset && run.arena.view) {
@@ -674,7 +963,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (e.state === 'spawn') {
         const f = Math.min(1, e.t / 0.35)
         shadow(e.x, e.y, w * f, e.r * 0.42 * f, 0.3)
-      } else if (e.state === 'live' || e.state === 'down') shadow(e.x, e.y, w, e.r * 0.42)
+      } else if ((e.state === 'live' && !e.under) || e.state === 'down') shadow(e.x, e.y, w, e.r * 0.42)
     }
     // a busy screen sheds decoration first (never balls, hits or damage):
     // ball shadows and trails go, and fewer numbers and sparks are drawn
@@ -686,6 +975,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (e.mode === 'windup') drawWarning(run, e)
       else if (e.mode === 'stompWind') drawRing(run, e)
     }
+    drawHazardsUnder(run)
     for (const o of run.orbs) drawOrb(o, now)
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
@@ -694,6 +984,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     list.sort((a, b) => a[0] - b[0])
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
+    drawHazardsOver(run)
     const maxFx = busy ? MAX_FX / 3 : MAX_FX
     const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
 
@@ -705,6 +996,13 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
         if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })
+      } else if (ev.type === 'blast') {
+        if (fx.length < MAX_FX) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: Math.max(0.7, ev.r / 28) })
+      } else if (ev.type === 'phase') {
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2
+          fx.push({ anim: 'dust', x: ev.x + Math.cos(a) * 34, y: ev.y + Math.sin(a) * 34, t: 0, s: 1.3 })
+        }
       } else if (ev.type === 'stomp') {
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2

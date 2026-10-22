@@ -13,6 +13,7 @@
 // overtime (the fight goes on and monsters come faster), never a free clear.
 
 import { BEHAVIORS } from './weapons.js'
+import { specialOf, updateSpecial, updateHazards, clearOwned, setSpawner } from './bosses.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -20,6 +21,7 @@ const DIE_TIME = 0.28
 const DOWN_TIME = 0.55
 const HIT_ANIM = 0.18
 const FLASH = 0.12 // s an enemy flashes when hit
+const FLIP_PACE = 8 // px/s the other way before a monster turns round (no flicker)
 const CELL = 32
 const CORE = ['count', 'interval', 'damage', 'bounce']
 
@@ -147,6 +149,8 @@ export function createRun(D, opts) {
       xpMul: 1,
       coinMul: pm.coins,
       inv: 0,
+      slow: 1, // frost under her feet (a special boss's): her speed × this
+      push: null, // a gust (a special boss's): { vx, vy, until }
       hitT: 0,
       moving: false,
     },
@@ -169,6 +173,11 @@ export function createRun(D, opts) {
     orbs: [],
     events: [], // for the renderer: impacts, deaths, numbers (drained every frame)
     awards: [], // rewards earned this run ('elite1', 'elite2', 'boss'), for the page to save
+    // a special boss's attacks (bosses.js): warnings and blows on the
+    // ground, its shots, its frost
+    hazards: [],
+    shots: [],
+    floors: [],
     nextEvent: 0,
     elites: {}, // key → the enemy, once it has come
     eliteKills: 0,
@@ -219,7 +228,7 @@ function blessHit(run, e, dmg, x, y) {
     c.tokens -= 1
     return true
   }
-  const boss = e.behavior === 'boss'
+  const boss = e.behavior === 'boss' || e.behavior === 'special'
   if (b.phoenix && e.state === 'live' && fire('phoenix')) {
     const c = b.phoenix
     slowDown(e, boss ? c.bossSlow : c.slow, c.seconds)
@@ -445,6 +454,9 @@ function spawn(run, type = pickType(run), at = null) {
   return e
 }
 
+// a special boss's summons come like any monster of the wave (bosses.js)
+setSpawner((run, type, x, y) => spawn(run, type, { x, y }))
+
 // an elite or the boss enters from the top, on the side away from Mano
 function spawnSpecial(run, ev) {
   const [x0, y0, x1] = run.view
@@ -453,6 +465,13 @@ function spawnSpecial(run, ev) {
   const e = spawn(run, ev.enemy, { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 })
   e.key = ev.key
   run.elites[ev.key] = e
+  // the story's special bosses (bosses.js): the 3rd chapter's mid-boss and
+  // the 5th's final boss take the boss's place (its HP, its hits) and fight
+  // their own way; in a mid-boss chapter the 145 s elite is another of the
+  // region's monsters, so the boss is not met twice
+  const sp = specialOf(run.D, run.region, run.chapter)
+  if (sp && ev.key === 'boss') Object.assign(e, { behavior: 'special', special: sp.id, role: sp.role, skin: sp.id })
+  if (sp && sp.role === 'mid' && ev.key === 'elite2') e.skin = run.region.skins.bone_beast || e.skin
   if (ev.key === 'boss') {
     run.boss = e
     // its guard from bossGuard.fromChapter on (full from the start)
@@ -485,10 +504,17 @@ function hurtEnemy(run, e, dmg, x, y) {
       run.player.hp = Math.min(run.player.maxHp, run.player.hp + B.chapter.eliteHeal)
     }
   }
-  if (e.behavior === 'boss') {
-    // lies down a moment; the boss's fall clears the chapter when that ends
+  if (e.behavior === 'boss' || e.behavior === 'special') {
+    // falls (its death plays once) and stops at once: no more attacks, no
+    // touch; whatever it had on the ground or in the air goes with it. The
+    // boss's fall clears the chapter when that ends; an elite fades away
     e.state = 'down'
     e.mode = null
+    e.atk = null
+    e.dash = null
+    e.under = false
+    e.stage = null
+    clearOwned(run, e.id)
     return
   }
   e.state = 'die'
@@ -520,6 +546,11 @@ const toward = (e, x, y) => {
 
 // how each kind moves; returns nothing, moves e
 const MOVES = {
+  // the story's special bosses: walk at Mano, then one of their attacks
+  // (bosses.js)
+  special(run, e, dt) {
+    updateSpecial(run, e, dt, { chase: MOVES.chase })
+  },
   // straight at Mano
   chase(run, e, dt) {
     const [ux, uy] = toward(e, run.player.x, run.player.y)
@@ -639,6 +670,9 @@ function moveEnemies(run, dt) {
       if (e.t >= TELEGRAPH) (e.state = 'live'), (e.t = 0)
       continue
     }
+    // a fallen elite (not the boss: its fall ends the chapter) fades away
+    // once its death has played; nothing stays lying on the field
+    if (e.state === 'down' && e !== run.boss && e.t >= run.D.balance.enemies[e.type].downSeconds) (e.state = 'gone'), (e.t = 0)
     if (e.state !== 'live') continue
     // a blessing's hold: frozen stands still, slowed moves (and counts) slower
     let k = 1
@@ -647,18 +681,28 @@ function moveEnemies(run, dt) {
     if (k === 0) continue
     e.life += dt * k
     const ox = e.x
+    const oy = e.y
     MOVES[e.behavior](run, e, dt * k)
     if (e.state !== 'live') continue
+    // how fast it really goes (for its steps: a monster that stands still
+    // does not walk), smoothed
+    const v = Math.hypot(e.x - ox, e.y - oy) / dt
+    e.pace = (e.pace || 0) * 0.8 + v * 0.2
     if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'stompWind')) continue
-    if (Math.abs(e.x - ox) > 0.01) e.face = e.x > ox ? 1 : -1
-    else if (Math.abs(p.x - e.x) > 2 && e.behavior !== 'line') e.face = p.x > e.x ? 1 : -1
+    if (e.behavior === 'special' && e.atk) continue // its attack faced it
+    // left or right: by where it is going, with a margin, so small sways and
+    // pushes never flip it back and forth; standing, it looks at Mano
+    e.vxs = (e.vxs || 0) * 0.8 + ((e.x - ox) / dt) * 0.2
+    if (e.vxs * e.face < -FLIP_PACE) e.face = -e.face
+    else if (Math.abs(e.vxs) < 2 && Math.abs(p.x - e.x) > 12 && e.behavior !== 'line') e.face = p.x > e.x ? 1 : -1
   }
   // a gentle push apart so they do not stack into one blob (the big ones are
   // too heavy to be pushed)
-  run.grid.rebuild(run.enemies.filter((e) => e.state === 'live'))
+  // (a boss under the sand is out of reach: no ball, no touch)
+  run.grid.rebuild(run.enemies.filter((e) => e.state === 'live' && !e.under))
   for (const e of run.enemies) {
     if (e.state !== 'live') continue
-    if (e.behavior !== 'boss') {
+    if (e.behavior !== 'boss' && e.behavior !== 'special') {
       let px = 0
       let py = 0
       run.grid.near(e.x, e.y, e.r + 30, (o) => {
@@ -669,7 +713,7 @@ function moveEnemies(run, dt) {
         const d2 = dx * dx + dy * dy
         if (d2 >= min * min || d2 === 0) return
         const d = Math.sqrt(d2)
-        const push = (min - d) * (o.behavior === 'boss' ? 1 : 0.5)
+        const push = (min - d) * (o.behavior === 'boss' || o.behavior === 'special' ? 1 : 0.5)
         px += (dx / d) * push
         py += (dy / d) * push
       })
@@ -684,7 +728,7 @@ function moveEnemies(run, dt) {
     e.x = cx
     e.y = cy
   }
-  run.grid.rebuild(run.enemies.filter((e) => e.state === 'live'))
+  run.grid.rebuild(run.enemies.filter((e) => e.state === 'live' && !e.under))
 }
 
 // ── Mano ────────────────────────────────────────────────────────────────────
@@ -698,8 +742,11 @@ function movePlayer(run, dt, input) {
   // any angle; never faster on a diagonal; no sliding: she stops when the
   // stick is let go
   if (m > 1) (ix /= m), (iy /= m)
-  p.vx = ix * p.speed
-  p.vy = iy * p.speed
+  // (on a special boss's frost she is a little slower; a gust carries her a
+  // short way)
+  const sp = p.speed * (p.slow || 1)
+  p.vx = ix * sp + (p.push ? p.push.vx : 0)
+  p.vy = iy * sp + (p.push ? p.push.vy : 0)
   p.moving = m > 0.001
   p.x = Math.max(x0 + p.hitR, Math.min(x1 - p.hitR, p.x + p.vx * dt))
   p.y = Math.max(y0 + p.hitR, Math.min(y1 - p.hitR, p.y + p.vy * dt))
@@ -711,7 +758,8 @@ function movePlayer(run, dt, input) {
 
 // what touching this enemy costs right now (a charging boss hits harder)
 // (a frozen one cannot hurt)
-const touchDamage = (run, e) => (e.freezeT > 0 ? 0 : e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage)
+const touchDamage = (run, e) =>
+  e.freezeT > 0 || e.under ? 0 : e.dash ? e.dash.damage : e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage
 
 // boss overtime hits harder and harder: a run that can no longer win ends
 export const overtimeHit = (run) => {
@@ -719,14 +767,14 @@ export const overtimeHit = (run) => {
   return overtime(run) ? o.hitsHarder ** (Math.floor((run.t - o.after) / o.every) + 1) : 1
 }
 
-function hurtPlayer(run, dmg) {
+function hurtPlayer(run, dmg, from = 'touch') {
   const p = run.player
   const n = dmg * p.armor * overtimeHit(run)
   p.hp = Math.max(0, p.hp - n)
   p.inv = run.D.balance.player.contactInvulnerability
   p.hitT = HIT_ANIM
   run.stats.hurt += n
-  run.events.push({ type: 'hurt', x: p.x, y: p.y, n })
+  run.events.push({ type: 'hurt', x: p.x, y: p.y, n, from })
   if (p.hp <= 0) {
     run.state = 'dying'
     run.dieT = DOWN_TIME
@@ -1252,6 +1300,8 @@ function tick(run, dt, input) {
   follow(run)
   spawning(run, dt)
   moveEnemies(run, dt)
+  updateHazards(run, dt, hurtPlayer)
+  if (run.state !== 'play') return
   run.behaviour.update(run, dt)
   if (run.balls.length > run.stats.peakBalls) run.stats.peakBalls = run.balls.length
   // finished death animations leave

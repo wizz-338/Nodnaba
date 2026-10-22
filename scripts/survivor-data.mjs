@@ -13,4 +13,5 @@ export const D = {
   tizzzz: read('tizzzz'),
   story: read('story'),
   storyAssets: read('story-assets'),
+  motion: read('motion'),
 }

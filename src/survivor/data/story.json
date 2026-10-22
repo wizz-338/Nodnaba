@@ -305,7 +305,8 @@
     }
   },
   "cutscenes": {
-    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight), boss (when the boss comes), clear (after the chapter is first cleared, before the result). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group.",
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight), boss (when the boss comes), clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
+    "speaker": "마노",
     "groups": [
       {
         "id": "prologue",
@@ -314,11 +315,11 @@
         "cuts": [
           {
             "image": "cs_00_1",
-            "text": "평화로운 작은 집. 빨간 탱탱볼을 가지고 놀던 마노가 그만 공을 창밖으로 날려 버렸어요."
+            "text": "앗, 내 빨간 탱탱볼! 너무 세게 던져서 창밖으로 날아가 버렸어!"
           },
           {
             "image": "cs_00_2",
-            "text": "마노는 가방을 메고 공을 쫓아 집 밖으로 뛰어나갔어요."
+            "text": "가방 챙겼다! 기다려, 탱탱볼아. 금방 데리러 갈게!"
           }
         ]
       },
@@ -329,7 +330,7 @@
         "cuts": [
           {
             "image": "cs_01_1",
-            "text": "탱탱볼을 쫓아 숲에 들어간 마노. 귀여운 슬라임과 버섯 몬스터들을 만났어요."
+            "text": "숲이다! 저 말랑말랑한 애들은 누구지? 나랑 놀고 싶은 건가?"
           }
         ]
       },
@@ -340,7 +341,7 @@
         "cuts": [
           {
             "image": "cs_01_2",
-            "text": "갑자기 거대한 숲의 괴물이 나타났어요! 마노가 깜짝 놀랐어요."
+            "text": "으앗, 엄청 커! 저, 저기요… 제 공 못 보셨어요?"
           }
         ]
       },
@@ -352,7 +353,7 @@
         "cuts": [
           {
             "image": "cs_01_3",
-            "text": "괴물을 쓰러뜨리자 빨간 탱탱볼이 특별한 힘을 얻었어요. 마노의 눈이 반짝여요."
+            "text": "어? 탱탱볼이 반짝반짝해졌어! 나 조금 세진 것 같아!"
           }
         ]
       },
@@ -363,7 +364,7 @@
         "cuts": [
           {
             "image": "cs_02_1",
-            "text": "더 깊은 숲에서 신비로운 유적을 발견했어요."
+            "text": "우와, 오래된 유적이다! 살짝만 들여다보고 갈게."
           }
         ]
       },
@@ -375,7 +376,7 @@
         "cuts": [
           {
             "image": "cs_02_2",
-            "text": "튕겨 나간 탱탱볼이 유적의 버튼을 눌렀어요. 위험한 몬스터들이 몰려나와요!"
+            "text": "앗, 공이 버튼을 눌러 버렸어! 나… 나 때문인가?"
           }
         ]
       },
@@ -387,11 +388,11 @@
         "cuts": [
           {
             "image": "cs_02_3",
-            "text": "몬스터들을 물리치자 유적 깊숙이 갇혀 있던 고양이 세 마리가 모습을 드러냈어요."
+            "text": "고양이가 셋이나 갇혀 있었어! 이제 괜찮아, 많이 무서웠지?"
           },
           {
             "image": "cs_02_4",
-            "text": "구출된 세 고양이가 마노의 새로운 모험 동료가 되었어요."
+            "text": "같이 갈래? 좋아, 오늘부터 우리는 탱탱볼 탐험대야!"
           }
         ]
       },
@@ -402,7 +403,7 @@
         "cuts": [
           {
             "image": "cs_03_1",
-            "text": "괴물들에게 점령당한 마을. 수많은 괴물이 마노를 쫓아와요!"
+            "text": "마을에 해골이 가득해… 얘들아, 내 뒤에 꼭 붙어 있어!"
           }
         ]
       },
@@ -413,7 +414,7 @@
         "cuts": [
           {
             "image": "cs_03_2",
-            "text": "마노와 고양이들이 힘을 합쳐 괴물들에게 맞서요."
+            "text": "고양이들아, 같이 해 보자! 하나, 둘… 지금이야!"
           }
         ]
       },
@@ -425,7 +426,7 @@
         "cuts": [
           {
             "image": "cs_03_3",
-            "text": "신비로운 작가 Tizzzz가 나타나 마노에게 특별한 축복을 내려 주었어요."
+            "text": "Tizzzz 님이 축복을 줬어! 손끝이 막 간질간질해!"
           }
         ]
       },
@@ -436,7 +437,7 @@
         "cuts": [
           {
             "image": "cs_04_1",
-            "text": "더위에 지친 마노. 모래 속에서 튀어나온 몬스터에 놀라 탱탱볼을 떨어뜨렸어요."
+            "text": "더워서 녹을 것 같아… 으악, 모래에서 뭐가 튀어나왔어!"
           }
         ]
       },
@@ -448,7 +449,7 @@
         "cuts": [
           {
             "image": "cs_04_2",
-            "text": "모래 아래에 거대한 지렁이 괴물들과 수많은 몬스터가 숨어 있었어요."
+            "text": "모래 밑에 꿈틀꿈틀 엄청 많아… 발밑 조심해야겠다!"
           }
         ]
       },
@@ -459,7 +460,7 @@
         "cuts": [
           {
             "image": "cs_04_3",
-            "text": "끊임없이 솟아오르는 괴물들을 피해 사막 깊숙한 곳의 고대 신전을 발견했어요."
+            "text": "저기 커다란 신전이 있어! 잠깐 숨어… 아니, 들어가 보자!"
           }
         ]
       },
@@ -471,7 +472,7 @@
         "cuts": [
           {
             "image": "cs_04_4",
-            "text": "신전의 수호자를 물리치고 피닉스의 보석을 얻었어요."
+            "text": "피닉스의 보석이다! 따뜻하고 반짝반짝해."
           }
         ]
       },
@@ -482,7 +483,7 @@
         "cuts": [
           {
             "image": "cs_05_1",
-            "text": "눈보라를 뚫고 설산을 오르던 마노가 얼음 몬스터들과 마주쳤어요."
+            "text": "추워추워… 얼음 친구들, 싸우지 말고 길 좀 비켜 줄래?"
           }
         ]
       },
@@ -493,7 +494,7 @@
         "cuts": [
           {
             "image": "cs_05_2",
-            "text": "얼음 동굴 깊숙이 잠들어 있던 설원의 수호자가 깨어났어요."
+            "text": "앗, 깨워 버렸나 봐… 저는 나쁜 애 아니에요!"
           }
         ]
       },
@@ -505,11 +506,11 @@
         "cuts": [
           {
             "image": "cs_05_3",
-            "text": "설원의 수호자가 마노의 탱탱볼에 축복을 내려 주었어요."
+            "text": "수호자님이 탱탱볼에 축복을 줬어! 고마워요, 소중히 쓸게요."
           },
           {
             "image": "cs_05_4",
-            "text": "수호자가 있던 자리에서 거대하고 신비한 스프링을 발견했어요."
+            "text": "저 커다란 스프링은 뭐지? 딱 한 번만 밟아 볼까?"
           }
         ]
       },
@@ -520,7 +521,7 @@
         "cuts": [
           {
             "image": "cs_06_1",
-            "text": "스프링을 밟은 마노와 고양이들이 엄청난 반동으로 구름 위까지 날아올랐어요!"
+            "text": "으아아, 너무 높이 날았어! 그래도 구름 위는 정말 예쁘다!"
           }
         ]
       },
@@ -531,7 +532,7 @@
         "cuts": [
           {
             "image": "cs_06_2",
-            "text": "하늘에 떠 있는 신비로운 섬에서 탱탱볼을 가지고 뛰어놀아요."
+            "text": "하늘 섬에서 공놀이라니! 여기서 던지면 어디까지 튈까?"
           }
         ]
       },
@@ -543,7 +544,7 @@
         "cuts": [
           {
             "image": "cs_06_3",
-            "text": "하늘의 몬스터들이 갑자기 공격해 왔어요! 마노가 탱탱볼을 놓쳤어요."
+            "text": "앗, 갑자기 덤비면 어떡해! 내 공 또 놓쳤잖아!"
           }
         ]
       },
@@ -555,11 +556,11 @@
         "cuts": [
           {
             "image": "cs_06_4",
-            "text": "천둥의 정령을 물리치자 탱탱볼이 번개의 힘을 얻었어요."
+            "text": "탱탱볼이 찌릿찌릿해! 만지면 따끔할 것 같아."
           },
           {
             "image": "cs_06_5",
-            "text": "먹구름이 걷히며 하늘 끝에 떠 있는 거대한 검은 성이 드러났어요."
+            "text": "구름 너머에 까만 성이 보여… 왠지 저기로 가야 할 것 같아."
           }
         ]
       },
@@ -570,7 +571,7 @@
         "cuts": [
           {
             "image": "cs_07_1",
-            "text": "마노와 세 고양이가 거대한 마왕성에 도착했어요."
+            "text": "여기가 마왕성… 다리가 후들거리지만 괜찮아, 우리 넷이 함께니까!"
           }
         ]
       },
@@ -581,7 +582,7 @@
         "cuts": [
           {
             "image": "cs_07_2",
-            "text": "마왕이 특별한 탱탱볼의 힘을 빼앗으려 해요. 마노가 맞서 싸워요!"
+            "text": "내 탱탱볼은 못 줘! 이건 내 제일 소중한 보물이야!"
           }
         ]
       },
@@ -593,11 +594,11 @@
         "cuts": [
           {
             "image": "cs_07_3",
-            "text": "마지막 순간, 마노가 던진 빨간 탱탱볼에 지금까지 얻은 모든 축복이 합쳐졌어요."
+            "text": "지금까지 받은 축복들아, 다 같이 힘을 빌려 줘!"
           },
           {
             "image": "cs_07_4",
-            "text": "마왕을 쓰러뜨린 마노는 세 고양이, 소중한 빨간 탱탱볼과 함께 집으로 돌아갔어요."
+            "text": "다 끝났다! 얘들아, 탱탱볼 꼭 안고 우리 집에 가자!"
           }
         ]
       }

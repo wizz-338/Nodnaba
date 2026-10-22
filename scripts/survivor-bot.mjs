@@ -9,6 +9,7 @@
 //   human    a person's order (see POLICIES.human), Tizzzz's card when it is one
 //   natural  the first card shown (cards come in random order)
 import { createRun, step, choose, chargePath, FIXED } from '../src/survivor/game.js'
+import { touches } from '../src/survivor/bosses.js'
 
 export const POLICIES = {
   core: ['count', 'interval', 'damage', 'bounce'],
@@ -55,6 +56,33 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
       if (off < c.half + p.hitR + 8) danger += 6
     }
     for (const c of rings) if (Math.hypot(nx - c.x, ny - c.y) < c.r + p.hitR + 8) danger += 6
+    // a special boss's warnings (the sooner they land, the worse) and shots
+    // (where they will be by then), as a person sees them on the ground
+    for (const h of run.hazards) {
+      // the aim lines of a volley about to fly: their lanes are where the shots go
+      if (h.kind === 'ray' && h.at - run.t < 0.8) {
+        const t = (nx - h.x) * h.dx + (ny - h.y) * h.dy
+        if (t > 0 && Math.abs((nx - h.x) * -h.dy + (ny - h.y) * h.dx) < p.hitR + 12) danger += 12
+        continue
+      }
+      const charging = h.dash && h.done // the path of a charge under way
+      if ((h.harmless && !h.dash) || (h.done && !charging) || h.at - run.t > 2.5) continue
+      // a blow that is coming outweighs merely being near a monster; it is
+      // judged where she would be after a longer stride too (a person runs
+      // clear of a warning, not just to its edge)
+      const fx = Math.max(x0 + 10, Math.min(x1 - 10, p.x + dx * p.speed * 0.9))
+      const fy = Math.max(y0 + 10, Math.min(y1 - 10, p.y + dy * p.speed * 0.9))
+      const until = h.at - run.t
+      if (touches(h, nx, ny, p.hitR + 6)) danger += 40 + 20 / Math.max(0.2, until)
+      if (until > 0.45 && touches(h, fx, fy, p.hitR + 6)) danger += 20
+    }
+    for (const s2 of run.shots) {
+      const sx = s2.x + s2.vx * T * 0.6
+      const sy = s2.y + s2.vy * T * 0.6
+      const d2 = Math.hypot(nx - sx, ny - sy)
+      if (d2 < s2.r + p.hitR + 14) danger += 5 * (1 - d2 / (s2.r + p.hitR + 14)) + 2
+    }
+    for (const f of run.floors) if (Math.hypot(nx - f.x, ny - f.y) < f.r) danger += 0.6
     // corners and walls are traps; open middle is safe
     const wall = Math.min(nx - x0, x1 - nx, ny - y0, y1 - ny)
     danger += wall < 50 ? ((50 - wall) / 50) ** 2 * 1.5 : 0
@@ -65,6 +93,8 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
       if (d < 60) danger -= 0.02 * (1 - d / 60) * Math.min(4, o.v)
     }
     if (skill.noise) danger += run.rng() * skill.noise
+    // keeping on the way it was going (a person does not dither)
+    if (mem.input && k >= 0 && dx * mem.input.x + dy * mem.input.y > 0.7) danger -= 0.15
     if (!best || danger < best.danger) best = { danger, x: dx, y: dy }
   }
   mem.t = run.t

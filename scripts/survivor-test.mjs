@@ -6,6 +6,7 @@ import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '.
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
+import { specialOf } from '../src/survivor/bosses.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -1200,6 +1201,174 @@ const still = { x: 0, y: 0 }
   }
   ok(seen.size > 20 && far === 0, `40 s walking about the PC field: ${seen.size} monsters came in, ${PC.spawnBox ? `all within the ${PC.spawnBox.join(' × ')} spawn box around Mano` : 'all at the view'}${far ? ` (${far} farther)` : ''}`)
   ok(outView === 0 && ballsOut === 0, `no monster and no ball ever left the view${outView || ballsOut ? ` (${outView} monster-steps, ${ballsOut} ball-steps)` : ''}`)
+}
+
+// ── special bosses (balance.json → specialBosses) and their death ──────────
+{
+  const S = B.specialBosses
+  const WANT = { 3: 'mossgolem', 5: 'flowerguard', 8: 'lanterntree', 10: 'treelord', 13: 'skullbeast', 15: 'skullking', 18: 'sandworm', 20: 'crystalguard', 23: 'frostbear', 25: 'icegolem', 28: 'skygolem', 30: 'thunderspirit', 33: 'voidgolem', 35: 'demonking' }
+  const got = {}
+  for (let ch = 1; ch <= lastChapter(D); ch++) {
+    const sp = specialOf(D, regionOf(D, ch), ch)
+    if (sp) got[ch] = sp.id + (sp.role === (ch % 5 === 0 ? 'final' : 'mid') ? '' : '?')
+  }
+  ok(JSON.stringify(got) === JSON.stringify(WANT), `special bosses: chapter 3 of each episode its mid-boss, chapter 5 its final boss (14 chapters: ${Object.entries(got).map(([c, id]) => c + ' ' + id).join(', ')})`)
+  ok(!S.bosses.snowguardian && !Object.values(WANT).includes('snowguardian') && D.motion.characters.snowguardian.role === 'npc', '설원의 수호자 is a friendly NPC, never a boss')
+
+  // the boss's part of a chapter, alone with Mano (who cannot die and deals nothing)
+  const bossRun = (ch, seed = 5) => {
+    const run = createRun(D, { chapter: ch, weaponId: 'bouncy_ball', grade: 'D', seed, perma: {} })
+    run.player.hp = run.player.maxHp = 1e12
+    run.weapon.damage = 0
+    run.t = 209.5
+    run.nextEvent = B.chapter.events.findIndex((e) => e.key === 'boss')
+    return run
+  }
+  for (const ch of Object.keys(WANT).map(Number)) {
+    const run = bossRun(ch)
+    const seen = new Set()
+    const types = new Set()
+    const bosses = new Set()
+    let early = 0
+    let blows = 0
+    let summonsOver = 0
+    let floorsOver = 0
+    let underLong = 0
+    let underT = 0
+    const caps = Object.fromEntries((S.bosses[WANT[ch]].attacks || S.bosses[WANT[ch]].phases.flatMap((p) => p.attacks)).filter((a) => a.cap).map((a) => [a.type, a.cap]))
+    const hz = new Set()
+    for (let i = 0; i < 60 * 40; i++) {
+      run.enemies = run.enemies.filter((e) => e === run.boss || e.owner === (run.boss && run.boss.id))
+      run.spawnT = -1e9
+      step(run, FIXED, { x: Math.sin(i / 50), y: Math.cos(i / 70) })
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      run.events.length = 0
+      for (const e of run.enemies) if (e.key === 'boss') bosses.add(e.id)
+      const b = run.boss
+      if (!b) continue
+      if (b.stage) seen.add(b.stage)
+      if (b.atk) types.add(b.atk.spec.type)
+      for (const h of run.hazards) {
+        if (hz.has(h)) continue
+        hz.add(h)
+        if (!h.harmless) {
+          blows++
+          if (h.at - h.born < S.minWarn - 1e-9) early++
+        }
+      }
+      if (caps.summon && run.enemies.filter((m) => m.owner === b.id && (m.state === 'live' || m.state === 'spawn')).length > caps.summon) summonsOver++
+      if (caps.floor && run.floors.length > caps.floor) floorsOver++
+      underT = b.under ? underT + FIXED : 0
+      if (underT > 1.2) underLong++
+    }
+    const want = new Set((S.bosses[WANT[ch]].attacks || S.bosses[WANT[ch]].phases[0].attacks).map((a) => a.type))
+    ok(
+      bosses.size === 1 && run.boss.skin === WANT[ch] && run.boss.behavior === 'special' && early === 0 && [...want].every((t) => types.has(t)) && ['windup', 'strike', 'recover'].every((st) => seen.has(st)) && !summonsOver && !floorsOver && !underLong,
+      `ch${ch} ${WANT[ch]}: one boss, all its attacks (${[...types].join(' ')}), windup → strike → recover, ${blows} blows each warned ≥ ${S.minWarn} s${caps.summon ? `, summons ≤ ${caps.summon}` : ''}${caps.floor ? `, frost ≤ ${caps.floor}` : ''}${early || summonsOver || floorsOver || underLong ? ` (early ${early}, summons over ${summonsOver}, frost over ${floorsOver}, long burrow ${underLong})` : ''}`,
+    )
+  }
+  // shots come only along lanes shown at least minWarn before
+  const shotsLate = Object.values(S.bosses).flatMap((x) => x.attacks || x.phases.flatMap((p) => p.attacks)).filter((a) => (a.type === 'radial' || a.type === 'fan') && a.warn < S.minWarn)
+  ok(!shotsLate.length, `every volley's lanes are shown ≥ ${S.minWarn} s before it flies`)
+
+  // the demon king changes its attacks with its HP, with a pause between
+  {
+    const run = bossRun(35)
+    const P = S.bosses.demonking.phases
+    const used = P.map(() => new Set())
+    let phases = 0
+    for (let i = 0; i < 60 * 60; i++) {
+      run.enemies = run.enemies.filter((e) => e === run.boss)
+      run.spawnT = -1e9
+      const b = run.boss
+      if (b && i === 60 * 20) b.hp = b.maxHp * (P[0].above - 0.01)
+      if (b && i === 60 * 40) b.hp = b.maxHp * (P[1].above - 0.01)
+      step(run, FIXED, { x: 0, y: 0 })
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      phases += run.events.filter((e) => e.type === 'phase').length
+      run.events.length = 0
+      if (run.boss && run.boss.atk) used[run.boss.phase].add(run.boss.atk.spec.type)
+    }
+    ok(phases === 2 && P.every((p, k) => p.attacks.every((a) => used[k].has(a.type))), `the demon king: 3 phases by its HP (${used.map((u) => [...u].join('+')).join(' → ')}), ${phases} phase changes`)
+  }
+
+  // death: on 0 HP no more attacks or touch, its warnings and shots go,
+  // the death plays, the reward and the clear come once, then it is gone
+  for (const ch of [5, 25, 35]) {
+    const run = bossRun(ch)
+    let i = 0
+    for (; i < 60 * 30; i++) {
+      run.enemies = run.enemies.filter((e) => e === run.boss)
+      run.spawnT = -1e9
+      step(run, FIXED, { x: 0, y: 0 })
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      run.events.length = 0
+      const b = run.boss
+      if (b && b.atk && run.hazards.some((h) => h.owner === b.id) && b.atk.t > 0.3) break
+    }
+    const b = run.boss
+    b.hp = 1
+    b.guard = false
+    ball(run, b.x, b.y, 1, 0, { damage: 50 })
+    let downAt = -1
+    let touch = 0
+    let after = 0
+    for (let k = 0; k < 60 * 5 && run.state !== 'over'; k++) {
+      if (b.state === 'down') {
+        if (downAt < 0) {
+          downAt = run.t
+          after = run.hazards.filter((h) => h.owner === b.id).length + run.shots.filter((s) => s.owner === b.id).length + run.floors.filter((f) => f.owner === b.id).length
+        }
+        run.player.x = b.x
+        run.player.y = b.y
+        run.player.inv = 0
+      }
+      const hp = run.player.hp
+      step(run, FIXED, { x: 0, y: 0 })
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      if (b.state === 'down' && run.player.hp < hp) touch++
+      run.events.length = 0
+    }
+    for (let k = 0; k < 120; k++) step(run, FIXED, { x: 0, y: 0 })
+    const boss = run.awards.filter((a) => a === 'boss').length
+    ok(downAt > 0 && after === 0 && touch === 0 && !b.atk && !b.dash && run.state === 'over' && run.result.cleared && boss === 1 && near(run.t - downAt, B.enemies.boss.downSeconds, 0.2), `ch${ch}: the boss falls mid-attack: its warnings and shots go at once, no touch while it falls, ${B.enemies.boss.downSeconds} s for its death, then the clear; the boss reward once (${boss})`)
+  }
+
+  // a fallen mid-boss of an ordinary chapter: lies for its death, fades, is gone
+  {
+    const run = createRun(D, { chapter: 2, weaponId: 'bouncy_ball', grade: 'D', seed: 3, perma: {} })
+    run.player.hp = run.player.maxHp = 1e12
+    run.t = 144.99
+    run.nextEvent = B.chapter.events.findIndex((e) => e.key === 'elite2')
+    step(run, FIXED, { x: 0, y: 0 })
+    const e = run.enemies.find((m) => m.key === 'elite2')
+    for (let k = 0; k < 60 && e.state !== 'live'; k++) step(run, FIXED, { x: 0, y: 0 })
+    e.hp = 1
+    e.guard = false
+    ball(run, e.x, e.y, 1, 0, { damage: 50 })
+    let down = 0
+    let gone = -1
+    for (let k = 0; k < 60 * 4; k++) {
+      step(run, FIXED, { x: 0, y: 0 })
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      if (e.state === 'down') down += FIXED
+      if (gone < 0 && !run.enemies.includes(e)) gone = k
+    }
+    ok(near(down, B.enemies[e.type].downSeconds, 0.05) && gone > 0 && run.awards.filter((a) => a === 'elite2').length === 1, `a fallen mid-boss lies ${down.toFixed(2)} s (its death), then fades and is gone; its reward once`)
+  }
+
+  // the animation data: every monster of the story has its frames, bosses
+  // their attack and death, one scale per character
+  const M = D.motion.characters
+  const skins = new Set(D.story.regions.flatMap((r) => Object.values(r.skins)))
+  const bad = []
+  for (const id of skins) {
+    const m = M[id]
+    if (!m) bad.push(id + ' (none)')
+    else if (m.animations.move.frames.length !== 4 || !(m.refLong > 0) || m.durations.length !== m.frames.length) bad.push(id)
+  }
+  for (const id of Object.values(WANT)) if (!M[id] || M[id].animations.attack?.frames.length !== 3 || M[id].animations.death?.frames.length !== 3 || M[id].animations.death.loop) bad.push(id + ' (attack/death)')
+  ok(!bad.length && Object.keys(M).length === 35, `motion: 35 characters, every story monster walks on 4 frames, the 14 bosses attack and die on 3 each (death once)${bad.length ? ' — ' + bad.join(', ') : ''}`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
