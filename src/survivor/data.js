@@ -4,7 +4,8 @@
 // upgrade cards, ui.json lays out the screen, assets-v3.json is the art
 // package's frame table exactly as delivered. cats.json names the three cat
 // companions and holds their story; cats-frames.json cuts their sheet;
-// tizzzz.json holds the writer Tizzzz's story and texts.
+// tizzzz.json holds the writer Tizzzz's story and texts. motion.json: the
+// monsters' animation frames (move / attack / death, the motion package).
 import balance from './data/balance.json'
 import weapons from './data/weapons.json'
 import upgrades from './data/upgrades.json'
@@ -15,5 +16,6 @@ import catFrames from './data/cats-frames.json'
 import tizzzz from './data/tizzzz.json'
 import story from './data/story.json'
 import storyAssets from './data/story-assets.json'
+import motion from './data/motion.json'
 
-export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets }
+export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets, motion }

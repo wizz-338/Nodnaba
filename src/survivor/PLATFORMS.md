@@ -22,16 +22,19 @@ only in its platform-specific part.
 
 ## What is shared (change once, both get it)
 
-- `game.js`, `weapons.js` — the fight: spawns, monsters, bosses, cards,
-  blessings, rewards of a run. The field comes in as `opts.arena`; nothing
-  else in the fight knows the platform.
+- `game.js`, `weapons.js`, `bosses.js` — the fight: spawns, monsters, bosses
+  (the special bosses' attacks: `bosses.js`), cards, blessings, rewards of a
+  run. The field comes in as `opts.arena`; nothing else in the fight knows
+  the platform.
 - `progress.js` — the save. **One save for both** (`localStorage`, key
   `nodnaba:survivor:save`): on the same browser the phone and PC versions
   share progress, coins, coin stats, weapons, records and cutscene flags.
   One-time rewards are spend-once in the save, so playing on the other
   version never gives them again. No server sync.
 - `data/*.json` — every number and every text: `balance.json`, `stages`,
-  `upgrades`, `weapons`, `story.json` (regions, monsters, cutscenes, rewards).
+  `upgrades`, `weapons`, `story.json` (regions, monsters, cutscenes, rewards),
+  `motion.json` (the monsters' animation frames, made by
+  `scripts/survivor-motion-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.

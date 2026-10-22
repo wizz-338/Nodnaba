@@ -6,13 +6,21 @@
 import { D } from './data.js'
 
 const URLS = import.meta.glob('./assets/s84/**/*.webp', { eager: true, query: '?url', import: 'default' })
+const MOTION_URLS = import.meta.glob('./assets/motion/*.webp', { eager: true, query: '?url', import: 'default' })
+const MOTION = D.motion.characters
 const BY_ID = Object.fromEntries(D.storyAssets.images.map((x) => [x.id, x]))
 
 export const artInfo = (id) => BY_ID[id] || null
 export function artUrl(id) {
+  if (id.startsWith('motion:')) {
+    const m = MOTION[id.slice(7)]
+    return m ? MOTION_URLS['./assets/' + m.file] || null : null
+  }
   const x = BY_ID[id]
   return x ? URLS['./assets/s84/' + x.file] || null : null
 }
+// a monster's animation atlas, by its id ('motion:<id>' in the cache)
+export const motionId = (id) => (MOTION[id] ? 'motion:' + id : null)
 
 const cache = new Map() // id → { img: HTMLImageElement | null, done: bool, wait: Promise }
 
@@ -46,8 +54,10 @@ export const artNow = (id) => {
 }
 
 // what a region's fight needs: its ground (the platform's: bg maps the
-// region's background id to the one it draws) and its monsters
+// region's background id to the one it draws), its monsters and their
+// animation atlases (each loaded and decoded once, before the fight needs it)
 export function regionArtIds(region, bg = (id) => id) {
-  return [bg(region.background), ...new Set(Object.values(region.skins))]
+  const skins = [...new Set(Object.values(region.skins))]
+  return [bg(region.background), ...skins, ...skins.map(motionId).filter(Boolean)]
 }
 export const preloadRegion = (region, bg) => Promise.all(regionArtIds(region, bg).map(loadArt))
