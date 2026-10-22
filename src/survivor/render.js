@@ -61,13 +61,17 @@ export function facing(prev, vx, vy) {
 
 // art: the story package's pictures, { now(id) → image or null } (a picture
 // not loaded yet, or that failed, falls back to the game's own art)
-// screen: the platform's logical screen — [360, 640] on mobile, [640, 360]
-// on PC — and bg: which background a region uses there (its id → the id
-// drawn; the PC game has wide ones). Everything else is drawn the same.
-export function createRenderer(canvas, img, D, art = { now: () => null }, { screen = [360, 640], bg = (id) => id } = {}) {
+// screen: the platform's logical screen — [360, 640] on mobile, [1152, 648]
+// on PC — bg: which background a region uses there (its id → the id drawn;
+// the PC game has wide ones), and inset: [left, top, right, bottom] of the
+// screen around its play area, for a field larger than the screen (the PC
+// game's): the camera then shows the run's view there. Everything else is
+// drawn the same.
+export function createRenderer(canvas, img, D, art = { now: () => null }, { screen = [360, 640], bg = (id) => id, inset = null } = {}) {
   const [SW, SH] = screen
   const ctx = canvas.getContext('2d')
   const view = { w: SW, h: SH, dpr: 1, k: 1 }
+  const cam = { x: 0, y: 0 } // the world point at the screen's top left (0, 0 without a camera)
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
   const fx = []
   const numbers = []
@@ -118,7 +122,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     skins.clear()
   }
   const kd = () => view.k * view.dpr
-  const world = () => ctx.setTransform(kd(), 0, 0, kd(), 0, 0)
+  const world = () => ctx.setTransform(kd(), 0, 0, kd(), -cam.x * kd(), -cam.y * kd())
   const device = () => ctx.setTransform(1, 0, 0, 1, 0, 0)
 
   function tinted(sheet, color) {
@@ -151,8 +155,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const dw = Math.max(1, Math.round(b.w * s * K))
     const dh = Math.max(1, Math.round(b.h * s * K))
     const left = flip ? x - (b.x + b.w - px) * s : x - (px - b.x) * s
-    const dx = Math.round(left * K)
-    const dy = Math.round((y - (py - b.y) * s) * K)
+    const dx = Math.round((left - cam.x) * K)
+    const dy = Math.round((y - cam.y - (py - b.y) * s) * K)
     let src = img[f.sheet]
     let sx = r.x + b.x
     let sy = r.y + b.y
@@ -268,6 +272,59 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     return c
   }
 
+  // A field larger than the screen (the PC game): the region's picture
+  // covers the whole field and the screen's margin around it (never
+  // stretched; until it is there, a plain ground colour), a little dimmed like
+  // the phone's. It is painted once per size at the screen's resolution, and
+  // each frame copies the camera's part of it; then the margin around the
+  // play area — the view, where the monsters stay and the balls bounce — gets
+  // a darker band and a thin line, as on the phone.
+  let ground = null
+  function paintGround(run) {
+    const [x0, y0, x1, y1] = run.arena.bounds
+    const [l, t, r, b] = inset
+    const K = kd()
+    const c = document.createElement('canvas')
+    c.key = fieldKey(run) + '|' + K
+    c.gx = x0 - l
+    c.gy = y0 - t
+    const gw = x1 - x0 + l + r
+    const gh = y1 - y0 + t + b
+    c.width = Math.ceil(gw * K)
+    c.height = Math.ceil(gh * K)
+    const g = c.getContext('2d')
+    const pic = !c.key.startsWith('tile|') && art.now(fieldKey(run))
+    g.setTransform(K, 0, 0, K, 0, 0)
+    if (pic) {
+      const s = Math.max(gw / pic.width, gh / pic.height)
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = 'high'
+      g.drawImage(pic, (gw - pic.width * s) / 2, (gh - pic.height * s) / 2, pic.width * s, pic.height * s)
+      g.fillStyle = 'rgba(24, 18, 28, 0.16)'
+    } else g.fillStyle = '#6d7356'
+    g.fillRect(0, 0, gw, gh)
+    return c
+  }
+  function drawGround(run) {
+    const K = kd()
+    if (!ground || ground.key !== fieldKey(run) + '|' + K) ground = paintGround(run)
+    device()
+    const sx = Math.round((cam.x - ground.gx) * K)
+    const sy = Math.round((cam.y - ground.gy) * K)
+    ctx.drawImage(ground, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+    // the play area's frame, in screen units
+    const [l, t, r, b] = inset
+    ctx.setTransform(K, 0, 0, K, 0, 0)
+    ctx.fillStyle = 'rgba(30, 38, 30, 0.18)'
+    ctx.fillRect(0, 0, SW, t)
+    ctx.fillRect(0, SH - b, SW, b)
+    ctx.fillRect(0, t, l, SH - t - b)
+    ctx.fillRect(SW - r, t, r, SH - t - b)
+    ctx.strokeStyle = 'rgba(30, 38, 30, 0.28)'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(l, t, SW - l - r, SH - t - b)
+  }
+
   // ── Mano ──
   function drawMano(run, dt) {
     const p = run.player
@@ -370,7 +427,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     const flip = meta.faces === 'right' && e.face < 0
-    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx) * K, (e.y + 3 + bob) * K)
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx - cam.x) * K, (e.y + 3 + bob - cam.y) * K)
     if (rot) ctx.rotate(flip ? -rot : rot)
     ctx.imageSmoothingEnabled = true
     ctx.globalAlpha = alpha
@@ -493,7 +550,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       const len = Math.max(8, Math.min(16, sp * 0.045))
       const K = kd()
       ctx.imageSmoothingEnabled = true
-      ctx.setTransform(K, 0, 0, K, b.x * K, (b.y - BALL_LIFT) * K)
+      ctx.setTransform(K, 0, 0, K, (b.x - cam.x) * K, (b.y - BALL_LIFT - cam.y) * K)
       ctx.rotate(Math.atan2(b.vy, b.vx))
       ctx.globalAlpha = 0.65
       const th = Math.max(2, b.r * 1.3)
@@ -528,7 +585,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const s = n / K
     device()
     ctx.imageSmoothingEnabled = false
-    ctx.drawImage(pheart, Math.round((x - (HEART_W * s) / 2) * K), Math.round((y - HEART_H * s) * K), HEART_W * n, HEART_H * n)
+    ctx.drawImage(pheart, Math.round((x - cam.x - (HEART_W * s) / 2) * K), Math.round((y - cam.y - HEART_H * s) * K), HEART_W * n, HEART_H * n)
     // twinkle: a tiny four-point sparkle that comes and goes
     const tw = (Math.sin(now / 180 + o.x * 0.7) + 1) / 2
     if (tw > 0.55) {
@@ -560,7 +617,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     if (squash !== 1) {
       // squashed from the feet up while it munches
       const K = kd()
-      ctx.setTransform(K, 0, 0, K * squash, 0, c.y * K * (1 - squash))
+      ctx.setTransform(K, 0, 0, K * squash, -cam.x * K, (c.y * (1 - squash) - cam.y) * K)
       putWorld(name, c.x, c.y, CATS.scale)
       return
     }
@@ -594,10 +651,18 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
 
   function draw(run, dt) {
     const now = performance.now()
-    if (!field || field.key !== fieldKey(run)) field = paintField(run)
     warm(run)
-    device()
-    ctx.drawImage(field, 0, 0)
+    if (inset && run.arena.view) {
+      // the camera: the run's view at the screen's play area
+      cam.x = run.view[0] - inset[0]
+      cam.y = run.view[1] - inset[1]
+      drawGround(run)
+    } else {
+      cam.x = cam.y = 0
+      if (!field || field.key !== fieldKey(run)) field = paintField(run)
+      device()
+      ctx.drawImage(field, 0, 0)
+    }
 
     // the ground first: shadows, the boss's warning, pickups; then standing
     // things back to front by their feet; then balls and hits in the air

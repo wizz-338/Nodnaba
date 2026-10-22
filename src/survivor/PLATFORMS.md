@@ -4,7 +4,8 @@
 |---|---|---|
 | address | `#/game/mano-survivor` | `#/game/mano-survivor-pc` |
 | GAME menu | MANO SURVIVOR (DEMO) · 모바일 전용 9:16 | MANO SURVIVOR (DEMO) · PC 전용 16:9 |
-| screen | 9:16, logical 360 × 640 | 16:9, logical 640 × 360 (any window size: 1920 × 1080, 2560 × 1440 …) |
+| screen | 9:16, logical 360 × 640 | 16:9, logical 1152 × 648 (any window size: 1920 × 1080, 2560 × 1440 …) |
+| field | the screen | larger than the screen (1620 × 810); the camera follows Mano |
 | moving Mano | touch stick | WASD / arrow keys (mixed, diagonals normalized) |
 | menus | touch | mouse (keyboard: Enter / Space in cutscenes, Esc pauses) |
 
@@ -49,20 +50,29 @@ only in its platform-specific part.
   is the `.ms--pc` section at its end (16:9 frame, menus laid out at
   1280 × 720 and scaled with `zoom: var(--z)`, cards side by side, cutscene
   picture with the words beside it).
-- Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`
-  (`assets/s84/backgrounds/`, made by `scripts/survivor-story-assets.py`).
+- Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`, which
+  covers the whole PC field (`assets/s84/backgrounds/`, made by
+  `scripts/survivor-story-assets.py`).
   The wide ones are stand-ins (the portrait ground mirrored out to the
   sides) until real 16:9 art exists; a new picture replaces the file under
   the same name and nothing else changes.
 
 ## The PC field and fairness
 
-The PC field is 600 × 304 against the phone's 340 × 536: the same area within
-0.1 %, so as many monsters fit, they come from as far and Mano has as much
-room. Spawns use the field's own edges, balls bounce off its walls, Mano stops
-at them. `scripts/survivor-platform-parity.mjs` and
-`scripts/survivor-campaign.mjs … pc` play the same bots on both fields;
-`npm run test:survivor` checks the PC field, HUD and keys.
+The PC screen shows much more of the world than the phone's (1152 × 648
+logical against 360 × 640), so everything looks smaller on a large monitor,
+and its field (1620 × 810) is larger still: the camera follows Mano over it
+(`follow` in game.js; `run.view` is the part on screen). As on the phone,
+monsters and balls keep to what is on screen (the view): monsters come in
+at its edges and stay in it, balls bounce off it. Mano walks the whole field.
+On the phone the view is the field and never moves, so nothing there changed.
+
+Because the PC view is about 3.4× the phone field's area, the PC field has a
+`spawnBox` (600 × 304, the phone field's area): monsters come in on that box
+around Mano (inside the view), as near as on the phone. `spawnMul` can bring
+them faster if PC proves easier. `scripts/survivor-platform-parity.mjs` plays
+the same bots and loadouts on both and prints clear rates and times;
+`npm run test:survivor` checks the PC view, camera, spawns and keys.
 
 ## Checklist for a patch
 

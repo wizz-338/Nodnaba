@@ -1388,7 +1388,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   useEffect(() => {
     const g = G.current
     const stage = stageRef.current
-    const R = createRenderer(canvasRef.current, img, D, { now: artNow }, { screen: pf.screen, bg: pf.background })
+    const R = createRenderer(canvasRef.current, img, D, { now: artNow }, { screen: pf.screen, bg: pf.background, inset: pf.inset })
     const fit = () => {
       const r = stage.getBoundingClientRect()
       R.resize(r.width, r.height, Math.min(devicePixelRatio, g.dprCap || 2))
@@ -1700,7 +1700,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
           LV. {run.level}
         </div>
         <div className="ms-cur" style={box(H.currency)}>
-          <Sprite name="coin" size={13 * k} /> {money(run.coins)}
+          <Sprite name="coin" size={((H.currency[3] * 13) / 15) * k} /> {money(run.coins)}
         </div>
         {big && (
           <div className="ms-bossbar" style={box(H.bossBar)}>
@@ -1708,7 +1708,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
               {enemyName(D, run.region, big.type)}
               {big.guard ? ` · 수호 (초당 최대 ${Math.round(D.balance.lateGame.bossGuard.maxShare * 100)}%)` : ''}
             </span>
-            <Bar w={H.bossBar[2] * k} h={10 * k} fill="hp_full" value={big.hp / big.maxHp} label={`${enemyName(D, run.region, big.type)} 체력`} />
+            <Bar w={H.bossBar[2] * k} h={((H.bossBar[3] * 10) / 26) * k} fill="hp_full" value={big.hp / big.maxHp} label={`${enemyName(D, run.region, big.type)} 체력`} />
           </div>
         )}
         <div className="ms-wslot" style={box(H.weaponSlot)} aria-label={`장착: ${weaponName(run.weaponDef.id)} ${run.grade}`}>

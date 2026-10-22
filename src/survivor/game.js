@@ -83,7 +83,8 @@ function perma(D, levels = {}) {
 //         tizzzz: true once the writer Tizzzz has joined,
 //         blessings: { phoenix, snow, thunder, final } — the story's battle
 //         blessings owned (story.json → rewards),
-//         arena: the platform's field (default: balance.logicalArena, mobile) }
+//         arena: the platform's field (default: balance.logicalArena, mobile;
+//                a field with a view is larger than the screen: see follow) }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
@@ -117,6 +118,9 @@ export function createRun(D, opts) {
     id: opts.runId || 'run',
     chapter,
     arena,
+    // the part of the field on screen: where monsters come in and stay, and
+    // what the balls bounce off (the whole field unless it has a view)
+    view: arena.bounds.slice(),
     factor: chapterFactor(D, chapter),
     rng: rng32(opts.seed || 1),
     t: 0,
@@ -182,6 +186,7 @@ export function createRun(D, opts) {
     stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0 },
     acc: 0,
   }
+  follow(run)
   if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
   run.hurt = (e, dmg, x, y) => hurtEnemy(run, e, dmg, x, y)
@@ -254,6 +259,25 @@ function refillBlessings(run, dt) {
   for (const c of Object.values(run.bless)) c.tokens = Math.min(c.perSecond, c.tokens + c.perSecond * dt)
 }
 
+// A field larger than its screen (the PC game's: arena.view is the size of
+// the screen's play area): the view is that much of the field around Mano,
+// kept inside the field — the camera. Mano walks the whole field; monsters,
+// their spawns and the balls keep to the view, as on the phone, where the
+// view is the field.
+function follow(run) {
+  const A = run.arena
+  if (!A.view) return
+  const [x0, y0, x1, y1] = A.bounds
+  const [w, h] = A.view
+  const p = run.player
+  const vx = Math.max(x0, Math.min(x1 - w, p.x - w / 2))
+  const vy = Math.max(y0, Math.min(y1 - h, p.y - h / 2))
+  run.view[0] = vx
+  run.view[1] = vy
+  run.view[2] = vx + w
+  run.view[3] = vy + h
+}
+
 // ── spatial grid for enemies (rebuilt every step) ───────────────────────────
 
 function makeGrid(run) {
@@ -324,7 +348,9 @@ export const overtime = (run) => run.t > run.D.balance.chapter.overtime.after &&
 
 export function spawnInterval(run) {
   const o = run.D.balance.chapter.overtime
-  let iv = phaseAt(run).spawnInterval / run.factor.spawn
+  // (a field can bring monsters faster: spawnMul, the PC game's, whose
+  // screen holds far more of the field than the phone's)
+  let iv = phaseAt(run).spawnInterval / run.factor.spawn / (run.arena.spawnMul || 1)
   if (overtime(run)) iv *= o.spawnFaster ** (Math.floor((run.t - o.after) / o.every) + 1)
   return iv
 }
@@ -345,11 +371,21 @@ function pickType(run) {
   return Object.keys(mix)[0]
 }
 
-// a point on the arena's edge, all four sides by their length, never right
-// next to Mano (a few tries; null if there was no room this time)
+// a point on the view's edge, all four sides by their length, never right
+// next to Mano (a few tries; null if there was no room this time). A field
+// with a spawnBox (the PC game's, whose view is much larger than the phone's
+// field) uses the edge of that box around Mano, inside the view, so monsters
+// come in as near and as thick as on the phone.
 function edgePoint(run, m) {
-  const [x0, y0, x1, y1] = run.arena.bounds
   const p = run.player
+  const B = run.arena.spawnBox
+  let [x0, y0, x1, y1] = run.view
+  if (B) {
+    x0 = Math.max(x0, p.x - B[0] / 2)
+    x1 = Math.min(x1, p.x + B[0] / 2)
+    y0 = Math.max(y0, p.y - B[1] / 2)
+    y1 = Math.min(y1, p.y + B[1] / 2)
+  }
   for (let tries = 0; tries < 8; tries++) {
     const w = x1 - x0
     const h = y1 - y0
@@ -408,7 +444,7 @@ function spawn(run, type = pickType(run), at = null) {
 
 // an elite or the boss enters from the top, on the side away from Mano
 function spawnSpecial(run, ev) {
-  const [x0, y0, x1] = run.arena.bounds
+  const [x0, y0, x1] = run.view
   const def = run.D.balance.enemies[ev.enemy]
   const p = run.player
   const e = spawn(run, ev.enemy, { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 })
@@ -580,7 +616,7 @@ function stomp(run, e, def) {
 // as wide as its body), cut short by the walls like the charge itself
 export function chargePath(run, e) {
   const def = run.D.balance.enemies[e.type]
-  const [x0, y0, x1, y1] = run.arena.bounds
+  const [x0, y0, x1, y1] = run.view
   let len = def.chargeSpeed * def.chargeSeconds
   if (e.dx > 0) len = Math.min(len, (x1 - e.r - e.x) / e.dx)
   if (e.dx < 0) len = Math.min(len, (x0 + e.r - e.x) / e.dx)
@@ -592,7 +628,7 @@ export function chargePath(run, e) {
 
 function moveEnemies(run, dt) {
   const p = run.player
-  const [x0, y0, x1, y1] = run.arena.bounds
+  const [x0, y0, x1, y1] = run.view
   for (const e of run.enemies) {
     e.t += dt
     if (e.hitT > 0) e.hitT -= dt
@@ -1181,7 +1217,7 @@ function spawnPack(run, room) {
   const m = def.radius + 2
   const pt = edgePoint(run, m)
   if (!pt) return 0
-  const [x0, y0, x1, y1] = run.arena.bounds
+  const [x0, y0, x1, y1] = run.view
   const p = run.player
   const n = Math.min(room, phaseAt(run).pack || 1)
   let made = 0
@@ -1210,6 +1246,7 @@ function tick(run, dt, input) {
   run.t += dt
   refillBlessings(run, dt)
   movePlayer(run, dt, input)
+  follow(run)
   spawning(run, dt)
   moveEnemies(run, dt)
   run.behaviour.update(run, dt)

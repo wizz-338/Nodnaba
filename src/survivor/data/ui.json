@@ -126,10 +126,10 @@
     "EX": "#78d8d3"
   },
   "pc": {
-    "note": "The PC game's screen (16:9): the battle's logical screen is 640 × 360 (the field: balance.logicalArenaPc); the menus are laid out at 1280 × 720 CSS px and scaled to the window (sharp at any size: text and buttons stay vector). hud: boxes [x, y, w, h] on the 640 × 360 screen, a 36 px top bar.",
+    "note": "The PC game's screen (16:9): the battle's logical screen is 1152 × 648 (more of the world on screen than the phone's 360 × 640, so everything looks smaller on a large monitor); its field (balance.logicalArenaPc) is larger still and the camera follows Mano. inset: [left, top, right, bottom] of the screen that is not the play area (the HUD bar above). The menus are laid out at 1280 × 720 CSS px and scaled to the window (sharp at any size). hud: boxes [x, y, w, h] on the 1152 × 648 screen.",
     "logicalViewport": [
-      640,
-      360
+      1152,
+      648
     ],
     "aspect": "16:9",
     "design": [
@@ -137,73 +137,79 @@
       720
     ],
     "hud": {
-      "height": 36,
+      "height": 65,
       "stage": [
-        12,
-        5,
-        150,
-        13
+        22,
+        9,
+        270,
+        23
       ],
       "timer": [
-        164,
-        5,
-        96,
-        13
+        295,
+        9,
+        173,
+        23
       ],
       "pause": [
-        606,
-        4,
-        28,
-        28
+        1091,
+        7,
+        50,
+        50
       ],
       "health": [
-        268,
-        6,
-        186,
-        10
+        482,
+        11,
+        335,
+        18
       ],
       "healthText": [
-        458,
-        5,
-        72,
-        12
+        824,
+        9,
+        130,
+        22
       ],
       "xp": [
-        268,
-        21,
-        186,
-        7
+        482,
+        38,
+        335,
+        13
       ],
       "level": [
-        458,
-        18,
-        60,
-        12
+        824,
+        32,
+        108,
+        22
       ],
       "currency": [
-        12,
-        20,
-        110,
-        12
+        22,
+        36,
+        198,
+        22
       ],
       "weaponSlot": [
-        570,
-        4,
-        28,
-        28
+        1026,
+        7,
+        50,
+        50
       ],
       "bossBar": [
-        180,
-        48,
-        280,
-        24
+        324,
+        86,
+        504,
+        43
       ],
       "track": [
         0,
-        33,
-        640,
-        3
+        59,
+        1152,
+        5
       ]
-    }
+    },
+    "inset": [
+      16,
+      75,
+      16,
+      14
+    ]
   }
 }

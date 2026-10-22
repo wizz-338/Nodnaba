@@ -1112,16 +1112,17 @@ const still = { x: 0, y: 0 }
   ok(near(newRun({ chapter: 35, seed: 1, blessings: { ...all, final: true } }).bless.thunder.chance, G.thunder.chance * G.final.chanceMul), `마왕의 탱탱볼: every chance ×${G.final.chanceMul}`)
 }
 
-// ── the PC game: the same fight on a 16:9 field, moved with the keys ────────
+// ── the PC game: a field larger than its screen, a camera, the keys ─────────
 {
   const M = D.balance.logicalArena
   const PC = D.balance.logicalArenaPc
-  const area = ([x0, y0, x1, y1]) => (x1 - x0) * (y1 - y0)
-  ok(Math.abs(area(PC.bounds) / area(M.bounds) - 1) < 0.01, `the PC field has the phone field's area (${area(PC.bounds)} vs ${area(M.bounds)}), so as much room to run and as many monsters on it`)
+  const U = D.ui.pc
+  const [SW, SH] = U.logicalViewport
+  const [l, t, r0, b0] = U.inset
+  ok(PC.view[0] === SW - l - r0 && PC.view[1] === SH - t - b0, `the PC view is its ${SW} × ${SH} screen's play area (${PC.view.join(' × ')}), below the HUD bar (${U.hud.height} < ${t})`)
   const [px0, py0, px1, py1] = PC.bounds
-  ok(px0 >= 0 && py0 >= D.ui.pc.hud.height && px1 <= D.ui.pc.logicalViewport[0] && py1 <= D.ui.pc.logicalViewport[1], 'the PC field is inside its 640 × 360 screen, below the HUD bar')
-  const V = D.ui.pc.logicalViewport
-  const outside = Object.entries(D.ui.pc.hud).filter(([, b]) => Array.isArray(b) && (b[0] < 0 || b[1] < 0 || b[0] + b[2] > V[0] || b[1] + b[3] > V[1]))
+  ok(px1 - px0 > PC.view[0] * 1.3 && py1 - py0 > PC.view[1] * 1.3, `the PC field (${px1 - px0} × ${py1 - py0}) is well larger than its view: the camera has room both ways`)
+  const outside = Object.entries(U.hud).filter(([, b]) => Array.isArray(b) && (b[0] < 0 || b[1] < 0 || b[0] + b[2] > SW || b[1] + b[3] > SH))
   ok(outside.length === 0, `every PC HUD box is on the screen${outside.length ? ': ' + outside.map(([k]) => k).join(', ') : ''}`)
   // the keys: each alone, mixed, diagonals no faster, opposite keys cancel
   const len = (v) => Math.hypot(v.x, v.y)
@@ -1131,25 +1132,45 @@ const still = { x: 0, y: 0 }
   ok(near(len(keyVector(['KeyW', 'ArrowRight'])), 1) && keyVector(['KeyW', 'ArrowUp']).y === -1, 'arrows and WASD mix (W+→ diagonal; W+↑ is still one up)')
   const z = keyVector(['KeyA', 'KeyD'])
   ok(z.x === 0 && z.y === 0 && keyVector([]).x === 0 && keyVector(['KeyQ', 'Space']).x === 0, 'A+D cancel; no keys or other keys: standing still')
-  // a run on the PC field: Mano starts on it, its walls hold her, monsters come in from its edges
-  const r = newRun({ arena: PC, seed: 5 })
-  ok(r.arena === PC && r.player.x === PC.start[0] && r.player.y === PC.start[1], `Mano starts at the PC field's start (${PC.start})`)
-  for (let i = 0; i < 400; i++) step(r, FIXED, { x: 1, y: -1 })
-  ok(r.player.x <= px1 && r.player.y >= py0 && r.player.x > px1 - 20 && r.player.y < py0 + 20, `held up-right: she stops at the PC field's corner (${r.player.x.toFixed(1)}, ${r.player.y.toFixed(1)})`)
+  // the phone: the view is the field, always (nothing moves)
   const m = newRun({ seed: 5 })
-  ok(m.arena === M && m.player.x === (M.bounds[0] + M.bounds[2]) / 2, 'without a platform field it is the phone field, as before')
+  ok(m.arena === M && m.view.join() === M.bounds.join() && m.player.x === (M.bounds[0] + M.bounds[2]) / 2, 'without a platform field it is the phone field, and the view is all of it')
+  for (let i = 0; i < 300; i++) step(m, FIXED, { x: 1, y: -1 })
+  ok(m.view.join() === M.bounds.join(), 'on the phone the view never moves')
+  // the PC: the view centred on Mano, the camera following her, kept inside the field
+  const r = newRun({ arena: PC, seed: 5 })
+  const centred = (run) => near(run.view[0] + PC.view[0] / 2, run.player.x) && near(run.view[1] + PC.view[1] / 2, run.player.y)
+  ok(r.player.x === PC.start[0] && r.player.y === PC.start[1] && centred(r), `Mano starts at the PC field's start (${PC.start}), the view around her`)
+  for (let i = 0; i < 30; i++) step(r, FIXED, { x: 1, y: 0 })
+  ok(centred(r), 'the view follows her')
+  r.player.hp = r.player.maxHp = 1e9
+  for (let i = 0; i < 1200; i++) {
+    step(r, FIXED, { x: 1, y: -1 })
+    if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
+  }
+  ok(r.player.x > px1 - 20 && r.player.y < py0 + 20 && r.view[2] === px1 && r.view[1] === py0, `held up-right: she stops in the field's corner (${r.player.x.toFixed(1)}, ${r.player.y.toFixed(1)}), the view stops at its edges`)
+  // monsters come in near her (the spawn box) and stay in the view; the balls bounce off it
   const r2 = newRun({ arena: PC, seed: 8 })
-  for (let i = 0; i < 60 * 20; i++) step(r2, FIXED, { x: 0, y: 0 })
-  const off = r2.enemies.filter((e) => e.x < px0 - 60 || e.x > px1 + 60 || e.y < py0 - 60 || e.y > py1 + 60)
-  ok(r2.enemies.length > 0 && off.length === 0, `20 s on the PC field: ${r2.enemies.length} monsters, all on or at the edge of its field`)
-  // the same seed and choices: the phone and the PC game are the same fight (the bots play both)
-  const runs = (arena) => [1, 2, 3, 4].map((s) => playRun(D, { policy: 'core', seed: s * 104729, chapter: 3, arena }).run)
-  const a = runs(M)
-  const b = runs(PC)
-  const avg = (rs, f) => rs.reduce((n, x) => n + f(x), 0) / rs.length
-  const ta = avg(a, (x) => x.t)
-  const tb = avg(b, (x) => x.t)
-  ok(Math.abs(tb - ta) / ta < 0.25, `chapter 3, the same bot: ${ta.toFixed(0)} s on the phone field, ${tb.toFixed(0)} s on the PC field (within 25%)`)
+  r2.player.hp = r2.player.maxHp = 1e9
+  let far = 0
+  let outView = 0
+  let ballsOut = 0
+  const seen = new Set()
+  for (let i = 0; i < 60 * 40; i++) {
+    step(r2, FIXED, { x: Math.sin(i / 200), y: Math.cos(i / 300) })
+    const [vx0, vy0, vx1, vy1] = r2.view
+    for (const e of r2.enemies) {
+      if (!seen.has(e.id)) {
+        seen.add(e.id)
+        if (PC.spawnBox && (Math.abs(e.x - r2.player.x) > PC.spawnBox[0] / 2 + 40 || Math.abs(e.y - r2.player.y) > PC.spawnBox[1] / 2 + 40)) far++
+      }
+      if (e.state === 'live' && (e.x < vx0 - 0.01 || e.x > vx1 + 0.01 || e.y < vy0 - 0.01 || e.y > vy1 + 0.01)) outView++
+    }
+    for (const b of r2.balls) if (b.x < vx0 - 0.01 || b.x > vx1 + 0.01 || b.y < vy0 - 0.01 || b.y > vy1 + 0.01) ballsOut++
+    if (r2.state === 'levelup') choose(r2, r2.choices[0], r2.choiceSeq)
+  }
+  ok(seen.size > 20 && far === 0, `40 s walking about the PC field: ${seen.size} monsters came in, ${PC.spawnBox ? `all within the ${PC.spawnBox.join(' × ')} spawn box around Mano` : 'all at the view'}${far ? ` (${far} farther)` : ''}`)
+  ok(outView === 0 && ballsOut === 0, `no monster and no ball ever left the view${outView || ballsOut ? ` (${outView} monster-steps, ${ballsOut} ball-steps)` : ''}`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
