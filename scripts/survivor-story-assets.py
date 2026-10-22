@@ -63,6 +63,27 @@ def save(im, kind, ident, quality, lossless=False):
     return os.path.relpath(path, os.path.join(ROOT, 'src', 'survivor', 'assets', 's84')).replace(os.sep, '/'), os.path.getsize(path)
 
 
+# the open ground of a portrait background (inside its decorated border)
+INNER = (0.15, 0.12, 0.85, 0.88)
+
+
+def widen(rgb):
+    w, h = rgb.size
+    box = (round(w * INNER[0]), round(h * INNER[1]), round(w * INNER[2]), round(h * INNER[3]))
+    inner = rgb.crop(box)
+    iw, ih = inner.size
+    flip = inner.transpose(Image.FLIP_LEFT_RIGHT)
+    strip = Image.new('RGB', (iw * 3, ih))
+    strip.paste(flip, (0, 0))
+    strip.paste(inner, (iw, 0))
+    strip.paste(flip, (iw * 2, 0))
+    cw = round(ih * 16 / 9)
+    x = (strip.width - cw) // 2
+    cut = strip.crop((x, 0, x + cw, ih))
+    out = cut.resize((1920, 1080), Image.LANCZOS) if cut.width >= 1920 else cut
+    return out, f'inner {box} mirrored to the sides, {cw}x{ih} → {out.width}x{out.height}'
+
+
 def main(pkg):
     listing = json.load(open(os.path.join(pkg, 'image_list.json'), encoding='utf-8'))
     out = []
@@ -109,6 +130,17 @@ def main(pkg):
             soft = ImageEnhance.Brightness(soft).enhance(0.55)
             sf, ssize = save(soft, 'backgrounds', ident + '_soft', 62)
             out.append({'id': ident + '_soft', 'kind': 'backdrop', 'region': REGIONS[n - 1], 'source': rel, 'file': sf, 'out': [216, 324], 'bytes': ssize, 'width': e['width'], 'height': e['height'], 'sha256': entry['sha256']})
+            # the PC game's landscape field, a stand-in until 16:9 art exists:
+            # the open ground inside the picture's border, mirrored out to the
+            # sides (seamless at the seams), cut to 16:9 and made smaller,
+            # never larger — no stretching, no blowing up
+            wide, how = widen(rgb)
+            wf, wsize = save(wide, 'backgrounds', ident + '_wide', 74)
+            out.append({'id': ident + '_wide', 'kind': 'background-wide', 'region': REGIONS[n - 1], 'source': rel, 'method': how, 'file': wf, 'out': list(wide.size), 'bytes': wsize, 'width': e['width'], 'height': e['height'], 'sha256': entry['sha256']})
+            wsoft = wide.resize((480, 270), Image.LANCZOS).filter(ImageFilter.GaussianBlur(3))
+            wsoft = ImageEnhance.Brightness(wsoft).enhance(0.55)
+            wsf, wssize = save(wsoft, 'backgrounds', ident + '_wide_soft', 62)
+            out.append({'id': ident + '_wide_soft', 'kind': 'backdrop-wide', 'region': REGIONS[n - 1], 'source': rel, 'file': wsf, 'out': [480, 270], 'bytes': wssize, 'width': e['width'], 'height': e['height'], 'sha256': entry['sha256']})
         else:
             ident = os.path.splitext(parts[1])[0]
             im = im.convert('RGBA')

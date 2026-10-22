@@ -82,13 +82,18 @@ function perma(D, levels = {}) {
 //         cats: true once the cat companions have joined,
 //         tizzzz: true once the writer Tizzzz has joined,
 //         blessings: { phoenix, snow, thunder, final } — the story's battle
-//         blessings owned (story.json → rewards) }
+//         blessings owned (story.json → rewards),
+//         arena: the platform's field (default: balance.logicalArena, mobile) }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
   const behaviour = def && BEHAVIORS[def.behaviorId]
   if (!behaviour) throw new Error('weapon not implemented: ' + opts.weaponId)
-  const [x0, y0, x1, y1] = B.logicalArena.bounds
+  // the field: the mobile game's (balance.logicalArena) unless the platform
+  // brings its own (the PC game's logicalArenaPc: as wide as it is tall there,
+  // the same area, so the same fight)
+  const arena = opts.arena || B.logicalArena
+  const [x0, y0, x1, y1] = arena.bounds
   const pm = perma(D, opts.perma)
   const grade = opts.grade || 'D'
   // the weapon's base, times its grade, times the coin stats: each its own
@@ -111,6 +116,7 @@ export function createRun(D, opts) {
     D,
     id: opts.runId || 'run',
     chapter,
+    arena,
     factor: chapterFactor(D, chapter),
     rng: rng32(opts.seed || 1),
     t: 0,
@@ -119,8 +125,8 @@ export function createRun(D, opts) {
     spawnT: 0,
     nextId: 1,
     player: {
-      x: (x0 + x1) / 2,
-      y: (y0 + y1) / 2 + 40,
+      x: arena.start ? arena.start[0] : (x0 + x1) / 2,
+      y: arena.start ? arena.start[1] : (y0 + y1) / 2 + 40,
       vx: 0,
       vy: 0,
       hp,
@@ -251,7 +257,7 @@ function refillBlessings(run, dt) {
 // ── spatial grid for enemies (rebuilt every step) ───────────────────────────
 
 function makeGrid(run) {
-  const [, , x1, y1] = run.D.balance.logicalArena.bounds
+  const [, , x1, y1] = run.arena.bounds
   const cols = Math.ceil((x1 + 40) / CELL)
   const rows = Math.ceil((y1 + 40) / CELL)
   const cells = Array.from({ length: cols * rows }, () => [])
@@ -342,7 +348,7 @@ function pickType(run) {
 // a point on the arena's edge, all four sides by their length, never right
 // next to Mano (a few tries; null if there was no room this time)
 function edgePoint(run, m) {
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const p = run.player
   for (let tries = 0; tries < 8; tries++) {
     const w = x1 - x0
@@ -402,7 +408,7 @@ function spawn(run, type = pickType(run), at = null) {
 
 // an elite or the boss enters from the top, on the side away from Mano
 function spawnSpecial(run, ev) {
-  const [x0, y0, x1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1] = run.arena.bounds
   const def = run.D.balance.enemies[ev.enemy]
   const p = run.player
   const e = spawn(run, ev.enemy, { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 })
@@ -574,7 +580,7 @@ function stomp(run, e, def) {
 // as wide as its body), cut short by the walls like the charge itself
 export function chargePath(run, e) {
   const def = run.D.balance.enemies[e.type]
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   let len = def.chargeSpeed * def.chargeSeconds
   if (e.dx > 0) len = Math.min(len, (x1 - e.r - e.x) / e.dx)
   if (e.dx < 0) len = Math.min(len, (x0 + e.r - e.x) / e.dx)
@@ -586,7 +592,7 @@ export function chargePath(run, e) {
 
 function moveEnemies(run, dt) {
   const p = run.player
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   for (const e of run.enemies) {
     e.t += dt
     if (e.hitT > 0) e.hitT -= dt
@@ -646,7 +652,7 @@ function moveEnemies(run, dt) {
 
 function movePlayer(run, dt, input) {
   const p = run.player
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   let ix = input ? input.x : 0
   let iy = input ? input.y : 0
   const m = Math.hypot(ix, iy)
@@ -828,7 +834,7 @@ function updateCats(run, dt) {
   if (!run.cats.length) return
   const C = run.D.balance.cats
   const p = run.player
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const inX = (x) => Math.max(x0 + 8, Math.min(x1 - 8, x))
   const inY = (y) => Math.max(y0 + 8, Math.min(y1 - 4, y))
   for (const c of run.cats) {
@@ -969,7 +975,7 @@ function catTake(run, c, o) {
 function spitHearts(run, c) {
   const L = run.D.balance.upgrades.effects.nyang.levels[run.nyang - 1]
   if (!L) return
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const spread = run.D.balance.percentHeart.spread
   const a0 = run.rng() * 2 * Math.PI
   for (let i = 0; i < L.hearts; i++) {
@@ -1175,7 +1181,7 @@ function spawnPack(run, room) {
   const m = def.radius + 2
   const pt = edgePoint(run, m)
   if (!pt) return 0
-  const [x0, y0, x1, y1] = B.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const p = run.player
   const n = Math.min(room, phaseAt(run).pack || 1)
   let made = 0

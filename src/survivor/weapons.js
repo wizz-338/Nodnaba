@@ -105,7 +105,7 @@ function updateBalls(run, dt) {
       run.fireT += k * w.interval
     } else run.fireT = 0
   }
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const out = []
   for (const b of run.balls) {
     b.ttl -= dt

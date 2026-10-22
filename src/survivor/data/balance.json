@@ -8,6 +8,22 @@
       86,
       350,
       622
+    ],
+    "note": "the mobile game's field (360 × 640 screen, portrait): balls bounce and Mano stops at bounds; the PC game has its own (logicalArenaPc)"
+  },
+  "logicalArenaPc": {
+    "note": "the PC game's field (640 × 360 screen, landscape): 600 × 304, the same area as the mobile field (340 × 536) within 0.1%, so as many monsters fit, they come from as far, and the fight is the same; Mano starts in its middle. Everything else in the fight is shared.",
+    "width": 640,
+    "height": 360,
+    "bounds": [
+      20,
+      44,
+      620,
+      348
+    ],
+    "start": [
+      320,
+      206
     ]
   },
   "player": {

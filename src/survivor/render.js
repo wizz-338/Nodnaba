@@ -1,5 +1,6 @@
 // MANO SURVIVOR — drawing one frame of the battle. Reads the run, never
-// changes it. The world is the 360 × 640 logical screen; sprites are the v3
+// changes it. The world is the platform's logical screen (360 × 640 on
+// mobile, 640 × 360 on PC; see platform.js); sprites are the v3
 // pixel art (see sprites.js), placed by their pivot on the ground point and
 // drawn with smoothing off so pixels stay square.
 //
@@ -60,9 +61,13 @@ export function facing(prev, vx, vy) {
 
 // art: the story package's pictures, { now(id) → image or null } (a picture
 // not loaded yet, or that failed, falls back to the game's own art)
-export function createRenderer(canvas, img, D, art = { now: () => null }) {
+// screen: the platform's logical screen — [360, 640] on mobile, [640, 360]
+// on PC — and bg: which background a region uses there (its id → the id
+// drawn; the PC game has wide ones). Everything else is drawn the same.
+export function createRenderer(canvas, img, D, art = { now: () => null }, { screen = [360, 640], bg = (id) => id } = {}) {
+  const [SW, SH] = screen
   const ctx = canvas.getContext('2d')
-  const view = { w: 360, h: 640, dpr: 1, k: 1 }
+  const view = { w: SW, h: SH, dpr: 1, k: 1 }
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
   const fx = []
   const numbers = []
@@ -105,7 +110,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }) {
     view.dpr = Math.min(dpr || 1, 2)
     view.w = cssW
     view.h = cssH
-    view.k = cssW / 360
+    view.k = cssW / SW
     canvas.width = Math.round(cssW * view.dpr)
     canvas.height = Math.round(cssH * view.dpr)
     field = null
@@ -215,7 +220,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }) {
   // mirrored so the edges always meet. The field's walls are the game's, not
   // the picture's: nothing in the picture is solid.
   const fieldKey = (run) => {
-    const id = run.region && run.region.background
+    const id = run.region && bg(run.region.background)
     return id && art.now(id) ? id : 'tile'
   }
   function paintField(run) {
@@ -225,23 +230,23 @@ export function createRenderer(canvas, img, D, art = { now: () => null }) {
     const g = c.getContext('2d')
     const K = kd()
     c.key = fieldKey(run)
-    const bg = c.key !== 'tile' && art.now(c.key)
-    if (bg) {
-      const s = Math.max(360 / bg.width, 640 / bg.height)
-      const w = bg.width * s
-      const h = bg.height * s
+    const pic = c.key !== 'tile' && art.now(c.key)
+    if (pic) {
+      const s = Math.max(SW / pic.width, SH / pic.height)
+      const w = pic.width * s
+      const h = pic.height * s
       g.setTransform(K, 0, 0, K, 0, 0)
       g.imageSmoothingEnabled = true
       g.imageSmoothingQuality = 'high'
-      g.drawImage(bg, (360 - w) / 2, (640 - h) / 2, w, h)
+      g.drawImage(pic, (SW - w) / 2, (SH - h) / 2, w, h)
       g.fillStyle = 'rgba(24, 18, 28, 0.16)'
-      g.fillRect(0, 0, 360, 640)
+      g.fillRect(0, 0, SW, SH)
     } else {
       const tile = img['09_ground.png']
       const T = tile.width // one art pixel per logical pixel
       g.imageSmoothingEnabled = false
-      for (let j = 0; j * T < 640; j++)
-        for (let i = 0; i * T < 360; i++) {
+      for (let j = 0; j * T < SH; j++)
+        for (let i = 0; i * T < SW; i++) {
           const fx = i % 2 === 1
           const fy = j % 2 === 1
           g.setTransform(fx ? -K : K, 0, 0, fy ? -K : K, (fx ? (i + 1) * T : i * T) * K, (fy ? (j + 1) * T : j * T) * K)
@@ -249,14 +254,14 @@ export function createRenderer(canvas, img, D, art = { now: () => null }) {
         }
     }
     g.setTransform(K, 0, 0, K, 0, 0)
-    const [x0, y0, x1, y1] = D.balance.logicalArena.bounds
+    const [x0, y0, x1, y1] = run.arena.bounds
     // the edge of the field: a soft darker band and a thin line (the balls
     // bounce here, Mano stops here)
     g.fillStyle = 'rgba(30, 38, 30, 0.18)'
-    g.fillRect(0, 0, 360, y0)
-    g.fillRect(0, y1, 360, 640 - y1)
+    g.fillRect(0, 0, SW, y0)
+    g.fillRect(0, y1, SW, SH - y1)
     g.fillRect(0, y0, x0, y1 - y0)
-    g.fillRect(x1, y0, 360 - x1, y1 - y0)
+    g.fillRect(x1, y0, SW - x1, y1 - y0)
     g.strokeStyle = 'rgba(30, 38, 30, 0.28)'
     g.lineWidth = 1.5
     g.strokeRect(x0, y0, x1 - x0, y1 - y0)

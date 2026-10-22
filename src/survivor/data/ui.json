@@ -124,5 +124,86 @@
     "SS": "#e28a50",
     "SSS": "#db657d",
     "EX": "#78d8d3"
+  },
+  "pc": {
+    "note": "The PC game's screen (16:9): the battle's logical screen is 640 × 360 (the field: balance.logicalArenaPc); the menus are laid out at 1280 × 720 CSS px and scaled to the window (sharp at any size: text and buttons stay vector). hud: boxes [x, y, w, h] on the 640 × 360 screen, a 36 px top bar.",
+    "logicalViewport": [
+      640,
+      360
+    ],
+    "aspect": "16:9",
+    "design": [
+      1280,
+      720
+    ],
+    "hud": {
+      "height": 36,
+      "stage": [
+        12,
+        5,
+        150,
+        13
+      ],
+      "timer": [
+        164,
+        5,
+        96,
+        13
+      ],
+      "pause": [
+        606,
+        4,
+        28,
+        28
+      ],
+      "health": [
+        268,
+        6,
+        186,
+        10
+      ],
+      "healthText": [
+        458,
+        5,
+        72,
+        12
+      ],
+      "xp": [
+        268,
+        21,
+        186,
+        7
+      ],
+      "level": [
+        458,
+        18,
+        60,
+        12
+      ],
+      "currency": [
+        12,
+        20,
+        110,
+        12
+      ],
+      "weaponSlot": [
+        570,
+        4,
+        28,
+        28
+      ],
+      "bossBar": [
+        180,
+        48,
+        280,
+        24
+      ],
+      "track": [
+        0,
+        33,
+        640,
+        3
+      ]
+    }
   }
 }

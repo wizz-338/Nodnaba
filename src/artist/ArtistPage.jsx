@@ -21,6 +21,7 @@ const ARTISTS = [
       { label: '▶ MANO RUN', href: MANO_RUN_HASH },
       { label: '▶ MANO COLONY (DEMO)', href: MANO_COLONY_HASH },
       { label: `▶ ${GAMES.survivor.title} (DEMO)`, href: GAMES.survivor.href },
+      { label: `▶ ${GAMES.survivor.title} (DEMO · PC)`, href: GAMES.survivorPc.href },
     ],
   },
   {

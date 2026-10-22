@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
 import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName } from './game.js'
 import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
+import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
@@ -17,6 +18,33 @@ const EFFECTS = D.balance.upgrades.effects
 const GRADES = D.balance.grades
 const GRADE_COLOR = D.ui.grades
 const JOY = D.ui.joystick
+// the platform this page is played on (platform.js): the phone game or the PC
+// game. The screens below are the same for both; only how they are laid out
+// (.ms--mobile / .ms--pc), the battle's screen, field and HUD, its input and
+// its backgrounds come from here.
+const PlatformCtx = createContext(PLATFORMS.mobile)
+const usePlatform = () => useContext(PlatformCtx)
+
+// 전체 화면 (the PC game): on and off; nothing where the browser has none
+function FullscreenButton() {
+  const pf = usePlatform()
+  const [on, setOn] = useState(() => !!document.fullscreenElement)
+  useEffect(() => {
+    const f = () => setOn(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', f)
+    return () => document.removeEventListener('fullscreenchange', f)
+  }, [])
+  if (pf.id !== 'pc' || !document.fullscreenEnabled) return null
+  const toggle = () => {
+    const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
+    if (p && p.catch) p.catch(() => {})
+  }
+  return (
+    <button type="button" className="ms-btn ms-btn--small ms-fullbtn" onClick={toggle} aria-pressed={on}>
+      {on ? '전체 화면 끝내기' : '전체 화면'}
+    </button>
+  )
+}
 const fmt = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toString()
 const pctOf = (v) => `${fmt(v * 100, 1)}%`
 
@@ -345,7 +373,18 @@ function statText(stat, L) {
   }
 }
 
-export default function SurvivorPage({ exitHref = '#/' }) {
+// platform: 'mobile' (#/game/mano-survivor) or 'pc' (#/game/mano-survivor-pc)
+export default function SurvivorPage({ platform = 'mobile', exitHref = '#/' }) {
+  const pf = PLATFORMS[platform] || PLATFORMS.mobile
+  return (
+    <PlatformCtx.Provider value={pf}>
+      <Game exitHref={exitHref} />
+    </PlatformCtx.Provider>
+  )
+}
+
+function Game({ exitHref }) {
+  const pf = usePlatform()
   const P = useRef(null)
   const [img, setImg] = useState(null)
   const [error, setError] = useState('')
@@ -357,6 +396,20 @@ export default function SurvivorPage({ exitHref = '#/' }) {
   const [modal, setModal] = useState(null) // { kind: 'pause' | 'quit' | 'result' | 'chest' }
   const [, setBeat] = useState(0)
   const G = useRef({ run: null, runId: null, input: { x: 0, y: 0 }, paid: false, choosing: false })
+  // the PC game's menus are laid out at one size (1280 × 720) and scaled to
+  // the window as a whole (CSS zoom: text stays sharp at any size)
+  const [zoom, setZoom] = useState(1)
+  useEffect(() => {
+    if (!pf.design) return
+    const [dw, dh] = pf.design
+    const fit = () => setZoom(Math.min(innerWidth / dw, innerHeight / dh))
+    fit()
+    addEventListener('resize', fit)
+    return () => removeEventListener('resize', fit)
+  }, [pf])
+  // the PC game on a phone or tablet: it needs a keyboard, the phone game is
+  // the one to play there (it may still go on)
+  const [touchNote, setTouchNote] = useState(() => pf.input === 'keys' && touchOnly())
 
   const refresh = useCallback(() => setSave(P.current.get()), [])
 
@@ -424,7 +477,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, arena: pf.arena })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -433,7 +486,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.seen = seen
     g.timeCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'time' && !seen.has(c.id))
     g.bossCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'boss' && !seen.has(c.id))
-    preloadRegion(g.run.region)
+    preloadRegion(g.run.region, pf.background)
     for (const c of [...g.timeCuts, ...g.bossCuts]) for (const cut of c.cuts) loadArt(cut.image)
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
@@ -455,7 +508,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
 
   if (error)
     return (
-      <div className="ms ms--screen">
+      <div className={`ms ms--${pf.id} ms--screen`}>
         <p>{error}</p>
         <a className="ms-btn" href={exitHref}>
           사이트로 돌아가기
@@ -484,8 +537,22 @@ export default function SurvivorPage({ exitHref = '#/' }) {
   }
 
   return (
-    <div className="ms" onClickCapture={onClickCapture} onPointerDownCapture={onPointerDownCapture}>
+    <div className={`ms ms--${pf.id}`} style={pf.design ? { '--z': zoom } : undefined} onClickCapture={onClickCapture} onPointerDownCapture={onPointerDownCapture}>
       {screen === 'loading' && <div className="ms-loading">마노가 주머니를 챙기는 중…</div>}
+      {touchNote && screen !== 'battle' && (
+        <div className="ms-modal ms-touchnote" role="dialog" aria-modal="true" aria-label="PC 전용">
+          <div className="ms-panel ms-menu">
+            <h2 className="ms-h">PC 전용 데모예요</h2>
+            <p className="ms-dim ms-center">키보드(WASD·방향키)로 움직이는 버전이에요. 휴대폰·태블릿에서는 모바일 버전을 플레이해 주세요.</p>
+            <a className="ms-btn ms-btn--primary" href={GAMES.survivor.href}>
+              모바일 버전으로 가기
+            </a>
+            <button type="button" className="ms-btn" onClick={() => setTouchNote(false)}>
+              그래도 계속
+            </button>
+          </div>
+        </div>
+      )}
       {screen === 'lobby' && save && (
         <Lobby
           tab={tab}
@@ -609,6 +676,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
 function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
+  const pf = usePlatform()
   const region = regionOf(D, chapter)
   const tabs = [
     ['go', '출발'],
@@ -617,35 +685,42 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
     ['settings', '설정'],
   ]
   return (
-    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${artUrl(region.background + '_soft')})` }}>
-      <header className="ms-top">
-        <a className="ms-exit" href={exitHref}>
-          ◀ 나가기
-        </a>
-        <span className="ms-coins" aria-label={`코인 ${save.currency}`}>
-          <Sprite name="coin" size={20} />
-          {money(save.currency)}
-        </span>
-      </header>
-      <h1 className="ms-title">{GAMES.survivor.title}</h1>
-      <nav className="ms-tabs" role="tablist">
-        {tabs.map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`ms-tab ${tab === k ? 'is-on' : ''}`} onClick={() => setTab(k)}>
-            {label}
-            {k === 'gear' && save.chests.length > 0 ? <em className="ms-tab__dot">{save.chests.length}</em> : null}
-          </button>
-        ))}
-      </nav>
-      {notice && (
-        <p className="ms-notice" onClick={onNotice}>
-          {notice}
-        </p>
-      )}
-      {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
-      {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
-      {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
-      {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
-      {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
+    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${artUrl(pf.backdrop(region.background))})` }}>
+      {/* the PC game: a rail at the left (these three) and the tab's own
+          content beside it; on the phone neither wrapper is a box at all */}
+      <div className="ms-lobby__rail">
+        <header className="ms-top">
+          <a className="ms-exit" href={exitHref}>
+            ◀ 나가기
+          </a>
+          <FullscreenButton />
+          <span className="ms-coins" aria-label={`코인 ${save.currency}`}>
+            <Sprite name="coin" size={20} />
+            {money(save.currency)}
+          </span>
+        </header>
+        <h1 className="ms-title">{GAMES.survivor.title}</h1>
+        <nav className="ms-tabs" role="tablist">
+          {tabs.map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`ms-tab ${tab === k ? 'is-on' : ''}`} onClick={() => setTab(k)}>
+              {label}
+              {k === 'gear' && save.chests.length > 0 ? <em className="ms-tab__dot">{save.chests.length}</em> : null}
+            </button>
+          ))}
+        </nav>
+      </div>
+      <div className={`ms-lobby__body ms-lobby__body--${tab}`}>
+        {notice && (
+          <p className="ms-notice" onClick={onNotice}>
+            {notice}
+          </p>
+        )}
+        {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
+        {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
+        {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
+        {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
+        {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
+      </div>
     </div>
   )
 }
@@ -674,10 +749,11 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
     dir.current = c > chapter ? 'next' : 'prev'
     setChapter(c)
   }
+  const pf = usePlatform()
   const region = regionOf(D, chapter)
   // this region's pictures start loading while its card is on show
   useEffect(() => {
-    preloadRegion(region)
+    preloadRegion(region, pf.background)
   }, [region.id])
   const cats = save.cats.unlocked
   const catsOn = chapter >= D.balance.cats.activeFromChapter
@@ -706,7 +782,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           <div key={chapter} className={`ms-stagecard__inner is-${dir.current}`}>
             <p className="ms-stagecard__no">{chapter}장</p>
             <p className="ms-stagecard__name">{chapterName(chapter)}</p>
-            <div className="ms-stagecard__art" style={{ '--ground': `url(${artUrl(region.background)})` }}>
+            <div className="ms-stagecard__art" style={{ '--ground': `url(${artUrl(pf.background(region.background))})` }}>
               <Art id={region.skins.boss} className="ms-stagecard__boss" alt={enemyName(D, region, 'boss')} />
               <span className="ms-ember" style={{ '--x': '18%', '--d': '7.5s', '--w': '-1.2s' }} />
               <span className="ms-ember" style={{ '--x': '46%', '--d': '9.8s', '--w': '-4.1s' }} />
@@ -722,47 +798,49 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
         </button>
         <img className="ms-lobbymano" src={LOBBY_IMG.mano} alt="" draggable="false" />
       </section>
-      {cats && (
-        <p className="ms-crew">
-          <span className="ms-crew__cats">
-            {D.cats.companions.map((c) => (
-              <span key={c.id} className="ms-crew__cat">
-                <Art id={c.image} alt={c.name} />
-              </span>
-            ))}
-          </span>
-          <span className="ms-crew__text">
-            {catsOn ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요` : `${D.balance.cats.activeFromChapter}장부터 함께해요`}
-          </span>
-        </p>
-      )}
-      {tz && (
-        <p className="ms-crew ms-crew--tz">
-          <Art id="tizzzz_face" className="ms-crew__face" />
-          <Pen />
-          <span className="ms-crew__text">
-            {tzOn ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요` : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 함께해요`}
-          </span>
-        </p>
-      )}
-      <p className="ms-best">
-        <Crown />
-        {best ? (
-          <>
-            최고 기록: {best.cleared ? '클리어' : `${clock2(best.time)} 버팀`} <i>|</i> 처치 {best.kills} <i>|</i> 엘리트 {best.elites}
-          </>
-        ) : locked ? (
-          '아직 열리지 않은 장이에요'
-        ) : (
-          '아직 기록이 없어요'
+      <div className="ms-go__side">
+        {cats && (
+          <p className="ms-crew">
+            <span className="ms-crew__cats">
+              {D.cats.companions.map((c) => (
+                <span key={c.id} className="ms-crew__cat">
+                  <Art id={c.image} alt={c.name} />
+                </span>
+              ))}
+            </span>
+            <span className="ms-crew__text">
+              {catsOn ? `${D.cats.companions.map((c) => c.name).join('·')}가 함께해요` : `${D.balance.cats.activeFromChapter}장부터 함께해요`}
+            </span>
+          </p>
         )}
-      </p>
-      <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
-        {locked ? `${chapter}장 잠김` : `${chapter}장 출발`}
-      </button>
-      <button type="button" className="ms-btn ms-btn--small ms-allbtn" onClick={() => setGrid(true)}>
-        전체 장 보기
-      </button>
+        {tz && (
+          <p className="ms-crew ms-crew--tz">
+            <Art id="tizzzz_face" className="ms-crew__face" />
+            <Pen />
+            <span className="ms-crew__text">
+              {tzOn ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요` : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 함께해요`}
+            </span>
+          </p>
+        )}
+        <p className="ms-best">
+          <Crown />
+          {best ? (
+            <>
+              최고 기록: {best.cleared ? '클리어' : `${clock2(best.time)} 버팀`} <i>|</i> 처치 {best.kills} <i>|</i> 엘리트 {best.elites}
+            </>
+          ) : locked ? (
+            '아직 열리지 않은 장이에요'
+          ) : (
+            '아직 기록이 없어요'
+          )}
+        </p>
+        <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
+          {locked ? `${chapter}장 잠김` : `${chapter}장 출발`}
+        </button>
+        <button type="button" className="ms-btn ms-btn--small ms-allbtn" onClick={() => setGrid(true)}>
+          전체 장 보기
+        </button>
+      </div>
       {grid && (
         <ChapterGrid
           save={save}
@@ -1294,6 +1372,8 @@ function Fusion({ save, onBack, onFuse }) {
 // ── battle ───────────────────────────────────────────────────────────────────
 
 function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip, onChests, refresh, rerender }) {
+  const pf = usePlatform()
+  const [SW, SH] = pf.screen
   const stageRef = useRef(null)
   // the level-up's "my stats" box: stays open or shut across a run's level-ups
   const [showStats, setShowStats] = useState(false)
@@ -1308,13 +1388,28 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   useEffect(() => {
     const g = G.current
     const stage = stageRef.current
-    const R = createRenderer(canvasRef.current, img, D, { now: artNow })
+    const R = createRenderer(canvasRef.current, img, D, { now: artNow }, { screen: pf.screen, bg: pf.background })
     const fit = () => {
       const r = stage.getBoundingClientRect()
       R.resize(r.width, r.height, Math.min(devicePixelRatio, g.dprCap || 2))
-      g.k = r.width / 360
+      g.k = r.width / SW
     }
     fit()
+
+    // ── keys (the PC game): WASD and the arrows, alone or mixed; Mano runs
+    // the way the keys held right now say, so letting go stops her at once ──
+    const held = new Set()
+    const onKeyDown = (e) => {
+      if (!MOVE_KEYS[e.code] && e.code !== 'Space') return
+      // the arrows and Space never scroll anything while the game is open
+      if (!(e.target.closest && e.target.closest('input, textarea, select'))) e.preventDefault()
+      if (e.code === 'Space' || e.ctrlKey || e.metaKey || e.altKey) return
+      held.add(e.code)
+      g.input = keyVector(held)
+    }
+    const onKeyUp = (e) => {
+      if (held.delete(e.code)) g.input = keyVector(held)
+    }
 
     // ── joystick: a finger anywhere on the battle (buttons aside) puts the
     // stick right there and steers from it; at rest it waits, faint, at the
@@ -1330,6 +1425,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
     }
     const release = () => {
       joy.id = null
+      held.clear()
       g.input = { x: 0, y: 0 }
       const h = home()
       show(false, h.x, h.y)
@@ -1380,12 +1476,18 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
     const onUp = (e) => {
       if (e.pointerId === joy.id) release()
     }
-    stage.addEventListener('pointerdown', onDown)
-    stage.addEventListener('pointermove', onMove)
-    stage.addEventListener('pointerup', onUp)
-    stage.addEventListener('pointercancel', onUp)
-    stage.addEventListener('lostpointercapture', onUp)
-    // leaving the app or the tab: let go of the stick, pause the battle
+    if (pf.input === 'touch') {
+      stage.addEventListener('pointerdown', onDown)
+      stage.addEventListener('pointermove', onMove)
+      stage.addEventListener('pointerup', onUp)
+      stage.addEventListener('pointercancel', onUp)
+      stage.addEventListener('lostpointercapture', onUp)
+    } else {
+      addEventListener('keydown', onKeyDown)
+      addEventListener('keyup', onKeyUp)
+    }
+    // leaving the app, the tab or the window: let go of the stick and the
+    // keys (a key let go elsewhere is never heard), pause the battle
     const away = () => {
       release()
       if (g.run && g.run.state === 'play' && !modalRef.current) setModal({ kind: 'pause' })
@@ -1528,6 +1630,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       stage.removeEventListener('pointerup', onUp)
       stage.removeEventListener('pointercancel', onUp)
       stage.removeEventListener('lostpointercapture', onUp)
+      removeEventListener('keydown', onKeyDown)
+      removeEventListener('keyup', onKeyUp)
       removeEventListener('blur', away)
       document.removeEventListener('visibilitychange', onVis)
       removeEventListener('keydown', onKey)
@@ -1535,7 +1639,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // modals always let go of the stick
+  // modals always let go of the stick and the keys
   useEffect(() => {
     if (modal && G.current.releaseInput) G.current.releaseInput()
   }, [modal, G])
@@ -1544,8 +1648,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   const p = run.player
   const k = G.current.k || 1
   const pct = (v) => `${(v * 100).toFixed(2)}%`
-  const box = ([x, y, w, h]) => ({ left: pct(x / 360), top: pct(y / 640), width: pct(w / 360), height: pct(h / 640) })
-  const H = D.ui.hud
+  const box = ([x, y, w, h]) => ({ left: pct(x / SW), top: pct(y / SH), width: pct(w / SW), height: pct(h / SH) })
+  const H = pf.hud
   // the elite or boss on the field, for its health bar
   const big = [run.boss, run.elites.elite2, run.elites.elite1].find((e) => e && e.state === 'live')
   const ot = overtime(run)
@@ -1567,7 +1671,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
       {/* top bar: chapter · wave and time, pause; health, experience and
           level; coins. The one weapon sits just below, on the right. */}
       <div className="ms-hud">
-        <div className="ms-hudbar" style={{ height: pct(H.height / 640) }} />
+        <div className="ms-hudbar" style={{ height: pct(H.height / SH) }} />
         <div className="ms-stagename" style={box(H.stage)}>
           {run.chapter}장 · {stageText}
         </div>
@@ -1616,15 +1720,17 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         </div>
       </div>
       {toast && <p className="ms-toast">{toast}</p>}
-      {hint && <p className="ms-hint">화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.</p>}
-      <div className="ms-joy" ref={joyRef} aria-hidden="true">
-        <span className="ms-joy__base">
-          <Sprite name="joystick_base" size={R0 * 2} />
-        </span>
-        <span className="ms-joy__knob" ref={knobRef}>
-          <Sprite name="joystick_thumb" size={JOY.knobRadius * 2 * k} />
-        </span>
-      </div>
+      {hint && <p className="ms-hint">{pf.input === 'keys' ? 'WASD나 방향키로 마노가 달려요. 공격은 자동이에요. Esc: 일시정지' : '화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.'}</p>}
+      {pf.input === 'touch' && (
+        <div className="ms-joy" ref={joyRef} aria-hidden="true">
+          <span className="ms-joy__base">
+            <Sprite name="joystick_base" size={R0 * 2} />
+          </span>
+          <span className="ms-joy__knob" ref={knobRef}>
+            <Sprite name="joystick_thumb" size={JOY.knobRadius * 2 * k} />
+          </span>
+        </div>
+      )}
 
       {run.state === 'levelup' && run.choices && !modal && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="강화 선택">
@@ -1722,6 +1828,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'quit' })}>
               장비로
             </button>
+            <FullscreenButton />
           </div>
         </div>
       )}
@@ -1825,16 +1932,18 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
               </span>
             ))}
           </div>
-          {R.lines.map((t) => (
-            <p key={t} className="ms-cut__line">
-              {t}
-            </p>
-          ))}
-          {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 싸워요.</p>}
-          {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
-          <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
-            확인
-          </button>
+          <div className="ms-cut__words">
+            {R.lines.map((t) => (
+              <p key={t} className="ms-cut__line">
+                {t}
+              </p>
+            ))}
+            {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 싸워요.</p>}
+            {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
+            <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
+              확인
+            </button>
+          </div>
         </div>
       </div>
     )

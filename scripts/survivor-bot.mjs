@@ -28,7 +28,7 @@ export const SKILLS = {
 export function botInput(run, skill = SKILLS.good, mem = {}) {
   if (skill.every && mem.t !== undefined && run.t - mem.t < skill.every && mem.input) return mem.input
   const p = run.player
-  const [x0, y0, x1, y1] = run.D.balance.logicalArena.bounds
+  const [x0, y0, x1, y1] = run.arena.bounds
   const live = run.enemies.filter((e) => e.state === 'live' || e.state === 'spawn')
   const def = (e) => run.D.balance.enemies[e.type]
   // warnings it has noticed (a casual player sees them a moment late)
@@ -88,9 +88,9 @@ export function pick(run, policy) {
   return c[0]
 }
 
-// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, maxTime }
-export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, blessings = {}, maxTime = 600 } = {}) {
-  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, blessings })
+// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, arena, maxTime }
+export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, blessings = {}, arena, maxTime = 600 } = {}) {
+  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, blessings, arena })
   const mem = {}
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
