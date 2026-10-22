@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, regionOf, enemyName, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
@@ -494,7 +494,7 @@ const still = { x: 0, y: 0 }
   const again3 = createProgress(D, mem).boot()
   ok(again3.lostRun && again3.data.activeRun === null, 'a run left unfinished (page closed) ends; what it earned stays')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY' && mem.getItem('nodnaba:manorun:best') === '777', "other games' saves untouched")
-  ok(near(chapterCoins(D, 1), 1) && near(chapterCoins(D, 3), R.coinGrowth ** 2) && near(chapterCoins(D, 99) / chapterCoins(D, 98), R.coinGrowth), `every chapter's coins are worth ×${R.coinGrowth} the one before (chapter 10: ×${chapterCoins(D, 10).toFixed(0)})`)
+  ok(near(chapterCoins(D, 1), 1) && near(chapterCoins(D, 3), R.coinGrowth ** 2) && near(chapterCoins(D, 35) / chapterCoins(D, 34), R.coinGrowth), `every chapter's coins are worth ×${R.coinGrowth} the one before (chapter 10: ×${chapterCoins(D, 10).toFixed(0)})`)
   const r3b = P.startRun(3)
   const e3 = P.award(r3b.runId, 3, 'elite1')
   ok(e3.coins === Math.round(R.elite1.coins * chapterCoins(D, 3)), `the thief in chapter 3 pays ${R.elite1.coins} × ${R.coinGrowth}² = ${e3.coins}`)
@@ -1110,6 +1110,35 @@ const still = { x: 0, y: 0 }
   r3.blessHit(boss, 10, boss.x, boss.y)
   ok(!(boss.freezeT > 0) && boss.slowT > 0 && boss.slowMul === G.snow.bossSlow, `the boss is never frozen: slowed ×${G.snow.bossSlow} for ${G.snow.bossSeconds} s instead`)
   ok(near(newRun({ chapter: 35, seed: 1, blessings: { ...all, final: true } }).bless.thunder.chance, G.thunder.chance * G.final.chanceMul), `마왕의 탱탱볼: every chance ×${G.final.chanceMul}`)
+}
+
+// ── the story ends at chapter 35 ────────────────────────────────────────────
+{
+  const L = lastChapter(D)
+  ok(L === 35 && regionOf(D, 35).id === 'castle', `the last chapter is ${L}, the end of 마왕성`)
+  // an old save that had gone past it: kept up to 35, nothing past it
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.unlockedChapter = 50
+  d.firstCleared = Array.from({ length: 49 }, (_, i) => i + 1)
+  d.bestResults = { 34: { cleared: true, time: 230, kills: 900, elites: 2 }, 40: { cleared: true, time: 230, kills: 990, elites: 2 } }
+  d.currency = 1234
+  mem.setItem(KEY, JSON.stringify(d))
+  const b = createProgress(D, mem).boot().data
+  ok(b.unlockedChapter === 35 && Math.max(...b.firstCleared) === 35 && b.firstCleared.length === 35 && !b.bestResults[40] && b.bestResults[34].kills === 900 && b.currency === 1234, 'a save past chapter 35 keeps chapters 1–35, its records and coins; chapters 36+ are gone')
+  // clearing 35 opens nothing more
+  const mem2 = new Mem()
+  const P2 = createProgress(D, mem2)
+  P2.boot()
+  const d2 = P2.get()
+  d2.unlockedChapter = 35
+  d2.firstCleared = Array.from({ length: 34 }, (_, i) => i + 1)
+  mem2.setItem(KEY, JSON.stringify(d2))
+  const r = P2.startRun(35)
+  P2.finishRun(r.runId, 35, { cleared: true, coins: 0, kills: 1, time: 230, elites: 2 })
+  ok(P2.get().unlockedChapter === 35 && P2.get().firstCleared.includes(35), 'clearing chapter 35 marks it cleared and opens no chapter 36')
 }
 
 // ── the PC game: a field larger than its screen, a camera, the keys ─────────

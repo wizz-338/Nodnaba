@@ -54,6 +54,9 @@ export const chapterCoins = (D, chapter) => D.balance.rewards.coinGrowth ** (Mat
 
 // the story's region of a chapter (story.json): 7 places of 5 chapters; the
 // chapters past the last region go on in it
+// the story's last chapter: the game ends there (the last region's end, 35)
+export const lastChapter = (D) => D.story.regions[D.story.regions.length - 1].to
+
 export function regionOf(D, chapter) {
   const R = D.story.regions
   return R.find((r) => chapter >= r.from && chapter <= r.to) || (chapter < R[0].from ? R[0] : R[R.length - 1])

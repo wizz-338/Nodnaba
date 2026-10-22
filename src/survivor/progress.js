@@ -9,7 +9,7 @@
 // reload never pays twice. Rewards earned during a run (an elite, the boss)
 // are saved the moment they are earned, so a later loss keeps them.
 
-import { chapterCoins } from './game.js'
+import { chapterCoins, lastChapter } from './game.js'
 
 export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
@@ -101,15 +101,17 @@ function validate(D, d) {
   out.inventory = inventory
   out.equippedInstanceId = ids.has(d.equippedInstanceId) ? d.equippedInstanceId : inventory[0] ? inventory[0].id : null
   out.currency = num(d.currency) && d.currency >= 0 ? Math.floor(d.currency) : 0
-  out.unlockedChapter = int(d.unlockedChapter) && d.unlockedChapter >= 1 ? Math.min(d.unlockedChapter, 99) : 1
+  // the game ends at its last chapter (35): nothing past it is kept
+  const last = lastChapter(D)
+  out.unlockedChapter = int(d.unlockedChapter) && d.unlockedChapter >= 1 ? Math.min(d.unlockedChapter, last) : 1
   const keys = v1 ? (Array.isArray(d.lastAwardedRunIds) ? d.lastAwardedRunIds.map((id) => id + ':end') : []) : d.awarded
   out.awarded = Array.isArray(keys) ? keys.filter((x) => typeof x === 'string').slice(-KEEP_KEYS) : []
   out.bestResults = {}
   if (isObj(d.bestResults))
     for (const [ch, b] of Object.entries(d.bestResults))
-      if (int(+ch) && isObj(b)) out.bestResults[ch] = { cleared: !!b.cleared, kills: num(b.kills) ? b.kills : 0, time: num(b.time) ? b.time : 0, elites: num(b.elites) ? b.elites : 0 }
+      if (int(+ch) && +ch <= last && isObj(b)) out.bestResults[ch] = { cleared: !!b.cleared, kills: num(b.kills) ? b.kills : 0, time: num(b.time) ? b.time : 0, elites: num(b.elites) ? b.elites : 0 }
   const fc = v1 ? Object.keys(out.bestResults).filter((ch) => out.bestResults[ch].cleared).map(Number) : d.firstCleared
-  out.firstCleared = Array.isArray(fc) ? [...new Set(fc.filter((x) => int(x) && x >= 1))] : []
+  out.firstCleared = Array.isArray(fc) ? [...new Set(fc.filter((x) => int(x) && x >= 1 && x <= last))] : []
   out.chests = Array.isArray(d.chests) ? d.chests.filter((c) => isObj(c) && typeof c.id === 'string').map((c) => ({ id: c.id, chapter: int(c.chapter) ? c.chapter : 1 })) : []
   out.nextSeq = int(d.nextSeq) && d.nextSeq > 0 ? d.nextSeq : inventory.length + 1
   out.activeRun = isObj(d.activeRun) && typeof d.activeRun.runId === 'string' ? { runId: d.activeRun.runId, chapter: int(d.activeRun.chapter) ? d.activeRun.chapter : 1 } : null
@@ -328,7 +330,8 @@ export function createProgress(D, storage) {
               out.gift = item
             }
           }
-          d.unlockedChapter = Math.max(d.unlockedChapter, chapter + 1)
+          // (the last chapter opens nothing more: the story ends there)
+          d.unlockedChapter = Math.min(lastChapter(D), Math.max(d.unlockedChapter, chapter + 1))
           // a region's last chapter: its reward, in this same write (once,
           // whatever happens to its cutscene)
           for (const [rid, Rw] of Object.entries(D.story.rewards)) if (Rw.chapter === chapter) out.story = grantReward(D, d, rid) || out.story

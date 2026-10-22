@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName } from './game.js'
+import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, lastChapter } from './game.js'
 import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
@@ -424,7 +424,7 @@ function Game({ exitHref }) {
       setNotice(`이미 깬 장의 이야기 보상을 받았어요: ${news.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`)
       P.current.clearNews()
     }
-    setChapter(Math.max(1, Math.min(b.data.unlockedChapter, 99)))
+    setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
     if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혔어요. 그때까지 받은 엘리트·보스 보상은 그대로예요.')
     else if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
     loadImages()
@@ -468,7 +468,7 @@ function Game({ exitHref }) {
 
   const start = (ch = chapter) => {
     // the lobby shows the next locked chapter, but never starts it
-    if (ch > P.current.get().unlockedChapter) return
+    if (ch > P.current.get().unlockedChapter || ch > LAST_CHAPTER) return
     const r = P.current.startRun(ch)
     if (!r.weapon) return setNotice('장착할 무기가 없어요.')
     const g = G.current
@@ -578,7 +578,7 @@ function Game({ exitHref }) {
           P={P.current}
           onImported={(data) => {
             setSave(data)
-            setChapter(Math.max(1, Math.min(data.unlockedChapter, 99)))
+            setChapter(Math.max(1, Math.min(data.unlockedChapter, LAST_CHAPTER)))
           }}
           onChests={openChests}
           onBuy={(stat, level) => {
@@ -727,13 +727,11 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
 
 // 출발: the story's regions as episode cards (‹ › or a swipe to the one
 // before or after; a card to pick it), the chosen one's line, record and
-// chapters below, and the start button. A grid of all the chapters is behind
-// "전체 장". The next locked chapter can be seen, never started.
-const LAST_CHAPTER = 99
+// chapters below, and the start button. The next locked chapter can be seen,
+// never started. The story ends at the last region's last chapter (35).
+const LAST_CHAPTER = lastChapter(D)
 const REGIONS = D.story.regions
-// the last region runs on to the last chapter
-const lastOf = (r) => (r === REGIONS[REGIONS.length - 1] ? LAST_CHAPTER : r.to)
-const rangeText = (r) => (lastOf(r) === r.to ? `${r.from}~${r.to}장` : `${r.from}장~`)
+const rangeText = (r) => `${r.from}~${r.to}장`
 // a chapter's picture in the strip: the region's monsters in turn, its boss last
 const STRIP_ROLES = ['imp', 'spider', 'slime', 'brute', 'boss']
 const stripArt = (r, n) => r.skins[n === r.to ? 'boss' : STRIP_ROLES[(n - r.from) % 4]]
@@ -745,7 +743,6 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
   const unlocked = save.unlockedChapter
   const furthest = Math.min(LAST_CHAPTER, unlocked + 1)
   const locked = chapter > unlocked
-  const [grid, setGrid] = useState(false)
   const swipe = useRef(null)
   const tapped = useRef(0) // when the fan last picked a card itself (its click is then not needed)
   const region = regionOf(D, chapter)
@@ -759,13 +756,12 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
   const pickEpisode = (i) => {
     const r = REGIONS[Math.max(0, Math.min(REGIONS.length - 1, i))]
     if (r === region) return
-    setChapter(r.from > unlocked ? r.from : Math.min(lastOf(r), unlocked))
+    setChapter(r.from > unlocked ? r.from : Math.min(r.to, unlocked))
   }
   const go = (n) => setChapter(Math.max(1, Math.min(furthest, n)))
   const regionDone = (r) => save.firstCleared.includes(r.to)
-  // the strip: the region's chapters (the last region's: five around the chosen one)
-  const s0 = lastOf(region) === region.to ? region.from : Math.max(region.from, Math.min(chapter - 2, Math.max(region.from, furthest - 4)))
-  const strip = Array.from({ length: Math.min(5, lastOf(region) - s0 + 1) }, (_, k) => s0 + k)
+  // the strip: the region's chapters
+  const strip = Array.from({ length: region.to - region.from + 1 }, (_, k) => region.from + k)
   const cats = save.cats.unlocked
   const catsOn = chapter >= D.balance.cats.activeFromChapter
   const tz = save.tizzzz.unlocked
@@ -916,60 +912,8 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
             </button>
           )
         })}
-        <button type="button" className="ms-btn ms-btn--small ms-allbtn" onClick={() => setGrid(true)}>
-          전체 장
-        </button>
       </section>
-      {grid && (
-        <ChapterGrid
-          save={save}
-          chapter={chapter}
-          onPick={(c) => {
-            go(c)
-            setGrid(false)
-          }}
-          onClose={() => setGrid(false)}
-        />
-      )}
     </>
-  )
-}
-
-// every chapter in a grid: cleared ones ticked, locked ones greyed out
-function ChapterGrid({ save, chapter, onPick, onClose }) {
-  const on = useRef(null)
-  useEffect(() => on.current && on.current.scrollIntoView({ block: 'center' }), [])
-  return (
-    <div className="ms-modal" role="dialog" aria-modal="true" aria-label="전체 장" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ms-panel ms-chgrid">
-        <div className="ms-row">
-          <h2 className="ms-sub">전체 장</h2>
-          <button type="button" className="ms-btn ms-btn--small" onClick={onClose}>
-            닫기
-          </button>
-        </div>
-        <p className="ms-dim">{save.unlockedChapter}장까지 열렸어요.</p>
-        <div className="ms-chgrid__list">
-          {Array.from({ length: LAST_CHAPTER }, (_, i) => i + 1).map((c) => {
-            const open = c <= save.unlockedChapter
-            return (
-              <button
-                key={c}
-                ref={c === chapter ? on : null}
-                type="button"
-                data-sfx="tick"
-                className={`ms-chgrid__ch ${c === chapter ? 'is-on' : ''} ${save.firstCleared.includes(c) ? 'is-done' : ''}`}
-                disabled={!open}
-                aria-pressed={c === chapter}
-                onClick={() => onPick(c)}
-              >
-                {c}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
   )
 }
 
