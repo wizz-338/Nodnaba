@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, lastChapter } from './game.js'
+import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
+import { specialOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
@@ -427,6 +428,9 @@ function Game({ exitHref }) {
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
     if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혔어요. 그때까지 받은 엘리트·보스 보상은 그대로예요.')
     else if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
+    // the game's fonts (survivor.css): asked for now, so the battle's numbers
+    // (drawn on the canvas) have them from the first fight
+    document.fonts?.load?.("16px 'Jua'").catch(() => {})
     loadImages()
       .then((i) => {
         setImg(i)
@@ -477,17 +481,17 @@ function Game({ exitHref }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, arena: pf.arena })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, arena: pf.arena, bossBag: BOSS_BAG })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
-    // the story: what this chapter still has to show (seen ones never again)
+    // the story: what this chapter still has to show (seen ones never again).
+    // Only before the fight (enter) and after it (clear): nothing stops a
+    // fight once it has begun (the story's 'time' and 'boss' groups are kept
+    // in the data but not played; a special boss is announced by WARNING!)
     const seen = new Set(P.current.get().story.seen)
     g.seen = seen
-    g.timeCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'time' && !seen.has(c.id))
-    g.bossCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'boss' && !seen.has(c.id))
     preloadRegion(g.run.region, pf.background)
-    for (const c of [...g.timeCuts, ...g.bossCuts]) for (const cut of c.cuts) loadArt(cut.image)
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
     setScreen('battle')
@@ -730,13 +734,19 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
           ))}
         </nav>
       </div>
+      {/* notices: on the PC a layer over the top of the content (they never
+          push it down: the page has a fixed height); on the phone in line */}
+      {(notice || saveError) && (
+        <div className="ms-notices" role="status">
+          {notice && (
+            <p className="ms-notice" onClick={onNotice}>
+              {notice}
+            </p>
+          )}
+          {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
+        </div>
+      )}
       <div className={`ms-lobby__body ms-lobby__body--${tab}`}>
-        {notice && (
-          <p className="ms-notice" onClick={onNotice}>
-            {notice}
-          </p>
-        )}
-        {saveError && <p className="ms-notice">저장되지 않았어요. (브라우저가 저장을 막았거나 공간이 부족해요)</p>}
         {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
         {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
         {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
@@ -751,6 +761,17 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
 // chapters below, and the start button. The next locked chapter can be seen,
 // never started. The story ends at the last region's last chapter (35).
 const LAST_CHAPTER = lastChapter(D)
+// the boss a chapter ends with: its special boss (an episode's 3rd and 5th
+// chapters), else the region's boss
+const chapterBoss = (region, ch) => {
+  const sp = specialOf(D, region, ch)
+  return sp ? D.story.monsters[sp.id].name : enemyName(D, region, 'boss')
+}
+// at most this many health bars of elites and bosses at once
+const MAX_BARS = 4
+// the ordinary bosses' types still to come, kept from one run to the next
+// while the game is open (so in a row they go round all four)
+const BOSS_BAG = { order: [] }
 const REGIONS = D.story.regions
 const rangeText = (r) => `${r.from}~${r.to}장`
 // a chapter's picture in the strip: the region's monsters in turn, its boss last
@@ -903,7 +924,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           </div>
           <div>
             <dt>보스</dt>
-            <dd>{enemyName(D, region, 'boss')}</dd>
+            <dd>{chapterBoss(region, chapter)}</dd>
           </div>
         </dl>
         <div className="ms-epinfo__go">
@@ -1426,6 +1447,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   const knobRef = useRef(null)
   const [hint, setHint] = useState(firstTime)
   const [toast, setToast] = useState(null)
+  const [warning, setWarning] = useState(null) // when the last WARNING! came (its key)
   const modalRef = useRef(modal)
   modalRef.current = modal
 
@@ -1574,29 +1596,22 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         if (!r.already) {
           g.earned.chests += r.chests.length
           g.earned.coins += r.coins
-          say(`${enemyName(D, run.region, key === 'boss' ? 'boss' : key === 'elite1' ? 'thief' : 'brute')} 처치! 상자 ${r.chests.length}개 · 코인 ${money(r.coins)}`)
+          const who = run.elites[key]
+          say(`${who ? monsterName(D, run.region, who) : enemyName(D, run.region, key === 'boss' ? 'boss' : key === 'elite1' ? 'thief' : 'brute')} 처치! 상자 ${r.chests.length}개 · 코인 ${money(r.coins)}`)
         }
         refresh()
       }
-      // the story: a cutscene due at this moment of the fight (the fight
-      // waits under it, and goes on where it was)
-      if (!modalRef.current && run.state === 'play') {
-        const due = []
-        g.timeCuts = g.timeCuts.filter((c) => (run.t >= c.at ? (due.push(c), false) : true))
-        if (run.events.some((ev) => ev.type === 'boss')) due.push(...g.bossCuts.splice(0))
-        if (due.length) {
-          release()
-          setModal({ kind: 'cut', groups: due.map((c) => c.id) })
-        }
-      }
       for (const ev of run.events) {
+        // a special boss (an episode's 3rd and 5th chapters): WARNING! over
+        // the fight, which goes on under it
+        if (ev.type === 'boss' && ev.special) setWarning(run.t)
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
         else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
         else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
       }
       if (overtime(run) && !g.overtimeSaid) {
         g.overtimeSaid = true
-        say('보스전 연장! 몬스터가 점점 빨리 나와요')
+        say('보스전 연장! 몬스터가 점점 많아지고 빨라져요')
       }
       R.draw(run, paused || run.state === 'levelup' ? 0 : dt)
       // telemetry: how long this frame's work took (simulation + drawing)
@@ -1696,8 +1711,9 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   const pct = (v) => `${(v * 100).toFixed(2)}%`
   const box = ([x, y, w, h]) => ({ left: pct(x / SW), top: pct(y / SH), width: pct(w / SW), height: pct(h / SH) })
   const H = pf.hud
-  // the elite or boss on the field, for its health bar
-  const big = [run.boss, run.elites.elite2, run.elites.elite1].find((e) => e && e.state === 'live')
+  // every elite and boss standing, each its own health bar (by its id): the
+  // chapter's boss first, then the others in the order they came
+  const bars = run.enemies.filter((e) => e.rank && e.state === 'live').sort((a, b) => (b === run.boss) - (a === run.boss) || a.id - b.id).slice(0, MAX_BARS)
   const ot = overtime(run)
   // where the chapter is: the waves before the boss (n/6), the time left
   // until the boss comes, then the boss fight; a track with the elites and
@@ -1748,15 +1764,24 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         <div className="ms-cur" style={box(H.currency)}>
           <Sprite name="coin" size={((H.currency[3] * 13) / 15) * k} /> {money(run.coins)}
         </div>
-        {big && (
-          <div className="ms-bossbar" style={box(H.bossBar)}>
-            <span className="ms-bossbar__name">
-              {enemyName(D, run.region, big.type)}
-              {big.guard ? ` · 수호 (초당 최대 ${Math.round(D.balance.lateGame.bossGuard.maxShare * 100)}%)` : ''}
-            </span>
-            <Bar w={H.bossBar[2] * k} h={((H.bossBar[3] * 10) / 26) * k} fill="hp_full" value={big.hp / big.maxHp} label={`${enemyName(D, run.region, big.type)} 체력`} />
-          </div>
-        )}
+        {bars.map((e, i) => {
+          // one under the other; with more than one, each a little slimmer
+          const [x, y, w, h] = H.bossBar
+          const f = bars.length > 1 ? 0.8 : 1
+          const name = monsterName(D, run.region, e)
+          return (
+            <div key={e.id} className="ms-bossbar" style={box([x, y + i * h * f, w, h * f])}>
+              <span className="ms-bossbar__name">
+                {name}
+                {e.guard ? ` · 수호 (초당 최대 ${Math.round(D.balance.lateGame.bossGuard.maxShare * 100)}%)` : ''}
+                <span className="ms-bossbar__hp">
+                  {short(Math.max(0, e.hp))} / {short(e.maxHp)}
+                </span>
+              </span>
+              <Bar w={w * k} h={((h * 10) / 26) * k * f} fill="hp_full" value={e.hp / e.maxHp} label={`${name} 체력`} />
+            </div>
+          )
+        })}
         <div className="ms-wslot" style={box(H.weaponSlot)} aria-label={`장착: ${weaponName(run.weaponDef.id)} ${run.grade}`}>
           <Sprite name="weapon_slot" size={H.weaponSlot[2] * k} />
           <Sprite name={weaponIcon(run.weaponDef.id)} size={H.weaponSlot[2] * 0.55 * k} className="ms-wslot__icon" />
@@ -1766,6 +1791,11 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         </div>
       </div>
       {toast && <p className="ms-toast">{toast}</p>}
+      {warning !== null && (
+        <p key={warning} className="ms-warning" aria-live="assertive" onAnimationEnd={() => setWarning(null)}>
+          WARNING!
+        </p>
+      )}
       {hint && <p className="ms-hint">{pf.input === 'keys' ? 'WASD나 방향키로 마노가 달려요. 공격은 자동이에요. Esc: 일시정지' : '화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.'}</p>}
       {pf.input === 'touch' && (
         <div className="ms-joy" ref={joyRef} aria-hidden="true">

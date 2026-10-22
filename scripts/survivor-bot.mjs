@@ -35,7 +35,8 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
   // warnings it has noticed (a casual player sees them a moment late)
   const seen = (e, total) => total - e.modeT >= skill.warnSeen
   const paths = live.filter((e) => e.behavior === 'boss' && e.mode === 'windup' && seen(e, def(e).windupSeconds)).map((e) => chargePath(run, e))
-  const rings = live.filter((e) => e.mode === 'stompWind' && seen(e, def(e).stompWindup)).map((e) => ({ x: e.x, y: e.y, r: def(e).stompRadius }))
+  // a boss about to run (type D) or running: keep well clear of it
+  const rings = live.filter((e) => e.mode === 'rush' || (e.mode === 'rushWind' && seen(e, run.D.balance.bossTypes.D.warn))).map((e) => ({ x: e.x, y: e.y, r: e.r + 30 }))
   let best = null
   // try 16 directions (and standing still)
   for (let k = -1; k < 16; k++) {
@@ -91,6 +92,14 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
     for (const o of run.orbs) {
       const d = Math.hypot(o.x - nx, o.y - ny)
       if (d < 60) danger -= 0.02 * (1 - d / 60) * Math.min(4, o.v)
+    }
+    // the PC thief out of sight: a person follows the arrow toward it
+    for (const e of live) {
+      if (!e.roam) continue
+      const [vx0, vy0, vx1, vy1] = run.view
+      if (e.x > vx0 && e.x < vx1 && e.y > vy0 && e.y < vy1) continue
+      const d = Math.hypot(e.x - p.x, e.y - p.y) || 1
+      danger -= 0.5 * Math.max(0, (dx * (e.x - p.x) + dy * (e.y - p.y)) / d)
     }
     if (skill.noise) danger += run.rng() * skill.noise
     // keeping on the way it was going (a person does not dither)

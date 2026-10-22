@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
@@ -355,7 +355,11 @@ const still = { x: 0, y: 0 }
   b.hp = 1
   run.hurt(b, 5, b.x, b.y)
   ok(b.state === 'down' && run.awards.includes('boss'), 'the boss falls: its reward is earned at once')
-  for (let i = 0; i < 120; i++) step(run, FIXED, still)
+  for (let i = 0; i < 120; i++) {
+    run.player.inv = 1e9
+    if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+    step(run, FIXED, still)
+  }
   ok(run.state === 'over' && run.result.cleared, 'after it lies down the chapter is cleared')
 }
 {
@@ -389,6 +393,7 @@ const still = { x: 0, y: 0 }
   step(run, FIXED * 2, still)
   const b = run.boss
   ok(b && near(b.maxHp, B.enemies.boss.hp * B.chapters[0].hp), `the boss comes with its own HP × the chapter's (${b && b.maxHp})`)
+  b.btype = 'A' // the charger
   for (let i = 0; i < 600 && b.mode !== 'windup'; i++) step(run, FIXED, still)
   const path = chargePath(run, b)
   const start = [b.x, b.y]
@@ -401,24 +406,161 @@ const still = { x: 0, y: 0 }
   const along = (b.x - start[0]) * path.dx + (b.y - start[1]) * path.dy
   const off = Math.abs((b.x - start[0]) * -path.dy + (b.y - start[1]) * path.dx)
   ok(near(along, path.len, 0.01) && off < 0.01, `the charge goes exactly where it was shown (${along.toFixed(2)} of ${path.len.toFixed(2)} px)`)
-  for (let i = 0; i < 600 && b.mode !== 'stompWind'; i++) {
-    run.player.x = 20
-    run.player.y = 600
-    step(run, FIXED, still)
+}
+
+
+// ── the boss lives long: the ordinary monsters run faster, by steps ────────
+{
+  const M = B.chapter.overtime.mobSpeed
+  const run = newRun({ seed: 9 })
+  run.player.hp = run.player.maxHp = 1e12
+  run.t = 209.99
+  run.nextEvent = 2
+  step(run, FIXED * 2, still)
+  for (let i = 0; i < 60 && run.boss.state !== 'live'; i++) step(run, FIXED, still)
+  const at = (t) => {
+    run.t = run.bossAt + t
+    return mobSpeed(run)
   }
-  ok(b.mode === 'stompWind', 'then it winds up a slam (a different attack)')
-  const S = B.enemies.boss
-  run.player.x = Math.min(B.logicalArena.bounds[2] - 10, b.x + S.stompRadius + run.player.hitR + 3)
-  run.player.y = b.y
-  const outside = Math.hypot(run.player.x - b.x, run.player.y - b.y) > S.stompRadius + run.player.hitR
-  run.player.inv = 0
-  const hpA = run.player.hp
-  for (let i = 0; i < 120 && b.mode === 'stompWind'; i++) {
-    run.player.x = Math.min(B.logicalArena.bounds[2] - 10, b.x + S.stompRadius + run.player.hitR + 3)
-    run.player.y = b.y
-    step(run, FIXED, still)
+  const t0 = run.t
+  ok(at(0) === 1 && at(M.after - 0.01) === 1, `the first ${M.after} s after the boss comes: monsters at their own speed`)
+  ok(near(at(M.after), 1 + M.step) && near(at(M.after + M.every - 0.01), 1 + M.step) && near(at(M.after + M.every), 1 + 2 * M.step), `then ×${1 + M.step}, ×${1 + 2 * M.step} … one step every ${M.every} s (not every frame)`)
+  ok(at(1e6) === M.max, `never past ×${M.max}`)
+  // the speed is really used: a monster walks that much faster
+  run.t = run.bossAt + M.after + M.every * 3 + 0.5
+  const k = mobSpeed(run)
+  run.enemies = run.enemies.filter((e) => e === run.boss)
+  const m = enemy(run, 40, 300)
+  m.speed = 20
+  m.behavior = 'chase'
+  run.player.x = 300
+  run.player.y = 300
+  const x0 = m.x
+  run.player.inv = 1e9
+  run.fireT = 1e9
+  step(run, FIXED, still)
+  const bossSpeed = run.boss.speed
+  ok(near((m.x - x0) / FIXED, 20 * k, 0.5), `a monster runs ×${k.toFixed(2)} (${((m.x - x0) / FIXED).toFixed(1)} px/s for its 20); the boss keeps its own (${bossSpeed})`)
+  run.boss.hp = 1
+  run.hurt(run.boss, 5, run.boss.x, run.boss.y)
+  ok(mobSpeed(run) === 1, 'the boss falls: back to ×1 at once')
+  ok(mobSpeed(newRun({ seed: 9 })) === 1, 'a new run starts at ×1')
+  void t0
+}
+
+// ── the ordinary bosses' four types (balance.json → bossTypes) ─────────────
+{
+  const T = B.bossTypes
+  // one type each, out of a shuffled bag: every four in a row are all four
+  const run = newRun({ seed: 21 })
+  const got = []
+  for (let k = 0; k < 12; k++) {
+    const r = newRun({ seed: 21 + k, bossBag: run.bossBag })
+    r.t = 209.99
+    r.nextEvent = 2
+    step(r, FIXED * 2, still)
+    got.push(r.boss.btype)
   }
-  ok(outside && run.player.hp === hpA, 'standing just outside the circle: the slam misses')
+  const rounds = [0, 4, 8].map((i) => got.slice(i, i + 4).sort().join(''))
+  ok(rounds.every((x) => x === 'ABCD'), `bosses one after another (the page's bag): ${got.join(' ')} — each four all of A B C D`)
+  // a special boss keeps its own attacks (no type)
+  {
+    const r = newRun({ chapter: 3, seed: 2 })
+    r.t = 209.99
+    r.nextEvent = 2
+    step(r, FIXED * 2, still)
+    ok(r.boss.behavior === 'special' && !r.boss.btype, 'chapter 3: the special boss has no type, its own attacks')
+  }
+  const bossOf = (type, seed = 7) => {
+    const r = newRun({ seed })
+    r.spawnT = -1e9
+    r.player.hp = r.player.maxHp = 1e9
+    r.t = 209.99
+    r.nextEvent = 2
+    step(r, FIXED * 2, still)
+    r.boss.btype = type
+    for (let i = 0; i < 30 && r.boss.state !== 'live'; i++) step(r, FIXED, still)
+    return r
+  }
+  const tick = (r, n = 1) => {
+    for (let i = 0; i < n; i++) {
+      r.enemies = r.enemies.filter((e) => e === r.boss)
+      r.player.inv = 1e9
+      r.fireT = 1e9
+      if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
+      step(r, FIXED, still)
+      r.events.length = 0
+    }
+  }
+  // B: weaves left and right of Mano's direction, at its own speed, never a jump
+  {
+    const r = bossOf('B')
+    const b = r.boss
+    r.player.x = 180
+    r.player.y = 600
+    b.x = 180
+    b.y = 160
+    let side = new Set()
+    let maxStep = 0
+    let px = b.x
+    let py = b.y
+    for (let i = 0; i < 60 * 3; i++) {
+      tick(r)
+      maxStep = Math.max(maxStep, Math.hypot(b.x - px, b.y - py) / FIXED)
+      // (Mano is straight below: any sideways step is the weave)
+      if (Math.abs(b.x - px) / FIXED > 5) side.add(Math.sign(b.x - px))
+      px = b.x
+      py = b.y
+    }
+    ok(side.size === 2 && maxStep <= b.speed * 1.01 && b.mode === 'walk', `B: weaves left and right on the way, never faster than its speed (${maxStep.toFixed(1)} ≤ ${b.speed.toFixed(1)} px/s)`)
+  }
+  // C: stops, shows three lanes for aim s, then three shots along them, then on
+  {
+    const r = bossOf('C')
+    const b = r.boss
+    for (let i = 0; i < 60 * 5 && b.mode !== 'aim'; i++) tick(r)
+    const lanes = r.hazards.filter((h) => h.owner === b.id && h.kind === 'ray')
+    const at = [b.x, b.y]
+    const warn = lanes.length ? lanes[0].at - lanes[0].born : 0
+    let shots = []
+    for (let i = 0; i < 120 && !shots.length; i++) {
+      tick(r)
+      shots = r.shots.filter((s) => s.owner === b.id)
+    }
+    const along = shots.every((s) => lanes.some((l) => Math.abs((s.x - l.x) * -l.dy + (s.y - l.y) * l.dx) < 0.5 && (s.x - l.x) * l.dx + (s.y - l.y) * l.dy > 0))
+    ok(lanes.length === 3 && shots.length === 3 && along && warn >= B.specialBosses.minWarn && near(at[0], b.x) && near(at[1], b.y), `C: stands, three lanes shown ${warn.toFixed(2)} s, then three shots exactly along them`)
+    for (let i = 0; i < 120 && b.mode !== 'walk'; i++) tick(r)
+    ok(b.mode === 'walk', 'C: then it walks again')
+  }
+  // D: shown first (it waits warn s), runs at mul× for seconds s, then walks
+  {
+    const r = bossOf('D')
+    const b = r.boss
+    for (let i = 0; i < 60 * 5 && b.mode !== 'rushWind'; i++) tick(r)
+    let wind = 0
+    while (b.mode === 'rushWind' && wind < 5) (tick(r), (wind += FIXED))
+    let run_ = 0
+    let fast = 0
+    let px = b.x
+    let py = b.y
+    while (b.mode === 'rush' && run_ < 5) {
+      tick(r)
+      run_ += FIXED
+      fast = Math.max(fast, Math.hypot(b.x - px, b.y - py) / FIXED)
+      px = b.x
+      py = b.y
+    }
+    ok(near(wind, T.D.warn, 0.03) && near(run_, T.D.seconds, 0.03) && near(fast, b.speed * T.D.mul, 1) && b.mode === 'walk', `D: ${wind.toFixed(2)} s shown, then ${run_.toFixed(2)} s at ${(fast / b.speed).toFixed(2)}× speed, then back to walking`)
+  }
+  // a boss that falls takes its lanes and shots with it
+  {
+    const r = bossOf('C')
+    const b = r.boss
+    for (let i = 0; i < 60 * 5 && b.mode !== 'aim'; i++) tick(r)
+    b.hp = 1
+    r.hurt(b, 5, b.x, b.y)
+    ok(!r.hazards.some((h) => h.owner === b.id) && !r.shots.some((s) => s.owner === b.id), 'C: falling mid-aim, its lanes go with it')
+  }
 }
 
 // ── weapons registry ────────────────────────────────────────────────────────
@@ -1194,13 +1336,50 @@ const still = { x: 0, y: 0 }
         seen.add(e.id)
         if (PC.spawnBox && (Math.abs(e.x - r2.player.x) > PC.spawnBox[0] / 2 + 40 || Math.abs(e.y - r2.player.y) > PC.spawnBox[1] / 2 + 40)) far++
       }
-      if (e.state === 'live' && (e.x < vx0 - 0.01 || e.x > vx1 + 0.01 || e.y < vy0 - 0.01 || e.y > vy1 + 0.01)) outView++
+      if (e.state === 'live' && !e.roam && (e.x < vx0 - 0.01 || e.x > vx1 + 0.01 || e.y < vy0 - 0.01 || e.y > vy1 + 0.01)) outView++
     }
     for (const b of r2.balls) if (b.x < vx0 - 0.01 || b.x > vx1 + 0.01 || b.y < vy0 - 0.01 || b.y > vy1 + 0.01) ballsOut++
     if (r2.state === 'levelup') choose(r2, r2.choices[0], r2.choiceSeq)
   }
   ok(seen.size > 20 && far === 0, `40 s walking about the PC field: ${seen.size} monsters came in, ${PC.spawnBox ? `all within the ${PC.spawnBox.join(' × ')} spawn box around Mano` : 'all at the view'}${far ? ` (${far} farther)` : ''}`)
   ok(outView === 0 && ballsOut === 0, `no monster and no ball ever left the view${outView || ballsOut ? ` (${outView} monster-steps, ${ballsOut} ball-steps)` : ''}`)
+}
+// the PC thief: comes from any side, a little past the view, may roam out of
+// sight but never out of the field
+{
+  const PC = B.logicalArenaPc
+  const sides = new Set()
+  let inField = true
+  let outside = 0
+  let mobileTop = true
+  for (let seed = 1; seed <= 24; seed++) {
+    const r = createRun(D, { chapter: 1, weaponId: 'bouncy_ball', grade: 'D', seed, arena: PC })
+    r.player.hp = r.player.maxHp = 1e12
+    r.t = 69.99
+    r.nextEvent = 0
+    step(r, FIXED * 2, still)
+    const th = r.elites.elite1
+    const [vx0, vy0, vx1, vy1] = r.view
+    const a = Math.atan2(th.y - r.player.y, th.x - r.player.x)
+    sides.add(Math.round((a / Math.PI) * 2 + 4) % 4)
+    if (th.x < vx0 || th.x > vx1 || th.y < vy0 || th.y > vy1) outside++
+    for (let i = 0; i < 60 * 25; i++) {
+      r.fireT = 1e9
+      r.player.inv = 1e9
+      step(r, FIXED, { x: Math.sin(i / 90), y: Math.cos(i / 130) })
+      if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
+      const [bx0, by0, bx1, by1] = PC.bounds
+      if (th.state === 'live' && (th.x < bx0 + th.r - 0.01 || th.x > bx1 - th.r + 0.01 || th.y < by0 + th.r - 0.01 || th.y > by1 - th.r + 0.01)) inField = false
+    }
+    const m = createRun(D, { chapter: 1, weaponId: 'bouncy_ball', grade: 'D', seed })
+    m.t = 69.99
+    m.nextEvent = 0
+    step(m, FIXED * 2, still)
+    if (m.elites.elite1.y > m.view[1] + 60) mobileTop = false
+  }
+  ok(sides.size === 4 && outside >= 18, `PC: the thief comes from every side of Mano (${sides.size} of 4 quarters), past the view's edge (${outside}/24)`)
+  ok(inField, 'PC: roaming out of sight, it never leaves the field (always reachable)')
+  ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
 }
 
 // ── special bosses (balance.json → specialBosses) and their death ──────────

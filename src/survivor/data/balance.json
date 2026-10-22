@@ -262,7 +262,14 @@
       "every": 30,
       "spawnFaster": 0.85,
       "note": "the chapter is cleared only when the boss falls. Past 240 s with the boss alive the fight goes on (boss overtime): every 30 s monsters come 15% faster; and monsters (and the boss) hit hitsHarder× harder every 30 s, so a run that can no longer win ends",
-      "hitsHarder": 1.6
+      "hitsHarder": 1.6,
+      "mobSpeed": {
+        "note": "and the ordinary monsters run faster the longer the chapter's boss lives: from `after` s after it came, ×(1 + step) more every `every` s, never past ×max (a step of the clock, not of each frame); back to ×1 the moment it falls, and every run starts at ×1. Elites and bosses keep their own speed",
+        "after": 30,
+        "every": 15,
+        "step": 0.12,
+        "max": 2.4
+      }
     },
     "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply"
   },
@@ -634,6 +641,13 @@
     "final": {
       "chanceMul": 1.5
     }
+  },
+  "bossTypes": {
+    "note": "the ordinary bosses (the 145 s mid-boss and the 210 s boss of every chapter but an episode's 3rd and 5th, whose special bosses keep their own attacks): each gets ONE of these when it comes, from a shuffled bag of the four (the next four come in a new shuffle), and keeps it until it falls. A: walks, stops, shows the path and charges along it (its own windup, charge speed and charge hit). B: walks at Mano weaving left and right (weave: the most it turns off her direction, radians; period: s for one weave). C: walks, stops, shows three lanes for aim s, then shoots three shots along them (a fan of spread degrees; each hits like its charge). D: walks; then, shown for warn s (it shakes, a ring round it), runs at mul x its speed for seconds s, turning at most turn rad/s, then walks again. Its HP, hits, reward and when it comes do not change.",
+    "order": ["A", "B", "C", "D"],
+    "B": { "weave": 0.6, "period": 1.8 },
+    "C": { "aim": 0.85, "count": 3, "spread": 34, "speed": 140, "r": 6, "ttl": 5, "look": "bone", "show": 110 },
+    "D": { "warn": 0.6, "mul": 2.6, "seconds": 0.9, "turn": 1.8 }
   },
   "specialBosses": {
     "note": "The story's special bosses (bosses.js): each episode's 3rd chapter has the region's mid-boss (its brute character), its 5th its final boss (its boss character), at the chapter's usual boss time with the boss's usual HP and hits (no new multipliers): only how they fight is their own. Every attack: warn (its warning shows on the ground from the start, in its real shape), its blows land once each, then recover; walk: seconds walking between attacks. Distances are logical px (the phone field is 340 × 536; Mano's base speed 125/s, her hit circle 9). The demon king's phases change with its HP (above: share of HP), with phasePause seconds of rest and its field cleared at each change. In a mid-boss chapter the 145 s elite wears the region's bone_beast character, so the boss is not met twice.",

@@ -1,6 +1,12 @@
+/* the game's two fonts (Google Fonts, Korean in slices: only the letters a
+   screen uses are loaded): Jua, round and bold, for the game itself (titles,
+   buttons, numbers, names); Gowun Dodum, soft and easy to read, for longer
+   lines (descriptions, notices). Until they arrive the system's font shows */
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
+
 /* MANO SURVIVOR — a 9:16 phone screen, centred on any device; panels in the
    colours of the v3 art (cream, slate and the dark outline of 07_ui.png),
-   live Korean text in the phone's own system font. Art is shown with square
+   live Korean text in the game's fonts (above). Art is shown with square
    pixels (never smoothed). */
 .ms {
   --ink: #2f2537;
@@ -19,7 +25,11 @@
   overflow: hidden;
   background: #2b2a36;
   color: var(--ink);
-  font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-body: 'Gowun Dodum', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-family: var(--font-display);
+  /* the fonts have one weight: never a smeared fake bold */
+  font-synthesis: none;
   font-size: 14px;
   line-height: 1.45;
   -webkit-tap-highlight-color: transparent;
@@ -137,6 +147,17 @@
   margin: 0;
   font-size: 15px;
   font-weight: 800;
+}
+
+/* longer lines: the reading font */
+.ms-dim,
+.ms-notice,
+.ms-text,
+.ms-why,
+.ms-ok,
+.ms-epinfo__blurb,
+.ms-epinfo__crew {
+  font-family: var(--font-body);
 }
 
 .ms-dim {
@@ -858,12 +879,62 @@
   pointer-events: none;
 }
 
+.ms-bossbar__hp {
+  margin-left: 0.5em;
+  opacity: 0.85;
+  font-size: 0.85em;
+}
+
 .ms-bossbar__name {
   font-weight: 800;
   font-size: clamp(9px, 3.2cqw, 12px);
   color: var(--paper);
   text-shadow: 0 0 2px var(--ink), 0 0 3px var(--ink);
   line-height: 1;
+}
+
+/* a special boss comes: WARNING! in the middle, blinking a few times and
+   fading (about 1.3 s); the fight goes on under it */
+.ms-warning {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  z-index: 3;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: #ff2f3c;
+  font-family: var(--font-display);
+  font-size: 46px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-shadow: 0 0 2px #5a0b12, 0 3px 0 #6b0d16, 0 0 18px rgba(255, 40, 60, 0.55);
+  pointer-events: none;
+  animation: ms-warning 1.3s ease-out forwards;
+}
+
+@keyframes ms-warning {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
+  8% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  20% { opacity: 0.25; }
+  32% { opacity: 1; }
+  44% { opacity: 0.3; }
+  56% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+.ms--pc .ms-warning {
+  font-size: calc(64px * var(--z, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-warning {
+    animation: ms-warning-calm 1.3s linear forwards;
+  }
+  @keyframes ms-warning-calm {
+    0%, 75% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 }
 
 .ms-toast {
@@ -1860,6 +1931,7 @@
    On the phone these wrappers are not boxes at all: */
 .ms-lobby__rail,
 .ms-lobby__body,
+.ms-notices,
 .ms-cut__words {
   display: contents;
 }
@@ -2491,6 +2563,9 @@
 .ms--pc .ms-page--lobby {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
+  /* one row as tall as the page: the content beside the rail has a fixed
+     height to share out (see 출발 below) */
+  grid-template-rows: minmax(0, 1fr);
   gap: 26px;
   overflow: hidden;
 }
@@ -2554,6 +2629,8 @@
 }
 
 .ms--pc .ms-lobby__body {
+  grid-column: 2;
+  grid-row: 1; /* (its cell is shared with the notices' layer) */
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-content: start;
@@ -2564,9 +2641,37 @@
   padding: 2px 6px 6px 2px;
 }
 
-.ms--pc .ms-lobby__body > .ms-notice {
-  grid-column: 1 / -1;
-  margin: 0;
+/* notices (a run closed mid-fight, rewards given, saving refused …): a
+   layer over the top of the content, never a row of it. As a row they
+   pushed the 출발 tab down past the page's fixed height and cut off the
+   chapter strip; a click puts one away */
+.ms--pc .ms-notices {
+  /* in the content's own grid cell, over it */
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  justify-self: center;
+  position: relative;
+  z-index: 20; /* over the episode cards (theirs go up to 10) */
+  display: grid;
+  gap: 8px;
+  width: min(92%, 760px);
+  pointer-events: none;
+}
+
+.ms--pc .ms-notices .ms-notice {
+  pointer-events: auto;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 3px 0 var(--wood-dark), 0 12px 28px rgba(20, 12, 8, 0.45);
+  animation: ms-notice-in 0.25s ease-out;
+}
+
+@keyframes ms-notice-in {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
 }
 
 .ms--pc .ms-lobby__body--stats > .ms-panel {
@@ -2579,14 +2684,21 @@
 }
 
 /* 출발: the fan of episodes, the chosen one's panel, its chapters */
+/* the fan takes what the page has left once the episode's panel and the
+   chapter strip have their own height (the panel grows by a line with a
+   long blurb or the cats' and Tizzzz's row), so the strip always ends
+   inside the page */
 .ms--pc .ms-lobby__body--go {
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 12px;
   overflow: visible;
 }
 
 .ms--pc .ms-eps {
-  height: 372px;
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
   overflow: visible;
 }
 

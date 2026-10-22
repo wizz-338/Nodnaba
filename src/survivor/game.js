@@ -13,7 +13,7 @@
 // overtime (the fight goes on and monsters come faster), never a free clear.
 
 import { BEHAVIORS } from './weapons.js'
-import { specialOf, updateSpecial, updateHazards, clearOwned, setSpawner } from './bosses.js'
+import { specialOf, updateSpecial, updateHazards, clearOwned, setSpawner, addHazard, fireShot } from './bosses.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -69,6 +69,9 @@ export function enemyName(D, region, type) {
   const id = skinOf(D, region, type)
   return (id && D.story.monsters[id] && D.story.monsters[id].name) || D.balance.enemies[type].name || type
 }
+// the name of one monster on the field: the look it wears (a special boss or
+// a mid-boss chapter's second elite wear another role's), else its role's
+export const monsterName = (D, region, e) => (e.skin && D.story.monsters[e.skin] && D.story.monsters[e.skin].name) || enemyName(D, region, e.type)
 
 // what the coin stats give (same formulas as the shop; see progress.js)
 function perma(D, levels = {}) {
@@ -88,6 +91,8 @@ function perma(D, levels = {}) {
 //         tizzzz: true once the writer Tizzzz has joined,
 //         blessings: { phoenix, snow, thunder, final } — the story's battle
 //         blessings owned (story.json → rewards),
+//         bossBag: { order: [] } kept by the page from run to run, so the
+//                ordinary bosses' types go round all four (see nextBossType),
 //         arena: the platform's field (default: balance.logicalArena, mobile;
 //                a field with a view is larger than the screen: see follow) }
 export function createRun(D, opts) {
@@ -176,6 +181,7 @@ export function createRun(D, opts) {
     // a special boss's attacks (bosses.js): warnings and blows on the
     // ground, its shots, its frost
     hazards: [],
+    bossBag: opts.bossBag || { order: [] }, // the ordinary bosses' types to come (see nextBossType)
     shots: [],
     floors: [],
     nextEvent: 0,
@@ -201,7 +207,7 @@ export function createRun(D, opts) {
   follow(run)
   if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
-  run.hurt = (e, dmg, x, y) => hurtEnemy(run, e, dmg, x, y)
+  run.hurt = (e, dmg, x, y, crit) => hurtEnemy(run, e, dmg, x, y, crit)
   // a ball's hit may set off a blessing (lightning never does)
   run.blessHit = (e, dmg, x, y) => blessHit(run, e, dmg, x, y)
   return run
@@ -358,6 +364,18 @@ export function lateGame(run) {
 // boss overtime: the clock has run out and the boss still stands
 export const overtime = (run) => run.t > run.D.balance.chapter.overtime.after && !!run.boss && run.boss.state !== 'down'
 
+// how much faster the ordinary monsters run while the chapter's boss has
+// lived long (overtime.mobSpeed): by whole steps of the clock since it came,
+// capped; ×1 without a boss standing (so nothing carries over)
+export function mobSpeed(run) {
+  const M = run.D.balance.chapter.overtime.mobSpeed
+  const b = run.boss
+  if (!M || !b || b.state !== 'live' || run.bossAt === undefined) return 1
+  const since = run.t - run.bossAt - M.after
+  if (since < 0) return 1
+  return Math.min(M.max, 1 + M.step * (Math.floor(since / M.every) + 1))
+}
+
 export function spawnInterval(run) {
   const o = run.D.balance.chapter.overtime
   // (a field can bring monsters faster: spawnMul, the PC game's, whose
@@ -415,6 +433,29 @@ function edgePoint(run, m) {
   return null
 }
 
+// a point in a random direction from Mano: on the view's edge (inside it,
+// m from the edge), or past it (out) but inside the field; null if none fits
+export function aroundPoint(run, m, out = false) {
+  const p = run.player
+  const [x0, y0, x1, y1] = run.view
+  const [bx0, by0, bx1, by1] = run.arena.bounds
+  for (let tries = 0; tries < 16; tries++) {
+    const a = run.rng() * Math.PI * 2
+    const dx = Math.cos(a)
+    const dy = Math.sin(a)
+    // how far along that direction the view's edge is (less m)
+    const tx = dx > 0 ? (x1 - m - p.x) / dx : dx < 0 ? (x0 + m - p.x) / dx : Infinity
+    const ty = dy > 0 ? (y1 - m - p.y) / dy : dy < 0 ? (y0 + m - p.y) / dy : Infinity
+    let t = Math.min(tx, ty)
+    if (out) t += m * 2 + 40 + run.rng() * 80
+    const x = p.x + dx * t
+    const y = p.y + dy * t
+    if (t < 60 || x < bx0 + m || x > bx1 - m || y < by0 + m || y > by1 - m) continue
+    return { x, y }
+  }
+  return null
+}
+
 function spawn(run, type = pickType(run), at = null) {
   const B = run.D.balance
   const def = B.enemies[type]
@@ -448,7 +489,6 @@ function spawn(run, type = pickType(run), at = null) {
     dx: 0,
     dy: 0,
     life: 0,
-    next: 'charge',
   }
   run.enemies.push(e)
   return e
@@ -457,12 +497,34 @@ function spawn(run, type = pickType(run), at = null) {
 // a special boss's summons come like any monster of the wave (bosses.js)
 setSpawner((run, type, x, y) => spawn(run, type, { x, y }))
 
-// an elite or the boss enters from the top, on the side away from Mano
+// the ordinary bosses' types (balance.json → bossTypes) come out of a bag:
+// the four in a shuffled order, then a new shuffle. The bag may be the
+// page's (opts.bossBag, kept from one run to the next) or the run's own
+export function nextBossType(run) {
+  const bag = run.bossBag
+  if (!bag.order.length) {
+    const t = [...run.D.balance.bossTypes.order]
+    for (let i = t.length - 1; i > 0; i--) {
+      const j = Math.floor(run.rng() * (i + 1))
+      ;[t[i], t[j]] = [t[j], t[i]]
+    }
+    bag.order = t
+  }
+  return bag.order.shift()
+}
+
+// an elite or the boss enters from the top, on the side away from Mano. On a
+// field larger than the screen (the PC game's) the thief comes from any side
+// instead, a little past the view's edge, and may roam the whole field (an
+// arrow on the screen's edge shows where it is); the mid-boss and the boss
+// keep their entry, so the fight against them is the same as before
 function spawnSpecial(run, ev) {
   const [x0, y0, x1] = run.view
   const def = run.D.balance.enemies[ev.enemy]
   const p = run.player
-  const e = spawn(run, ev.enemy, { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 })
+  const pt = (run.arena.view && def.behavior === 'flee' && aroundPoint(run, def.radius, true)) || { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 }
+  const e = spawn(run, ev.enemy, pt)
+  if (run.arena.view && def.behavior === 'flee') e.roam = true // it may leave the view (never the field)
   e.key = ev.key
   run.elites[ev.key] = e
   // the story's special bosses (bosses.js): the 3rd chapter's mid-boss and
@@ -472,24 +534,27 @@ function spawnSpecial(run, ev) {
   const sp = specialOf(run.D, run.region, run.chapter)
   if (sp && ev.key === 'boss') Object.assign(e, { behavior: 'special', special: sp.id, role: sp.role, skin: sp.id })
   if (sp && sp.role === 'mid' && ev.key === 'elite2') e.skin = run.region.skins.bone_beast || e.skin
+  // an ordinary boss: its one way of fighting, the next from the bag
+  if (e.behavior === 'boss') e.btype = nextBossType(run)
   if (ev.key === 'boss') {
     run.boss = e
+    run.bossAt = run.t
     // its guard from bossGuard.fromChapter on (full from the start)
     const G = run.D.balance.lateGame.bossGuard
     // and hits harder (body, charge, slam), so those seconds are a fight
     if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
   }
-  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: enemyName(run.D, run.region, ev.enemy) })
+  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e), special: e.behavior === 'special' })
 }
 
-function hurtEnemy(run, e, dmg, x, y) {
+function hurtEnemy(run, e, dmg, x, y, crit = false) {
   if (e.state !== 'live') return
   if (e.guard) dmg = guarded(run, e, dmg)
   e.hp -= dmg
   e.hitT = FLASH
   run.stats.hits++
   run.stats.damage += Math.min(dmg, e.hp + dmg)
-  if (dmg > 0) run.events.push({ type: 'hit', x, y, n: dmg })
+  if (dmg > 0) run.events.push({ type: 'hit', x, y, n: dmg, crit })
   if (e.hp > 0) return
   e.t = 0
   run.kills++
@@ -597,53 +662,92 @@ const MOVES = {
     e.x += (-ux * Math.cos(s) + uy * Math.sin(s)) * e.speed * dt
     e.y += (-uy * Math.cos(s) - ux * Math.sin(s)) * e.speed * dt
   },
-  // walk in; then, by turns, a charge (stops, shows the path, charges along
-  // it) or — for the boss — a slam (stops, shows the circle, slams); rest
+  // an ordinary boss (the 145 s mid-boss, the 210 s boss): one of four ways
+  // (balance.json → bossTypes), given when it comes and kept until it falls
   boss(run, e, dt) {
     const def = run.D.balance.enemies[e.type]
+    const T = run.D.balance.bossTypes
     e.modeT -= dt
     if (!e.mode) (e.mode = 'walk'), (e.modeT = def.walkSeconds)
+    const type = e.btype || 'A'
     if (e.modeT <= 0) {
       if (e.mode === 'walk') {
-        if (e.next === 'stomp') {
-          e.mode = 'stompWind'
-          e.modeT = def.stompWindup
-        } else {
+        if (type === 'A') {
+          // A: stops and shows where it will charge
           e.mode = 'windup'
           e.modeT = def.windupSeconds
           ;[e.dx, e.dy] = toward(e, run.player.x, run.player.y)
           e.face = e.dx >= 0 ? 1 : -1
-        }
-        e.next = def.stomp && e.next === 'charge' ? 'stomp' : 'charge'
+        } else if (type === 'C') {
+          // C: stops and shows three lanes at Mano; they are where it shoots
+          const C = T.C
+          e.mode = 'aim'
+          e.modeT = C.aim
+          const [ux, uy] = toward(e, run.player.x, run.player.y)
+          e.face = ux >= 0 ? 1 : -1
+          const a0 = Math.atan2(uy, ux)
+          const spread = (C.spread * Math.PI) / 180
+          e.lanes = []
+          for (let i = 0; i < C.count; i++) {
+            const a = a0 + (C.count > 1 ? (i / (C.count - 1) - 0.5) * spread : 0)
+            e.lanes.push(addHazard(run, e, { kind: 'ray', x: e.x, y: e.y, dx: Math.cos(a), dy: Math.sin(a), len: C.show, harmless: true, keep: 0.8, speed: C.speed }, C.aim))
+          }
+        } else if (type === 'D') {
+          // D: shakes a moment (a ring round it shows it), then runs
+          e.mode = 'rushWind'
+          e.modeT = T.D.warn
+          ;[e.dx, e.dy] = toward(e, run.player.x, run.player.y)
+        } else e.modeT = def.walkSeconds // B only walks
       } else if (e.mode === 'windup') {
         // it charges exactly the path it showed, no further
         e.mode = 'charge'
         e.modeT = Infinity
         e.left = chargePath(run, e).len
-      } else if (e.mode === 'stompWind') {
-        stomp(run, e, def)
+      } else if (e.mode === 'aim') {
+        const C = T.C
+        for (const l of e.lanes) fireShot(run, e, l.dx, l.dy, { speed: C.speed, r: C.r, ttl: C.ttl, look: C.look, damage: def.chargeDamage })
+        e.lanes = null
         e.mode = 'rest'
         e.modeT = def.restSeconds
-      } else if (e.mode === 'rest') (e.mode = 'walk'), (e.modeT = def.walkSeconds)
+      } else if (e.mode === 'rushWind') {
+        e.mode = 'rush'
+        e.modeT = T.D.seconds
+      } else if (e.mode === 'rush' || e.mode === 'rest') (e.mode = 'walk'), (e.modeT = def.walkSeconds)
     }
-    if (e.mode === 'walk') MOVES.chase(run, e, dt)
-    else if (e.mode === 'charge') {
+    if (e.mode === 'walk') {
+      if (type === 'B') {
+        // B: at Mano, weaving smoothly left and right of her direction (close
+        // by, straight at her)
+        const B = T.B
+        const [ux, uy] = toward(e, run.player.x, run.player.y)
+        const far = Math.min(1, Math.hypot(run.player.x - e.x, run.player.y - e.y) / 60)
+        const w = B.weave * far * Math.sin((e.life * Math.PI * 2) / B.period + e.id)
+        const c = Math.cos(w)
+        const sn = Math.sin(w)
+        e.x += (ux * c - uy * sn) * e.speed * dt
+        e.y += (uy * c + ux * sn) * e.speed * dt
+      } else MOVES.chase(run, e, dt)
+    } else if (e.mode === 'charge') {
       if (!(e.left >= 0)) e.left = chargePath(run, e).len
       const d = Math.min(e.left, def.chargeSpeed * dt)
       e.x += e.dx * d
       e.y += e.dy * d
       e.left -= d
       if (e.left <= 1e-9) (e.mode = 'rest'), (e.modeT = def.restSeconds)
+    } else if (e.mode === 'rush') {
+      // fast, but it turns only so quickly: a step aside is enough
+      const R = T.D
+      const [ux, uy] = toward(e, run.player.x, run.player.y)
+      const cur = Math.atan2(e.dy, e.dx)
+      let diff = Math.atan2(uy, ux) - cur
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff))
+      const a = cur + Math.max(-R.turn * dt, Math.min(R.turn * dt, diff))
+      e.dx = Math.cos(a)
+      e.dy = Math.sin(a)
+      e.x += e.dx * e.speed * R.mul * dt
+      e.y += e.dy * e.speed * R.mul * dt
     }
   },
-}
-
-// the slam: Mano inside the circle it showed is hit once
-function stomp(run, e, def) {
-  const p = run.player
-  run.events.push({ type: 'stomp', x: e.x, y: e.y, r: def.stompRadius })
-  if (p.inv > 0) return
-  if ((p.x - e.x) ** 2 + (p.y - e.y) ** 2 < (def.stompRadius + p.hitR) ** 2) hurtPlayer(run, def.stompDamage * e.damageMul)
 }
 
 // the charge path while it winds up: exactly where the charge will go (a band
@@ -663,6 +767,7 @@ export function chargePath(run, e) {
 function moveEnemies(run, dt) {
   const p = run.player
   const [x0, y0, x1, y1] = run.view
+  const rush = mobSpeed(run) // the boss has lived long: the ordinary ones run faster
   for (const e of run.enemies) {
     e.t += dt
     if (e.hitT > 0) e.hitT -= dt
@@ -682,13 +787,13 @@ function moveEnemies(run, dt) {
     e.life += dt * k
     const ox = e.x
     const oy = e.y
-    MOVES[e.behavior](run, e, dt * k)
+    MOVES[e.behavior](run, e, dt * k * (e.rank ? 1 : rush))
     if (e.state !== 'live') continue
     // how fast it really goes (for its steps: a monster that stands still
     // does not walk), smoothed
     const v = Math.hypot(e.x - ox, e.y - oy) / dt
     e.pace = (e.pace || 0) * 0.8 + v * 0.2
-    if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'stompWind')) continue
+    if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind')) continue
     if (e.behavior === 'special' && e.atk) continue // its attack faced it
     // left or right: by where it is going, with a margin, so small sways and
     // pushes never flip it back and forth; standing, it looks at Mano
@@ -721,8 +826,10 @@ function moveEnemies(run, dt) {
       e.x += Math.max(-lim, Math.min(lim, px))
       e.y += Math.max(-lim, Math.min(lim, py))
     }
-    const cx = Math.max(x0 + e.r, Math.min(x1 - e.r, e.x))
-    const cy = Math.max(y0 + e.r, Math.min(y1 - e.r, e.y))
+    // monsters keep to the view; a roamer (the PC game's thief) to the field
+    const [lx0, ly0, lx1, ly1] = e.roam ? run.arena.bounds : run.view
+    const cx = Math.max(lx0 + e.r, Math.min(lx1 - e.r, e.x))
+    const cy = Math.max(ly0 + e.r, Math.min(ly1 - e.r, e.y))
     // a straight runner that meets a wall ends its line there
     if ((cx !== e.x || cy !== e.y) && e.behavior === 'line' && e.mode === 'run') e.modeT = 0
     e.x = cx
