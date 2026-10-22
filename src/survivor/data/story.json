@@ -305,7 +305,7 @@
     }
   },
   "cutscenes": {
-    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight), boss (when the boss comes), clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
     "speaker": "마노",
     "groups": [
       {

@@ -77,6 +77,19 @@ them faster if PC proves easier. `scripts/survivor-platform-parity.mjs` plays
 the same bots and loadouts on both and prints clear rates and times;
 `npm run test:survivor` checks the PC view, camera, spawns and keys.
 
+## PC only, besides the layout
+
+- The thief comes from any side of Mano, a little past the view's edge, and
+  may roam out of sight but never out of the field (`aroundPoint`, `e.roam`
+  in game.js); an arrow at the play area's edge points at an elite out of
+  sight (`drawArrows` in render.js). The phone keeps its entry at the top;
+  the mid-boss and the boss keep theirs on both (moving them changed how
+  hard the PC chapters were).
+- The lobby has a fixed height (1280 × 720, zoomed): its notices are a layer
+  over the content (`.ms--pc .ms-notices`), never a row of it, and the 출발
+  tab's episode fan takes only the height the panel and chapter strip leave
+  (a notice as a row once pushed the strip off the page).
+
 ## Checklist for a patch
 
 1. Change the shared code / data once.

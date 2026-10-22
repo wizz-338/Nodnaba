@@ -395,6 +395,9 @@ function plan(run, e, spec) {
   return { spec, t: 0, next: 0, steps, strikeAt, endAt }
 }
 
+// (the ordinary bosses' shooter, type C, uses the same lanes and shots: game.js)
+export { hazard as addHazard, shot as fireShot }
+
 // spawning goes through the game (set by game.js: the same spawn as waves)
 let api_spawn = () => null
 export const setSpawner = (fn) => (api_spawn = fn)

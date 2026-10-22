@@ -43,6 +43,13 @@ const HEART_H = 12
 const PERCENT = ['ww..w', 'ww.w.', '..w..', '.w.ww', 'w..ww']
 const MAX_FX = 80
 const MAX_NUMBERS = 40
+const CRIT_COLOR = '#e5303a'
+// the game's round font (survivor.css loads it; until it is in, the system's)
+const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif"
+const NUM_FONT = '12px ' + GAME_FONT
+const CRIT_FONT = '14px ' + GAME_FONT // about 17% larger
+// a critical number's size over time: in quickly a little large, settles, stays
+const critPop = (t) => (t < 0.08 ? 0.75 + (t / 0.08) * 0.5 : t < 0.18 ? 1.25 - ((t - 0.08) / 0.1) * 0.25 : 1)
 const ENEMY_DIE = 0.28
 const BOLT = 0.18 // s a lightning stroke stays
 const MAX_BOLTS = 12
@@ -434,8 +441,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       const t = e.life
       bob = -Math.abs(Math.sin(t * (boss ? 4 : 7.5) + e.id)) * (boss ? 2 : 1.6)
       rot = Math.sin(t * (boss ? 2.4 : 5) + e.id) * (boss ? 0.025 : 0.06)
-      if (boss && (e.mode === 'windup' || e.mode === 'stompWind')) dx = Math.sin(performance.now() / 22) * 1.3
-      else if (boss && e.mode === 'charge') rot = 0.12 * (e.dx >= 0 ? 1 : -1)
+      if (boss && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind')) dx = Math.sin(performance.now() / 22) * 1.3
+      else if (boss && (e.mode === 'charge' || e.mode === 'rush')) rot = 0.12 * (e.dx >= 0 ? 1 : -1)
     }
     if (e.state === 'down') (rot = 0.45), (alpha = 0.85), (flash = 0)
     else if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
@@ -515,7 +522,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   function attackPose(e) {
     if (e.behavior === 'special') return e.stage === 'windup' ? 0 : e.stage === 'strike' ? 1 : e.stage === 'recover' ? 2 : -1
     if (e.behavior !== 'boss') return -1
-    return e.mode === 'windup' || e.mode === 'stompWind' ? 0 : e.mode === 'charge' ? 1 : e.mode === 'rest' ? 2 : -1
+    return e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind' ? 0 : e.mode === 'charge' || e.mode === 'rush' ? 1 : e.mode === 'rest' ? 2 : -1
   }
 
   // A monster from its frames: walking (four frames by time; a walker that
@@ -591,8 +598,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
     if (e.behavior === 'boss') {
       if (e.state === 'down') (name = 'boss_down'), (flash = 0)
-      else if (e.mode === 'windup' || e.mode === 'stompWind') name = 'boss_windup'
-      else if (e.mode === 'charge') name = 'boss_charge'
+      else if (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind') name = 'boss_windup'
+      else if (e.mode === 'charge' || e.mode === 'rush') name = 'boss_charge'
       else if (e.hitT > 0) name = 'boss_hit'
       else name = animFrame('boss_run', e.life * 1000)
     } else name = animFrame(look + '_run', e.life * 1000 + e.id * 37)
@@ -654,25 +661,30 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.restore()
   }
 
-  // the slam: the real circle it will hit, on the ground
-  function drawRing(run, e) {
-    const def = E[e.type]
-    const k = 1 - e.modeT / def.stompWindup
+  // type D about to run: a ring round it, closing in as the run nears, and
+  // an arrow at Mano
+  function drawRush(run, e) {
+    const k = 1 - e.modeT / D.balance.bossTypes.D.warn
+    const r = e.r + 10
     world()
     ctx.beginPath()
-    ctx.arc(e.x, e.y, def.stompRadius, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(214, 58, 58, ${0.12 + 0.16 * k})`
-    ctx.fill()
-    ctx.lineWidth = 1.5
-    ctx.strokeStyle = `rgba(214, 58, 58, ${0.45 + 0.4 * k})`
-    ctx.setLineDash([5, 4])
+    ctx.arc(e.x, e.y, r + 14 * (1 - k), 0, Math.PI * 2)
+    ctx.lineWidth = 3.5
+    ctx.strokeStyle = 'rgba(30, 20, 25, 0.3)'
     ctx.stroke()
-    ctx.setLineDash([])
-    // how close it is: a ring closing in from the edge
+    ctx.lineWidth = 2
+    ctx.strokeStyle = `rgba(${DANGER}, ${0.55 + 0.4 * k})`
+    ctx.stroke()
+    const a = Math.atan2(run.player.y - e.y, run.player.x - e.x)
+    const ax = e.x + Math.cos(a) * (r + 10)
+    const ay = e.y + Math.sin(a) * (r + 10)
     ctx.beginPath()
-    ctx.arc(e.x, e.y, def.stompRadius * Math.max(0.05, k), 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(214, 58, 58, 0.5)'
-    ctx.stroke()
+    ctx.moveTo(ax + Math.cos(a) * 9, ay + Math.sin(a) * 9)
+    ctx.lineTo(ax + Math.cos(a + 2.4) * 7, ay + Math.sin(a + 2.4) * 7)
+    ctx.lineTo(ax + Math.cos(a - 2.4) * 7, ay + Math.sin(a - 2.4) * 7)
+    ctx.closePath()
+    ctx.fillStyle = `rgba(${DANGER}, ${0.6 + 0.4 * k})`
+    ctx.fill()
   }
 
   // ── the special bosses' attacks ──
@@ -780,7 +792,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     // the order the blows come in
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.font = '800 11px system-ui, -apple-system, sans-serif'
+    ctx.font = '13px ' + GAME_FONT
     ctx.lineWidth = 3
     for (const h of run.hazards) {
       if (!h.order || run.t >= h.at) continue
@@ -808,6 +820,42 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       ctx.lineWidth = 1
       ctx.strokeStyle = 'rgba(40, 30, 40, 0.6)'
       ctx.stroke()
+    }
+  }
+
+  // the PC game: an elite out of sight (the thief roams the whole field) has
+  // an arrow at the edge of the play area pointing at it, while it is out
+  function drawArrows(run, now) {
+    const [x0, y0, x1, y1] = run.view
+    const cx = (x0 + x1) / 2
+    const cy = (y0 + y1) / 2
+    let any = false
+    for (const e of run.enemies) {
+      if (!e.rank || (e.state !== 'live' && e.state !== 'spawn')) continue
+      if (e.x > x0 && e.x < x1 && e.y > y0 && e.y < y1) continue
+      if (!any) world(), (any = true)
+      const dx = e.x - cx
+      const dy = e.y - cy
+      const m = 18
+      // where the line from the middle to it leaves the play area (less m)
+      const k = Math.min(Math.abs((x1 - x0) / 2 - m) / Math.max(1e-6, Math.abs(dx)), Math.abs((y1 - y0) / 2 - m) / Math.max(1e-6, Math.abs(dy)))
+      const ax = cx + dx * k
+      const ay = cy + dy * k
+      const a = Math.atan2(dy, dx)
+      const pulse = 1 + 0.12 * Math.sin(now / 160)
+      const r = 11 * pulse
+      ctx.beginPath()
+      ctx.moveTo(ax + Math.cos(a) * r, ay + Math.sin(a) * r)
+      ctx.lineTo(ax + Math.cos(a + 2.5) * r, ay + Math.sin(a + 2.5) * r)
+      ctx.lineTo(ax + Math.cos(a) * -r * 0.35, ay + Math.sin(a) * -r * 0.35)
+      ctx.lineTo(ax + Math.cos(a - 2.5) * r, ay + Math.sin(a - 2.5) * r)
+      ctx.closePath()
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = 3
+      ctx.strokeStyle = 'rgba(47, 37, 55, 0.85)'
+      ctx.stroke()
+      ctx.fillStyle = e.behavior === 'flee' ? '#ffd84a' : '#ff6a5a'
+      ctx.fill()
     }
   }
 
@@ -973,7 +1021,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const e of run.enemies) {
       if (e.behavior !== 'boss' || e.state !== 'live') continue
       if (e.mode === 'windup') drawWarning(run, e)
-      else if (e.mode === 'stompWind') drawRing(run, e)
+      else if (e.mode === 'rushWind') drawRush(run, e)
     }
     drawHazardsUnder(run)
     for (const o of run.orbs) drawOrb(o, now)
@@ -985,6 +1033,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
     drawHazardsOver(run)
+    if (inset) drawArrows(run, now)
     const maxFx = busy ? MAX_FX / 3 : MAX_FX
     const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
 
@@ -992,7 +1041,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const ev of run.events) {
       if (ev.type === 'hit') {
         if (fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
-        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: '#2f2537' })
+        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : '#2f2537', crit: ev.crit })
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
         if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })
@@ -1038,10 +1087,14 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       }
       put(f.frame || animFrame(f.anim, f.t * 1000, false), f.x, f.y, f.s, { alpha: f.frame ? Math.min(1, (d - f.t) * 4) : 1 })
     }
+    // damage and the like rising and fading; critical hits after the rest,
+    // in red, a size larger, with a short pop (one font change for all of them)
     world()
     ctx.textAlign = 'center'
-    ctx.font = '700 11px system-ui, -apple-system, sans-serif'
+    ctx.font = NUM_FONT
     ctx.lineWidth = 3
+    ctx.strokeStyle = 'rgba(252, 235, 205, 0.9)'
+    let crits = 0
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i]
       n.t += dt
@@ -1049,12 +1102,31 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         numbers.splice(i, 1)
         continue
       }
+      if (n.crit) {
+        crits++
+        continue
+      }
       const y = n.y - n.t * 22
       ctx.globalAlpha = Math.min(1, (0.6 - n.t) * 4)
-      ctx.strokeStyle = 'rgba(252, 235, 205, 0.9)'
       ctx.strokeText(n.text, n.x, y)
       ctx.fillStyle = n.color
       ctx.fillText(n.text, n.x, y)
+    }
+    if (crits) {
+      ctx.font = CRIT_FONT
+      ctx.lineWidth = 3.4
+      ctx.strokeStyle = 'rgba(255, 244, 228, 0.95)'
+      ctx.fillStyle = CRIT_COLOR
+      const K = kd()
+      for (const n of numbers) {
+        if (!n.crit) continue
+        const y = n.y - n.t * 22
+        const s = critPop(n.t)
+        ctx.globalAlpha = Math.min(1, (0.6 - n.t) * 4)
+        ctx.setTransform(K * s, 0, 0, K * s, (n.x - cam.x) * K, (y - cam.y) * K)
+        ctx.strokeText(n.text, 0, 0)
+        ctx.fillText(n.text, 0, 0)
+      }
     }
     ctx.globalAlpha = 1
   }
