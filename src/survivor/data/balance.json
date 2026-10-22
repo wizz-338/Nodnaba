@@ -12,18 +12,26 @@
     "note": "the mobile game's field (360 × 640 screen, portrait): balls bounce and Mano stops at bounds; the PC game has its own (logicalArenaPc)"
   },
   "logicalArenaPc": {
-    "note": "the PC game's field (640 × 360 screen, landscape): 600 × 304, the same area as the mobile field (340 × 536) within 0.1%, so as many monsters fit, they come from as far, and the fight is the same; Mano starts in its middle. Everything else in the fight is shared.",
-    "width": 640,
-    "height": 360,
+    "note": "the PC game's field: larger than its screen (1152 × 648 logical, ui.json → pc), about 1.45× its play area each way; the camera follows Mano over it. view: the screen's play area (1152 × 648 minus ui.json → pc.inset): monsters come in at its edges and stay in it, and the balls bounce off it, as on the phone, where the view is the whole field. Mano walks the whole field. spawnBox: monsters come in on the edge of this box around Mano (inside the view) — the phone field's area, so they come as near and as thick as on the phone though the PC screen holds about 3.4× as much; see scripts/survivor-platform-parity.mjs.",
+    "width": 1620,
+    "height": 810,
     "bounds": [
-      20,
-      44,
-      620,
-      348
+      0,
+      0,
+      1620,
+      810
+    ],
+    "view": [
+      1120,
+      559
     ],
     "start": [
-      320,
-      206
+      810,
+      405
+    ],
+    "spawnBox": [
+      600,
+      304
     ]
   },
   "player": {

@@ -105,7 +105,8 @@ function updateBalls(run, dt) {
       run.fireT += k * w.interval
     } else run.fireT = 0
   }
-  const [x0, y0, x1, y1] = run.arena.bounds
+  // the balls bounce off the view (the screen's play area; on the phone, the field)
+  const [x0, y0, x1, y1] = run.view
   const out = []
   for (const b of run.balls) {
     b.ttl -= dt

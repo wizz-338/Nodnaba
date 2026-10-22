@@ -4,8 +4,8 @@
 // the save (progress.js), the data (data/*.json: monsters, stages, cards,
 // story, rewards), the pictures and sounds, the drawing (render.js) and the
 // screens (SurvivorPage.jsx). A platform only says how it is shown and played:
-// its logical screen and field, where the HUD sits, how Mano is moved, which
-// backgrounds it draws, and its CSS layout (.ms--mobile / .ms--pc).
+// its logical screen and field (and camera), where the HUD sits, how Mano is
+// moved, which backgrounds it draws, and its CSS layout (.ms--mobile / .ms--pc).
 // See PLATFORMS.md for what goes where when the game is patched.
 import { D } from './data.js'
 export { MOVE_KEYS, keyVector } from './keys.js'
@@ -24,8 +24,9 @@ export const PLATFORMS = {
   // the PC game: landscape 16:9, WASD / arrow keys, the mouse for the menus
   pc: {
     id: 'pc',
-    screen: D.ui.pc.logicalViewport, // [640, 360]
-    arena: D.balance.logicalArenaPc,
+    screen: D.ui.pc.logicalViewport, // [1152, 648]
+    arena: D.balance.logicalArenaPc, // larger than the screen: the camera follows Mano
+    inset: D.ui.pc.inset, // the screen around its play area (the HUD bar above)
     hud: D.ui.pc.hud,
     input: 'keys',
     design: D.ui.pc.design, // [1280, 720]: the menus' layout size, scaled to the window
