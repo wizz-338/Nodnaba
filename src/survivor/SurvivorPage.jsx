@@ -747,6 +747,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
   const locked = chapter > unlocked
   const [grid, setGrid] = useState(false)
   const swipe = useRef(null)
+  const tapped = useRef(0) // when the fan last picked a card itself (its click is then not needed)
   const region = regionOf(D, chapter)
   const ep = REGIONS.indexOf(region)
   // this region's pictures start loading while its card is on show
@@ -784,6 +785,21 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
             const to = ep + (dx < 0 ? 1 : -1)
             if (to >= 0 && to < REGIONS.length) audio.sfx('tick')
             pickEpisode(to)
+            return
+          }
+          // a tap or a click on the fan: the card under it, found by the
+          // cards' boxes (the front one first) rather than by the browser's
+          // hit test, which some get wrong for tilted cards in a zoomed page
+          if (Math.abs(dx) > 10 || Math.abs(e.clientY - s1.y) > 10 || e.target.closest('.ms-arrow')) return
+          const cards = [...e.currentTarget.querySelectorAll('.ms-ep')]
+          const hit = cards
+            .map((c, i) => ({ i, r: c.getBoundingClientRect(), a: Math.abs(i - ep), seen: getComputedStyle(c).opacity !== '0' }))
+            .filter((c) => c.seen && e.clientX >= c.r.left && e.clientX <= c.r.right && e.clientY >= c.r.top && e.clientY <= c.r.bottom)
+            .sort((x, y) => x.a - y.a)[0]
+          if (hit && hit.i !== ep) {
+            audio.sfx('tick')
+            tapped.current = performance.now()
+            pickEpisode(hit.i)
           }
         }}
       >
@@ -794,12 +810,17 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
               <button
                 key={r.id}
                 type="button"
-                data-sfx="tick"
+                data-sfx="none"
                 className={`ms-ep is-a${Math.min(4, Math.abs(i - ep))}${i === ep ? ' is-on' : ''}${shut ? ' is-locked' : ''}`}
                 style={{ '--d': i - ep, '--a': Math.abs(i - ep) }}
                 aria-current={i === ep}
                 aria-label={`에피소드 ${i + 1} ${r.name}${shut ? ' (잠김)' : ''}`}
-                onClick={() => pickEpisode(i)}
+                onClick={() => {
+                  // (Enter / Space on a card, or a click the fan did not take)
+                  if (performance.now() - tapped.current < 400 || i === ep) return
+                  audio.sfx('tick')
+                  pickEpisode(i)
+                }}
               >
                 <Art id={r.cover} className="ms-ep__art" />
                 <span className="ms-ep__head">
