@@ -104,18 +104,22 @@ export default function Header({ page = 'main' }) {
                     </span>
                   </span>
                 </a>
-                <a href={GAMES.survivor.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
-                  <span className="menu__n mono">└</span>
-                  <span className="menu__colony">
-                    <span className="glitch" data-text={GAMES.survivor.title}>
-                      {GAMES.survivor.title}
+                {[GAMES.survivor, GAMES.survivorPc].map((g) => (
+                  <a key={g.href} href={g.href} tabIndex={open && gameOpen ? 0 : -1} onClick={() => setOpen(false)}>
+                    <span className="menu__n mono">└</span>
+                    <span className="menu__colony">
+                      <span className="glitch" data-text={g.title}>
+                        {g.title}
+                      </span>
+                      <span className="menu__demo">
+                        <span className="glitch" data-text="(DEMO)">(DEMO)</span>
+                        <img src={manoHammer} alt="" width="186" height="160" decoding="async" />
+                      </span>
+                      {/* which device this version is for */}
+                      <span className="menu__platform mono">{g.platform}</span>
                     </span>
-                    <span className="menu__demo">
-                      <span className="glitch" data-text="(DEMO)">(DEMO)</span>
-                      <img src={manoHammer} alt="" width="186" height="160" decoding="async" />
-                    </span>
-                  </span>
-                </a>
+                  </a>
+                ))}
               </div>
             </div>
           </li>

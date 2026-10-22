@@ -45,8 +45,9 @@ export const artNow = (id) => {
   return c && c.img ? c.img : null
 }
 
-// what a region's fight needs: its ground and its monsters
-export function regionArtIds(region) {
-  return [region.background, ...new Set(Object.values(region.skins))]
+// what a region's fight needs: its ground (the platform's: bg maps the
+// region's background id to the one it draws) and its monsters
+export function regionArtIds(region, bg = (id) => id) {
+  return [bg(region.background), ...new Set(Object.values(region.skins))]
 }
-export const preloadRegion = (region) => Promise.all(regionArtIds(region).map(loadArt))
+export const preloadRegion = (region, bg) => Promise.all(regionArtIds(region, bg).map(loadArt))

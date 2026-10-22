@@ -5,6 +5,7 @@ import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, pr
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
+import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -1020,7 +1021,9 @@ const still = { x: 0, y: 0 }
 {
   const fs = await import('fs')
   const A = D.storyAssets.images
-  const fromPackage = A.filter((x) => !['backdrop', 'portrait'].includes(x.kind))
+  // (the soft lobby copies, Tizzzz's face and the PC game's wide grounds are
+  // made from these originals, not originals of their own)
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind))
   const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
   ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
   ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
@@ -1107,6 +1110,46 @@ const still = { x: 0, y: 0 }
   r3.blessHit(boss, 10, boss.x, boss.y)
   ok(!(boss.freezeT > 0) && boss.slowT > 0 && boss.slowMul === G.snow.bossSlow, `the boss is never frozen: slowed ×${G.snow.bossSlow} for ${G.snow.bossSeconds} s instead`)
   ok(near(newRun({ chapter: 35, seed: 1, blessings: { ...all, final: true } }).bless.thunder.chance, G.thunder.chance * G.final.chanceMul), `마왕의 탱탱볼: every chance ×${G.final.chanceMul}`)
+}
+
+// ── the PC game: the same fight on a 16:9 field, moved with the keys ────────
+{
+  const M = D.balance.logicalArena
+  const PC = D.balance.logicalArenaPc
+  const area = ([x0, y0, x1, y1]) => (x1 - x0) * (y1 - y0)
+  ok(Math.abs(area(PC.bounds) / area(M.bounds) - 1) < 0.01, `the PC field has the phone field's area (${area(PC.bounds)} vs ${area(M.bounds)}), so as much room to run and as many monsters on it`)
+  const [px0, py0, px1, py1] = PC.bounds
+  ok(px0 >= 0 && py0 >= D.ui.pc.hud.height && px1 <= D.ui.pc.logicalViewport[0] && py1 <= D.ui.pc.logicalViewport[1], 'the PC field is inside its 640 × 360 screen, below the HUD bar')
+  const V = D.ui.pc.logicalViewport
+  const outside = Object.entries(D.ui.pc.hud).filter(([, b]) => Array.isArray(b) && (b[0] < 0 || b[1] < 0 || b[0] + b[2] > V[0] || b[1] + b[3] > V[1]))
+  ok(outside.length === 0, `every PC HUD box is on the screen${outside.length ? ': ' + outside.map(([k]) => k).join(', ') : ''}`)
+  // the keys: each alone, mixed, diagonals no faster, opposite keys cancel
+  const len = (v) => Math.hypot(v.x, v.y)
+  ok(Object.keys(MOVE_KEYS).every((k) => near(len(keyVector([k])), 1)), 'W A S D and the four arrows each move at full speed')
+  const d = keyVector(['KeyW', 'KeyD'])
+  ok(near(len(d), 1) && near(d.x, Math.SQRT1_2) && near(d.y, -Math.SQRT1_2), 'W+D: up-right, no faster than one key (normalized)')
+  ok(near(len(keyVector(['KeyW', 'ArrowRight'])), 1) && keyVector(['KeyW', 'ArrowUp']).y === -1, 'arrows and WASD mix (W+→ diagonal; W+↑ is still one up)')
+  const z = keyVector(['KeyA', 'KeyD'])
+  ok(z.x === 0 && z.y === 0 && keyVector([]).x === 0 && keyVector(['KeyQ', 'Space']).x === 0, 'A+D cancel; no keys or other keys: standing still')
+  // a run on the PC field: Mano starts on it, its walls hold her, monsters come in from its edges
+  const r = newRun({ arena: PC, seed: 5 })
+  ok(r.arena === PC && r.player.x === PC.start[0] && r.player.y === PC.start[1], `Mano starts at the PC field's start (${PC.start})`)
+  for (let i = 0; i < 400; i++) step(r, FIXED, { x: 1, y: -1 })
+  ok(r.player.x <= px1 && r.player.y >= py0 && r.player.x > px1 - 20 && r.player.y < py0 + 20, `held up-right: she stops at the PC field's corner (${r.player.x.toFixed(1)}, ${r.player.y.toFixed(1)})`)
+  const m = newRun({ seed: 5 })
+  ok(m.arena === M && m.player.x === (M.bounds[0] + M.bounds[2]) / 2, 'without a platform field it is the phone field, as before')
+  const r2 = newRun({ arena: PC, seed: 8 })
+  for (let i = 0; i < 60 * 20; i++) step(r2, FIXED, { x: 0, y: 0 })
+  const off = r2.enemies.filter((e) => e.x < px0 - 60 || e.x > px1 + 60 || e.y < py0 - 60 || e.y > py1 + 60)
+  ok(r2.enemies.length > 0 && off.length === 0, `20 s on the PC field: ${r2.enemies.length} monsters, all on or at the edge of its field`)
+  // the same seed and choices: the phone and the PC game are the same fight (the bots play both)
+  const runs = (arena) => [1, 2, 3, 4].map((s) => playRun(D, { policy: 'core', seed: s * 104729, chapter: 3, arena }).run)
+  const a = runs(M)
+  const b = runs(PC)
+  const avg = (rs, f) => rs.reduce((n, x) => n + f(x), 0) / rs.length
+  const ta = avg(a, (x) => x.t)
+  const tb = avg(b, (x) => x.t)
+  ok(Math.abs(tb - ta) / ta < 0.25, `chapter 3, the same bot: ${ta.toFixed(0)} s on the phone field, ${tb.toFixed(0)} s on the PC field (within 25%)`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────

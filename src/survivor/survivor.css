@@ -2200,3 +2200,359 @@
     animation: none;
   }
 }
+
+/* ── the PC game (.ms--pc): 16:9, keys and the mouse ────────────────────────
+   The same screens as the phone game, laid out for a landscape window. The
+   menus are laid out at 1280 × 720 and scaled to the window as a whole
+   (zoom, set by the page as --z: text stays sharp at any size); the battle
+   is a 16:9 frame as large as fits, its HUD placed by data/ui.json → pc.
+   On the phone these wrappers are not boxes at all: */
+.ms-lobby__rail,
+.ms-lobby__body,
+.ms-go__side,
+.ms-cut__words {
+  display: contents;
+}
+
+.ms--pc {
+  padding: 0;
+}
+
+.ms--pc .ms-stage {
+  width: min(100%, calc(100dvh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  max-height: 100%;
+}
+
+.ms--pc .ms-page {
+  width: 1280px;
+  height: 720px;
+  max-height: none;
+  aspect-ratio: auto;
+  zoom: var(--z, 1);
+  padding: 24px 32px;
+  gap: 14px;
+}
+
+/* boxes over the battle and over the whole window, at the menus' size */
+.ms--pc .ms-modal--in,
+.ms--pc > .ms-modal {
+  zoom: var(--z, 1);
+}
+
+/* the lobby: a rail at the left (exit, coins, title, the tabs one under the
+   other), the tab's content beside it */
+.ms--pc .ms-page--lobby {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 28px;
+  overflow: hidden;
+}
+
+.ms--pc .ms-lobby__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.ms--pc .ms-lobby__rail .ms-top {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ms--pc .ms-lobby__rail .ms-coins {
+  justify-content: center;
+  font-size: 17px;
+}
+
+.ms--pc .ms-page--lobby .ms-title {
+  margin: 6px 0 4px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.ms--pc .ms-tabs {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.ms--pc .ms-tab {
+  min-height: 54px;
+  padding: 0 20px;
+  font-size: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms--pc .ms-tab__dot {
+  top: 50%;
+  right: 14px;
+  translate: 0 -50%;
+}
+
+.ms--pc .ms-lobby__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  align-items: start;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 6px 2px 2px;
+}
+
+.ms--pc .ms-lobby__body > .ms-notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.ms--pc .ms-lobby__body--stats > .ms-panel {
+  grid-column: 1 / -1;
+}
+
+.ms--pc .ms-stats-list {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+
+/* 출발: the chapter card large at the left, the crew, record and the start
+   button beside it */
+.ms--pc .ms-lobby__body--go {
+  grid-template-columns: minmax(0, 1fr) 330px;
+  align-content: center;
+  align-items: center;
+  gap: 18px 26px;
+  overflow: visible;
+}
+
+.ms--pc .ms-go__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ms--pc .ms-stagecard {
+  grid-template-columns: 46px 1fr 46px;
+  gap: 8px;
+}
+
+.ms--pc .ms-arrow {
+  width: 46px;
+  height: 64px;
+  font-size: 34px;
+  cursor: pointer;
+}
+
+.ms--pc .ms-stagecard__inner {
+  padding: 12px 14px 14px;
+}
+
+.ms--pc .ms-stagecard__no {
+  font-size: 40px;
+}
+
+.ms--pc .ms-stagecard__name {
+  font-size: 16px;
+}
+
+.ms--pc .ms-stagecard__art {
+  aspect-ratio: 16 / 9;
+}
+
+.ms--pc .ms-lobbymano {
+  width: 26%;
+  max-width: 190px;
+}
+
+.ms--pc .ms-best {
+  font-size: 14px;
+}
+
+.ms--pc .ms-allbtn {
+  align-self: stretch;
+}
+
+.ms--pc .ms-btn,
+.ms--pc .ms-exit,
+.ms--pc .ms-inv__item {
+  cursor: pointer;
+}
+
+/* 합성: the same page, centred at a readable width */
+.ms--pc .ms-page:not(.ms-page--lobby) {
+  padding: 24px 220px;
+}
+
+/* the battle's HUD text, in the 640 × 360 screen's own units */
+.ms--pc .ms-stagename,
+.ms--pc .ms-time,
+.ms--pc .ms-cur {
+  font-size: 1.9cqw;
+}
+
+.ms--pc .ms-hudtext {
+  font-size: 1.75cqw;
+}
+
+.ms--pc .ms-wslot__g {
+  font-size: 1.45cqw;
+}
+
+.ms--pc .ms-bossbar__name {
+  font-size: 1.8cqw;
+}
+
+.ms--pc .ms-toast,
+.ms--pc .ms-hint {
+  font-size: calc(14px * var(--z, 1));
+}
+
+.ms--pc .ms-hint {
+  width: auto;
+  max-width: 70%;
+  white-space: nowrap;
+  padding: 0.6em 1.2em;
+}
+
+/* the level-up: the cards side by side */
+.ms--pc .ms-level {
+  width: min(100%, 1060px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 22px 24px;
+}
+
+.ms--pc .ms-level > :not(.ms-card) {
+  grid-column: 1 / -1;
+}
+
+.ms--pc .ms-level .ms-card {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 230px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.ms--pc .ms-level .ms-card:hover {
+  background: #fff7e3;
+}
+
+.ms--pc .ms-level .ms-card__body {
+  justify-items: center;
+  gap: 8px;
+}
+
+.ms--pc .ms-level .ms-card__icon {
+  width: 72px;
+  height: 72px;
+}
+
+.ms--pc .ms-level .ms-card__name {
+  font-size: 19px;
+}
+
+.ms--pc .ms-level .ms-card__num {
+  font-size: 14px;
+}
+
+.ms--pc .ms-runstats dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px 18px;
+}
+
+.ms--pc .ms-runstats dl > div {
+  font-size: 13px;
+}
+
+.ms--pc .ms-menu {
+  width: min(100%, 380px);
+}
+
+.ms--pc .ms-result {
+  width: min(100%, 660px);
+}
+
+.ms--pc .ms-chest {
+  width: min(100%, 560px);
+}
+
+/* cutscenes: the picture whole at the left (2:3, never stretched), the words
+   in a panel beside it; the picture or 다음 (or Enter, Space) moves on */
+.ms--pc > .ms-modal.ms-cut {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  padding: 32px 48px;
+}
+
+.ms--pc .ms-cut__pic {
+  flex: none;
+  width: auto;
+  height: 100%;
+  aspect-ratio: 2 / 3;
+  max-width: 58%;
+}
+
+.ms--pc .ms-cut__box {
+  flex: none;
+  width: 420px;
+  max-width: none;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.ms--pc .ms-cut__text {
+  min-height: 7em;
+  font-size: 20px;
+}
+
+.ms--pc .ms-cut__count {
+  font-size: 14px;
+}
+
+.ms--pc .ms-cut__skip {
+  top: 22px;
+  right: 26px;
+  font-size: 15px;
+}
+
+/* the region's reward: its pictures at the left, the words at the right */
+.ms--pc .ms-cut__reward {
+  width: min(100%, 680px);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 24px 28px;
+  text-align: left;
+}
+
+.ms--pc .ms-cut__words {
+  display: grid;
+  gap: 12px;
+}
+
+.ms--pc .ms-cut__words .ms-center {
+  text-align: left;
+}
+
+.ms--pc .ms-cut__line {
+  font-size: 19px;
+}
+
+.ms--pc .ms-cut__prop img {
+  width: 104px;
+  height: 104px;
+}
+
+.ms--pc .ms-toast {
+  width: auto;
+  max-width: 60%;
+  padding: 0.6em 1.2em;
+}

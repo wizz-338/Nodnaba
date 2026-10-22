@@ -4,18 +4,20 @@
 // and spends its coins on the coin stats (always the cheapest one next).
 // Reports, per chapter, how often the FIRST attempt clears (first arrival)
 // and how many attempts a clear took.
-//   node scripts/survivor-campaign.mjs [campaigns] [skill] [policy] [maxChapter] [triesPerChapter=8]
+//   node scripts/survivor-campaign.mjs [campaigns] [skill] [policy] [maxChapter] [triesPerChapter=8] [field=mobile|pc]
+// (field: the phone game's battlefield or the PC game's, to compare the two)
 // A bot is not a person: these numbers show trends, not win rates.
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads'
 import os from 'os'
 
 
-async function campaign(seed, skill, policy, maxCh, MAX_TRIES) {
+async function campaign(seed, skill, policy, maxCh, MAX_TRIES, field) {
   const { D } = await import('./survivor-data.mjs')
   const { playRun } = await import('./survivor-bot.mjs')
   const { createProgress, canFuse, statPrice, statMaxLevel, STATS } = await import('../src/survivor/progress.js')
   const mem = new Map()
   const store = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) }
+  const arena = field === 'pc' ? D.balance.logicalArenaPc : D.balance.logicalArena
   const P = createProgress(D, store)
   P.boot()
   const out = []
@@ -27,7 +29,7 @@ async function campaign(seed, skill, policy, maxCh, MAX_TRIES) {
     while (!cleared && tries < MAX_TRIES) {
       tries++
       const s = P.startRun(ch)
-      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, blessings: s.blessings })
+      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, blessings: s.blessings, arena })
       for (const key of run.awards) P.award(s.runId, ch, key)
       const r = run.result || { cleared: false, coins: Math.floor(run.coins), time: run.t }
       P.finishRun(s.runId, ch, r)
@@ -66,7 +68,7 @@ async function campaign(seed, skill, policy, maxCh, MAX_TRIES) {
 
 if (!isMainThread) {
   const res = []
-  for (const s of workerData.seeds) res.push(await campaign(s, workerData.skill, workerData.policy, workerData.maxCh, workerData.tries))
+  for (const s of workerData.seeds) res.push(await campaign(s, workerData.skill, workerData.policy, workerData.maxCh, workerData.tries, workerData.field))
   parentPort.postMessage(res)
 } else {
   const N = +process.argv[2] || 24
@@ -74,15 +76,16 @@ if (!isMainThread) {
   const policy = process.argv[4] || 'core'
   const maxCh = +process.argv[5] || 5
   const MAX_TRIES = +process.argv[6] || 8
+  const field = process.argv[7] || 'mobile'
   const T = os.cpus().length
   const parts = Array.from({ length: T }, (_, i) => Array.from({ length: N }, (_, s) => s + 1).filter((s) => s % T === i))
   const t0 = Date.now()
   const all = (await Promise.all(parts.map((seeds) => new Promise((ok, fail) => {
-    const w = new Worker(new URL(import.meta.url), { workerData: { seeds, skill, policy, maxCh, tries: MAX_TRIES } })
+    const w = new Worker(new URL(import.meta.url), { workerData: { seeds, skill, policy, maxCh, tries: MAX_TRIES, field } })
     w.once('message', ok)
     w.once('error', fail)
   })))).flat()
-  console.log(`${N} campaigns, ${skill} movement, ${policy} picks (first arrival = the first try at a chapter)`)
+  console.log(`${N} campaigns on the ${field} field, ${skill} movement, ${policy} picks (first arrival = the first try at a chapter)`)
   for (let ch = 1; ch <= maxCh; ch++) {
     const rows = all.map((c) => c.find((x) => x.ch === ch)).filter(Boolean)
     if (!rows.length) break

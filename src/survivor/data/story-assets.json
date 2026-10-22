@@ -1273,6 +1273,37 @@
    "sha256": "5933e90feb66afc0ef21826f4700ec938a9140aaf40499222d44c9a89ae58287"
   },
   {
+   "id": "bg_forest_wide",
+   "kind": "background-wide",
+   "region": "forest",
+   "source": "03_backgrounds/01_작은숲.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_forest_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 50394,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5933e90feb66afc0ef21826f4700ec938a9140aaf40499222d44c9a89ae58287"
+  },
+  {
+   "id": "bg_forest_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "forest",
+   "source": "03_backgrounds/01_작은숲.png",
+   "file": "backgrounds/bg_forest_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 506,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5933e90feb66afc0ef21826f4700ec938a9140aaf40499222d44c9a89ae58287"
+  },
+  {
    "source": "03_backgrounds/01_작은숲.png",
    "width": 1024,
    "height": 1536,
@@ -1299,6 +1330,37 @@
     324
    ],
    "bytes": 862,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "2f4e7f5c6d09efe34989a7f5256d27e001c641b54d4ab74d26ef7ecac6c25489"
+  },
+  {
+   "id": "bg_deepforest_wide",
+   "kind": "background-wide",
+   "region": "deepforest",
+   "source": "03_backgrounds/02_깊은숲.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_deepforest_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 90842,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "2f4e7f5c6d09efe34989a7f5256d27e001c641b54d4ab74d26ef7ecac6c25489"
+  },
+  {
+   "id": "bg_deepforest_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "deepforest",
+   "source": "03_backgrounds/02_깊은숲.png",
+   "file": "backgrounds/bg_deepforest_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 876,
    "width": 1024,
    "height": 1536,
    "sha256": "2f4e7f5c6d09efe34989a7f5256d27e001c641b54d4ab74d26ef7ecac6c25489"
@@ -1335,6 +1397,37 @@
    "sha256": "bddf6bdbbbe70c7434fcf498951b08d36bd6d2400bf4890b21a7c9c08d16657a"
   },
   {
+   "id": "bg_skulltown_wide",
+   "kind": "background-wide",
+   "region": "skulltown",
+   "source": "03_backgrounds/03_해골마을.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_skulltown_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 122852,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "bddf6bdbbbe70c7434fcf498951b08d36bd6d2400bf4890b21a7c9c08d16657a"
+  },
+  {
+   "id": "bg_skulltown_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "skulltown",
+   "source": "03_backgrounds/03_해골마을.png",
+   "file": "backgrounds/bg_skulltown_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 474,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "bddf6bdbbbe70c7434fcf498951b08d36bd6d2400bf4890b21a7c9c08d16657a"
+  },
+  {
    "source": "03_backgrounds/03_해골마을.png",
    "width": 1024,
    "height": 1536,
@@ -1361,6 +1454,37 @@
     324
    ],
    "bytes": 772,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "d490054dca96a04dafa2d5c5de2b6a07b8b7c87a1b51d1b64d9313a58ccfa735"
+  },
+  {
+   "id": "bg_desert_wide",
+   "kind": "background-wide",
+   "region": "desert",
+   "source": "03_backgrounds/04_사막.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_desert_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 18146,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "d490054dca96a04dafa2d5c5de2b6a07b8b7c87a1b51d1b64d9313a58ccfa735"
+  },
+  {
+   "id": "bg_desert_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "desert",
+   "source": "03_backgrounds/04_사막.png",
+   "file": "backgrounds/bg_desert_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 408,
    "width": 1024,
    "height": 1536,
    "sha256": "d490054dca96a04dafa2d5c5de2b6a07b8b7c87a1b51d1b64d9313a58ccfa735"
@@ -1397,6 +1521,37 @@
    "sha256": "1a1685a794d9a78545e16cc8fe66c84e1d47c221addf70a302a3e59578601ada"
   },
   {
+   "id": "bg_snow_wide",
+   "kind": "background-wide",
+   "region": "snow",
+   "source": "03_backgrounds/05_설산.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_snow_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 49828,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "1a1685a794d9a78545e16cc8fe66c84e1d47c221addf70a302a3e59578601ada"
+  },
+  {
+   "id": "bg_snow_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "snow",
+   "source": "03_backgrounds/05_설산.png",
+   "file": "backgrounds/bg_snow_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 754,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "1a1685a794d9a78545e16cc8fe66c84e1d47c221addf70a302a3e59578601ada"
+  },
+  {
    "source": "03_backgrounds/05_설산.png",
    "width": 1024,
    "height": 1536,
@@ -1428,6 +1583,37 @@
    "sha256": "a94ff84be0b3de176aa2eb6a06cbeb1b28c8fb0ef2aa126d6be59ca19ab1fc15"
   },
   {
+   "id": "bg_sky_wide",
+   "kind": "background-wide",
+   "region": "sky",
+   "source": "03_backgrounds/06_하늘.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_sky_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 47116,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "a94ff84be0b3de176aa2eb6a06cbeb1b28c8fb0ef2aa126d6be59ca19ab1fc15"
+  },
+  {
+   "id": "bg_sky_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "sky",
+   "source": "03_backgrounds/06_하늘.png",
+   "file": "backgrounds/bg_sky_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 754,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "a94ff84be0b3de176aa2eb6a06cbeb1b28c8fb0ef2aa126d6be59ca19ab1fc15"
+  },
+  {
    "source": "03_backgrounds/06_하늘.png",
    "width": 1024,
    "height": 1536,
@@ -1454,6 +1640,37 @@
     324
    ],
    "bytes": 680,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "39950c93f759b57e8b1842e502618c57ddc99e470bda1f90f875b2abd8248e54"
+  },
+  {
+   "id": "bg_castle_wide",
+   "kind": "background-wide",
+   "region": "castle",
+   "source": "03_backgrounds/07_마왕성.png",
+   "method": "inner (154, 184, 870, 1352) mirrored to the sides, 2076x1168 → 1920x1080",
+   "file": "backgrounds/bg_castle_wide.webp",
+   "out": [
+    1920,
+    1080
+   ],
+   "bytes": 42788,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "39950c93f759b57e8b1842e502618c57ddc99e470bda1f90f875b2abd8248e54"
+  },
+  {
+   "id": "bg_castle_wide_soft",
+   "kind": "backdrop-wide",
+   "region": "castle",
+   "source": "03_backgrounds/07_마왕성.png",
+   "file": "backgrounds/bg_castle_wide_soft.webp",
+   "out": [
+    480,
+    270
+   ],
+   "bytes": 630,
    "width": 1024,
    "height": 1536,
    "sha256": "39950c93f759b57e8b1842e502618c57ddc99e470bda1f90f875b2abd8248e54"

@@ -526,6 +526,13 @@ main,
   letter-spacing: 0.06em;
 }
 
+.menu__platform {
+  flex-basis: 100%;
+  font-size: 0.42em;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
 .menu__demo img {
   display: block;
   width: auto;
