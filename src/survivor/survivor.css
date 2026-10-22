@@ -1490,298 +1490,6 @@
   }
 }
 
-/* the lobby: the skull king's ruins behind (baked soft and dim) */
-.ms-page--lobby {
-  background: #2a2220 var(--bg) center / cover no-repeat;
-}
-
-.ms-page--lobby .ms-title {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: #f1e6d3;
-  text-shadow: 0 2px 0 #1d1622;
-}
-
-.ms-page--lobby .ms-coins {
-  padding: 4px 12px 4px 6px;
-  border-radius: 999px;
-  border: 2px solid var(--ink);
-  background: var(--paper);
-}
-
-/* the chapter card: ‹ [ number · name · picture ] ›, Mano at its corner */
-.ms-stagecard {
-  position: relative;
-  display: grid;
-  grid-template-columns: 34px 1fr 34px;
-  align-items: center;
-  gap: 4px;
-  padding-bottom: 14px;
-}
-
-.ms-arrow {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 48px;
-  padding: 0 0 3px;
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  background: var(--paper);
-  font-size: 28px;
-  font-weight: 900;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.ms-arrow:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.ms-stagecard__frame {
-  overflow: hidden;
-  border: 2px solid var(--ink);
-  border-radius: 18px;
-  background: var(--paper);
-  touch-action: pan-y;
-}
-
-.ms-stagecard__inner {
-  display: grid;
-  padding: 8px 8px 10px;
-  text-align: center;
-  animation: ms-slide-next 0.18s ease-out;
-}
-
-.ms-stagecard__inner.is-prev {
-  animation-name: ms-slide-prev;
-}
-
-@keyframes ms-slide-next {
-  from {
-    transform: translateX(16px);
-    opacity: 0.3;
-  }
-}
-
-@keyframes ms-slide-prev {
-  from {
-    transform: translateX(-16px);
-    opacity: 0.3;
-  }
-}
-
-.ms-stagecard__no {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1.15;
-}
-
-.ms-stagecard__name {
-  justify-self: center;
-  margin: 2px 0 8px;
-  padding: 1px 14px;
-  border: 1.5px solid #b89b74;
-  border-radius: 8px;
-  background: #e3d1b2;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.ms-stagecard__art {
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 455 / 233;
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  background: #3a302c;
-}
-
-.ms-stagecard__art img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  -webkit-user-drag: none;
-}
-
-.ms-stagecard__lock {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(29, 22, 34, 0.62);
-  color: #f1e6d3;
-  font-weight: 800;
-}
-
-.ms-stagecard__done {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  padding: 0 8px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
-  background: var(--accent);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-/* a few embers drifting up out of the ruins, each on its own slow beat */
-.ms-ember {
-  position: absolute;
-  left: var(--x);
-  bottom: -4px;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #f2a541;
-  opacity: 0;
-  pointer-events: none;
-  animation: ms-ember var(--d) linear var(--w) infinite;
-}
-
-@keyframes ms-ember {
-  0% {
-    transform: translate(0, 0);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.85;
-  }
-  70% {
-    opacity: 0.55;
-  }
-  100% {
-    transform: translate(8px, -110px);
-    opacity: 0;
-  }
-}
-
-/* Mano and her ball: the art as it is, breathing 2 px */
-.ms-lobbymano {
-  position: absolute;
-  z-index: 1;
-  left: 4px;
-  bottom: -2px;
-  width: 36%;
-  max-width: 150px;
-  pointer-events: none;
-  animation: ms-bob 3.4s ease-in-out infinite alternate;
-}
-
-@keyframes ms-bob {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-2px);
-  }
-}
-
-/* the companions: the three cats, then Tizzzz (only once they have joined) */
-.ms-crew {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 5px 12px;
-  border: 2px solid var(--ink);
-  border-radius: 14px;
-  background: var(--paper);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.ms-crew__cats {
-  display: flex;
-  gap: 2px;
-  padding-right: 8px;
-  border-right: 1.5px solid #c9b597;
-}
-
-.ms-crew__cat {
-  display: inline-block;
-  animation: ms-bob 2.9s ease-in-out infinite alternate;
-}
-
-.ms-crew__cat:nth-child(2) {
-  animation-duration: 3.5s;
-  animation-delay: -1.1s;
-}
-
-.ms-crew__cat:nth-child(3) {
-  animation-duration: 4.1s;
-  animation-delay: -2.3s;
-}
-
-.ms-crew__face {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  animation: ms-bob 4.6s ease-in-out -0.7s infinite alternate;
-}
-
-.ms-crew__text {
-  flex: 1;
-  word-break: keep-all;
-}
-
-.ms-best {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  color: #efe2cc;
-  font-size: 13px;
-  font-weight: 700;
-  text-shadow: 0 1px 0 #1d1622;
-}
-
-.ms-best i {
-  font-style: normal;
-  opacity: 0.5;
-}
-
-.ms-crown {
-  width: 20px;
-  height: 15px;
-}
-
-/* the start button breathes, very slowly (scale, so a press still works) */
-.ms-startbtn {
-  width: 100%;
-  min-height: 60px;
-  border-radius: 18px;
-  font-size: 21px;
-  animation: ms-breathe 2.8s ease-in-out infinite;
-}
-
-@keyframes ms-breathe {
-  50% {
-    scale: 1.015;
-  }
-}
-
-.ms-startbtn:disabled {
-  animation: none;
-}
-
-.ms-allbtn {
-  align-self: center;
-  min-width: 60%;
-}
-
 /* every chapter in a grid */
 .ms-chgrid {
   width: min(100%, 330px);
@@ -1958,18 +1666,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ms-ember,
   .ms-lobbymano,
-  .ms-crew__cat,
-  .ms-crew__face,
   .ms-startbtn,
-  .ms-stagecard__inner,
   .ms-hop,
   .ms .is-pop::after {
     animation: none;
   }
 
-  .ms-ember,
   .ms-burst__in,
   .ms-burst__flash,
   .ms-burst__spark {
@@ -1984,12 +1687,12 @@
 
 /* (after `.ms button { font: inherit }`): the lobby's own type */
 .ms .ms-startbtn {
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 900;
 }
 
 .ms .ms-arrow {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 900;
 }
 
@@ -2005,23 +1708,6 @@
 }
 
 /* ── the story (마노의 탱탱볼 모험) ───────────────────────────────────────── */
-
-/* the chapter card: the region's ground, its boss standing on it */
-.ms-stagecard__art {
-  background: #3a302c var(--ground) center / cover no-repeat;
-}
-
-.ms-stagecard__art .ms-stagecard__boss {
-  position: absolute;
-  left: 50%;
-  bottom: 6%;
-  width: auto;
-  height: 86%;
-  max-width: 80%;
-  object-fit: contain;
-  translate: -50% 0;
-  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.35));
-}
 
 .ms-crew__cat img {
   display: block;
@@ -2209,7 +1895,6 @@
    On the phone these wrappers are not boxes at all: */
 .ms-lobby__rail,
 .ms-lobby__body,
-.ms-go__side,
 .ms-cut__words {
   display: contents;
 }
@@ -2238,140 +1923,6 @@
 .ms--pc .ms-modal--in,
 .ms--pc > .ms-modal {
   zoom: var(--z, 1);
-}
-
-/* the lobby: a rail at the left (exit, coins, title, the tabs one under the
-   other), the tab's content beside it */
-.ms--pc .ms-page--lobby {
-  display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 28px;
-  overflow: hidden;
-}
-
-.ms--pc .ms-lobby__rail {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 0;
-}
-
-.ms--pc .ms-lobby__rail .ms-top {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.ms--pc .ms-lobby__rail .ms-coins {
-  justify-content: center;
-  font-size: 17px;
-}
-
-.ms--pc .ms-page--lobby .ms-title {
-  margin: 6px 0 4px;
-  font-size: 28px;
-  line-height: 1.15;
-}
-
-.ms--pc .ms-tabs {
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.ms--pc .ms-tab {
-  min-height: 54px;
-  padding: 0 20px;
-  font-size: 18px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.ms--pc .ms-tab__dot {
-  top: 50%;
-  right: 14px;
-  translate: 0 -50%;
-}
-
-.ms--pc .ms-lobby__body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-content: start;
-  align-items: start;
-  gap: 14px;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 2px 6px 2px 2px;
-}
-
-.ms--pc .ms-lobby__body > .ms-notice {
-  grid-column: 1 / -1;
-  margin: 0;
-}
-
-.ms--pc .ms-lobby__body--stats > .ms-panel {
-  grid-column: 1 / -1;
-}
-
-.ms--pc .ms-stats-list {
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 14px;
-}
-
-/* 출발: the chapter card large at the left, the crew, record and the start
-   button beside it */
-.ms--pc .ms-lobby__body--go {
-  grid-template-columns: minmax(0, 1fr) 330px;
-  align-content: center;
-  align-items: center;
-  gap: 18px 26px;
-  overflow: visible;
-}
-
-.ms--pc .ms-go__side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ms--pc .ms-stagecard {
-  grid-template-columns: 46px 1fr 46px;
-  gap: 8px;
-}
-
-.ms--pc .ms-arrow {
-  width: 46px;
-  height: 64px;
-  font-size: 34px;
-  cursor: pointer;
-}
-
-.ms--pc .ms-stagecard__inner {
-  padding: 12px 14px 14px;
-}
-
-.ms--pc .ms-stagecard__no {
-  font-size: 40px;
-}
-
-.ms--pc .ms-stagecard__name {
-  font-size: 16px;
-}
-
-.ms--pc .ms-stagecard__art {
-  aspect-ratio: 16 / 9;
-}
-
-.ms--pc .ms-lobbymano {
-  width: 26%;
-  max-width: 190px;
-}
-
-.ms--pc .ms-best {
-  font-size: 14px;
-}
-
-.ms--pc .ms-allbtn {
-  align-self: stretch;
 }
 
 .ms--pc .ms-btn,
@@ -2555,4 +2106,690 @@
   width: auto;
   max-width: 60%;
   padding: 0.6em 1.2em;
+}
+
+/* ── the lobby: episodes over the chosen episode's picture ────────────────
+   Both platforms. A wooden sign and parchment panels over the story picture
+   of the chosen episode (dimmed toward the bottom so the panels read); the
+   episodes as cards in a fan, the chosen one in front; its line, record and
+   chapters below; Mano at the corner, nodding. */
+.ms-page--lobby {
+  --wood: #5b3a22;
+  --wood-dark: #3a2414;
+  --parch: #f6ead0;
+  --parch-2: #ead6ad;
+  --gold: #e9b949;
+  background:
+    linear-gradient(rgba(24, 16, 30, 0.1), rgba(24, 16, 30, 0.2) 45%, rgba(24, 16, 30, 0.62)),
+    #2a2220 var(--bg) center / cover no-repeat;
+}
+
+/* wood: the sign, the exit, the arrows */
+.ms-page--lobby .ms-exit,
+.ms-page--lobby .ms-title,
+.ms-page--lobby .ms-arrow {
+  border: 2px solid var(--wood-dark);
+  background: linear-gradient(#7a5132, var(--wood));
+  color: var(--parch);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.25), 0 3px 0 var(--wood-dark);
+}
+
+.ms-page--lobby .ms-title {
+  align-self: center;
+  margin: 0;
+  padding: 4px 18px 6px;
+  border-radius: 12px;
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-shadow: 0 2px 0 var(--wood-dark);
+}
+
+.ms-page--lobby .ms-coins {
+  padding: 4px 12px 4px 6px;
+  border-radius: 999px;
+  border: 2px solid var(--wood-dark);
+  background: var(--parch);
+}
+
+/* parchment: the tabs, the panels */
+.ms-page--lobby .ms-tab {
+  border-color: var(--wood-dark);
+  background: linear-gradient(var(--parch), var(--parch-2));
+  box-shadow: 0 3px 0 var(--wood-dark);
+}
+
+.ms-page--lobby .ms-tab.is-on {
+  background: linear-gradient(#f6d27a, var(--gold));
+  color: var(--ink);
+}
+
+.ms-page--lobby .ms-panel,
+.ms-epinfo,
+.ms-page--lobby .ms-notice {
+  border: 2px solid var(--wood-dark);
+  background: linear-gradient(var(--parch), var(--parch-2));
+  box-shadow: 0 3px 0 var(--wood-dark), 0 10px 22px rgba(20, 12, 8, 0.28);
+}
+
+/* the episodes: a fan of cards, the chosen one in front */
+.ms-eps {
+  position: relative;
+  flex: none;
+  height: 236px;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.ms-eps__track {
+  position: absolute;
+  inset: 0;
+}
+
+.ms-ep {
+  --w: 142px;
+  --step: 112px;
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: var(--w);
+  aspect-ratio: 2 / 3;
+  margin-left: calc(var(--w) / -2);
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid #c99b45;
+  border-radius: 14px;
+  background: var(--wood-dark);
+  cursor: pointer;
+  z-index: calc(10 - var(--a));
+  transform: translateX(calc(var(--d) * var(--step))) perspective(900px) rotateY(calc(var(--d) * -16deg)) scale(calc(1 - var(--a) * 0.14));
+  transition:
+    transform 0.32s ease-out,
+    filter 0.32s,
+    opacity 0.32s;
+  filter: brightness(calc(1 - var(--a) * 0.18));
+  box-shadow: 0 8px 18px rgba(20, 12, 8, 0.4);
+}
+
+/* (the phone shows the chosen one and a glimpse of each neighbour; the PC
+   three each side) */
+.ms-ep.is-a2,
+.ms-ep.is-a3,
+.ms-ep.is-a4 {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ms-ep.is-on {
+  border-color: #f6d27a;
+  box-shadow:
+    0 0 0 2px rgba(246, 210, 122, 0.55),
+    0 10px 24px rgba(20, 12, 8, 0.5);
+}
+
+.ms-ep__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ms-ep.is-locked .ms-ep__art {
+  filter: grayscale(0.85) brightness(0.45) blur(1px);
+}
+
+.ms-ep__head {
+  position: absolute;
+  inset: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  padding: 6px 4px 14px;
+  background: linear-gradient(rgba(30, 18, 36, 0.86), rgba(30, 18, 36, 0.55) 70%, transparent);
+  color: var(--parch);
+  line-height: 1.25;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.ms-ep__head small {
+  font-size: 10.5px;
+  opacity: 0.85;
+}
+
+.ms-ep__head b {
+  font-size: 15px;
+  font-weight: 900;
+  word-break: keep-all;
+}
+
+.ms-ep__tag {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  translate: -50% 0;
+  padding: 1px 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--wood-dark);
+  background: var(--parch);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ms-ep__tag--done {
+  background: var(--gold);
+}
+
+.ms-eps .ms-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 44px;
+  margin-top: -22px;
+  padding: 0 0 3px;
+  border-radius: 999px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ms-eps .ms-arrow--prev {
+  left: 2px;
+}
+
+.ms-eps .ms-arrow--next {
+  right: 2px;
+}
+
+.ms-eps .ms-arrow:disabled {
+  opacity: 0.35;
+}
+
+/* the chosen episode: its line, its record, the start */
+.ms-epinfo {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+}
+
+.ms-epinfo__ep {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ms-epinfo__name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.ms-epinfo__blurb {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.ms-epinfo__crew {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #5d4a3a;
+  word-break: keep-all;
+}
+
+.ms-epinfo__crew span:last-child {
+  margin-left: 6px;
+}
+
+.ms-epinfo .ms-crew__cat img {
+  width: 26px;
+  height: 26px;
+}
+
+.ms-crew__face {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.ms-epinfo__rec {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 6px 2px 0;
+  border-top: 1.5px dashed #c9b597;
+}
+
+.ms-epinfo__rec dt {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.ms-epinfo__rec dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ms-crown {
+  width: 16px;
+  height: 12px;
+}
+
+.ms-epinfo__go {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.ms-startbtn {
+  flex: 1;
+  min-height: 54px;
+  border-radius: 16px;
+  border-color: var(--wood-dark);
+  box-shadow: 0 3px 0 var(--wood-dark);
+  animation: ms-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes ms-breathe {
+  50% {
+    scale: 1.015;
+  }
+}
+
+.ms-startbtn:disabled {
+  animation: none;
+  font-size: 14px;
+}
+
+/* Mano and her ball, nodding along (까닥까닥) */
+.ms-lobbymano {
+  flex: none;
+  width: 74px;
+  margin: -24px 0 -6px -6px;
+  pointer-events: none;
+  transform-origin: 50% 92%;
+  animation: ms-nod 1.9s ease-in-out infinite;
+}
+
+@keyframes ms-nod {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  25% {
+    transform: rotate(0deg) translateY(-3px);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(0deg) translateY(-3px);
+  }
+}
+
+/* the episode's chapters: its ground, a monster of it, the number */
+.ms-chapters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ms-chapter {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--wood-dark);
+  border-radius: 10px;
+  background: #3a302c var(--ground) center / cover no-repeat;
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--wood-dark);
+}
+
+.ms-chapter.is-on {
+  border-color: #f6d27a;
+  box-shadow:
+    0 0 0 2px var(--gold),
+    0 2px 0 var(--wood-dark);
+}
+
+.ms-chapter.is-locked {
+  filter: grayscale(0.8) brightness(0.55);
+}
+
+.ms-chapter__art {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  height: 74%;
+  max-width: 90%;
+  object-fit: contain;
+  translate: -50% 0;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
+}
+
+.ms-chapter__no {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  padding: 0 6px 1px 4px;
+  border-radius: 0 0 8px 0;
+  background: rgba(30, 18, 36, 0.78);
+  color: var(--parch);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ms-chapter__done {
+  position: absolute;
+  right: 3px;
+  top: 2px;
+  z-index: 1;
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 900;
+  text-shadow: 0 1px 0 #000;
+}
+
+.ms-chapters .ms-allbtn {
+  grid-column: 1 / -1;
+  justify-self: center;
+  min-width: 50%;
+  border-color: var(--wood-dark);
+  background: linear-gradient(var(--parch), var(--parch-2));
+}
+
+/* ── the PC lobby: the wooden sign at the left, the episodes beside it ── */
+.ms--pc .ms-page--lobby {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 26px;
+  overflow: hidden;
+}
+
+.ms--pc .ms-lobby__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px 14px 16px;
+  border: 3px solid var(--wood-dark);
+  border-radius: 18px;
+  background: linear-gradient(#6e4829, var(--wood) 60%, #4b301b);
+  box-shadow: inset 0 1px 0 rgba(255, 230, 190, 0.2), 0 10px 24px rgba(20, 12, 8, 0.4);
+  align-self: start;
+}
+
+.ms--pc .ms-lobby__rail .ms-top {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.ms--pc .ms-lobby__rail .ms-coins {
+  justify-content: center;
+  font-size: 17px;
+}
+
+.ms--pc .ms-lobby__rail .ms-exit {
+  box-shadow: none;
+  background: rgba(255, 240, 210, 0.12);
+}
+
+.ms--pc .ms-page--lobby .ms-title {
+  margin: 6px 0;
+  padding: 10px 6px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.ms--pc .ms-tabs {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.ms--pc .ms-tab {
+  min-height: 54px;
+  padding: 0 20px;
+  font-size: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms--pc .ms-tab__dot {
+  top: 50%;
+  right: 14px;
+  translate: 0 -50%;
+}
+
+.ms--pc .ms-lobby__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  align-items: start;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 6px 6px 2px;
+}
+
+.ms--pc .ms-lobby__body > .ms-notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.ms--pc .ms-lobby__body--stats > .ms-panel {
+  grid-column: 1 / -1;
+}
+
+.ms--pc .ms-stats-list {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+}
+
+/* 출발: the fan of episodes, the chosen one's panel, its chapters */
+.ms--pc .ms-lobby__body--go {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  overflow: visible;
+}
+
+.ms--pc .ms-eps {
+  height: 372px;
+  overflow: visible;
+}
+
+.ms--pc .ms-ep {
+  --w: 200px;
+  --step: 136px;
+  top: 14px;
+}
+
+.ms--pc .ms-ep.is-a2,
+.ms--pc .ms-ep.is-a3 {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ms--pc .ms-ep.is-on {
+  transform: translateX(0) scale(1.14);
+}
+
+.ms--pc .ms-ep__head b {
+  font-size: 19px;
+}
+
+.ms--pc .ms-ep__head small {
+  font-size: 12px;
+}
+
+.ms--pc .ms-eps .ms-arrow {
+  width: 44px;
+  height: 56px;
+  margin-top: -28px;
+  font-size: 32px;
+}
+
+.ms--pc .ms-epinfo {
+  grid-template-columns: minmax(0, 1fr) auto 300px;
+  align-items: center;
+  gap: 22px;
+  padding: 14px 20px;
+}
+
+.ms--pc .ms-epinfo__name {
+  font-size: 26px;
+}
+
+.ms--pc .ms-epinfo__blurb {
+  font-size: 14px;
+}
+
+.ms--pc .ms-epinfo__rec {
+  grid-template-columns: auto auto;
+  gap: 6px 14px;
+  padding: 0 0 0 18px;
+  border-top: 0;
+  border-left: 1.5px dashed #c9b597;
+}
+
+.ms--pc .ms-epinfo__rec dt {
+  font-size: 13px;
+}
+
+.ms--pc .ms-epinfo__rec dd {
+  font-size: 16px;
+}
+
+.ms--pc .ms-startbtn {
+  min-height: 66px;
+  font-size: 22px;
+}
+
+/* Mano sits at the bottom left, under the sign */
+.ms--pc .ms-lobbymano {
+  position: absolute;
+  left: 34px;
+  bottom: -8px;
+  z-index: 2;
+  width: 200px;
+  margin: 0;
+}
+
+.ms--pc .ms-chapters {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.ms--pc .ms-chapter__no {
+  font-size: 13px;
+}
+
+.ms--pc .ms-chapters .ms-allbtn {
+  grid-column: auto;
+  min-width: 0;
+  height: 100%;
+}
+
+/* the PC lobby: its backdrop, the portrait picture spread over a wide
+   window, blurred and dimmed into an atmosphere behind the panels */
+.ms--pc .ms-page--lobby {
+  position: relative;
+  isolation: isolate;
+  background: #2a2220;
+}
+
+.ms--pc .ms-page--lobby::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(24, 16, 30, 0.25), rgba(24, 16, 30, 0.35) 50%, rgba(24, 16, 30, 0.6)),
+    var(--bg) center 30% / cover no-repeat;
+  filter: blur(14px) saturate(1.15);
+}
+
+/* the phone lobby: everything on one screen where it can */
+.ms--mobile .ms-page--lobby {
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.ms--mobile .ms-page--lobby .ms-top {
+  min-height: 34px;
+}
+
+.ms--mobile .ms-page--lobby .ms-exit {
+  min-height: 34px;
+}
+
+.ms--mobile .ms-page--lobby .ms-title {
+  padding: 2px 16px 4px;
+  font-size: 18px;
+}
+
+.ms--mobile .ms-page--lobby .ms-tab {
+  min-height: 36px;
+}
+
+.ms--mobile .ms-eps {
+  height: 196px;
+}
+
+.ms--mobile .ms-ep {
+  --w: 120px;
+  --step: 100px;
+  top: 4px;
+}
+
+.ms--mobile .ms-epinfo {
+  gap: 6px;
+  padding: 8px 12px 10px;
+}
+
+.ms--mobile .ms-epinfo__name {
+  font-size: 18px;
+}
+
+.ms--mobile .ms-epinfo__blurb {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ms--mobile .ms-startbtn {
+  min-height: 48px;
+}
+
+.ms--mobile .ms-lobbymano {
+  width: 62px;
+  margin: -18px 0 -6px -6px;
 }

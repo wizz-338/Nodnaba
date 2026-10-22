@@ -1,5 +1,5 @@
 {
-  "note": "마노의 탱탱볼 모험 — the story over the chapters. regions: 7 places of 5 chapters each (chapters past the last go on in the last place). Each region dresses the game's enemy roles (imp, spider, slime, bone_beast: the ordinary ones; brute: the mid-boss at 145 s; boss: the chapter's boss at 210 s) in its own monsters — looks, names and sizes only: HP, hits, speed and the hit circle stay the role's (balance.json → enemies), so a region never changes the fight's numbers except through `mix` (how often each ordinary role comes). The thief keeps its own art. friends: monsters of the package that are not enemies in the story. Images are ids in story-assets.json.",
+  "note": "마노의 탱탱볼 모험 — the story over the chapters. regions: 7 places of 5 chapters each (chapters past the last go on in the last place). Each region dresses the game's enemy roles (imp, spider, slime, bone_beast: the ordinary ones; brute: the mid-boss at 145 s; boss: the chapter's boss at 210 s) in its own monsters — looks, names and sizes only: HP, hits, speed and the hit circle stay the role's (balance.json → enemies), so a region never changes the fight's numbers except through `mix` (how often each ordinary role comes). The thief keeps its own art. friends: monsters of the package that are not enemies in the story. Images are ids in story-assets.json. regions[].cover: the cutscene that is its episode card in the lobby (and the lobby's backdrop); blurb: its line there.",
   "roleSize": {
     "note": "default drawn size (long side of the body, logical px) of each role; the hit circle is the role's radius in balance.json",
     "imp": 30,
@@ -15,6 +15,8 @@
       "name": "작은 숲",
       "from": 1,
       "to": 5,
+      "cover": "cs_01_1",
+      "blurb": "빨간 탱탱볼을 쫓아 들어온 숲. 귀여운 슬라임과 버섯 몬스터들이 마노를 기다려요.",
       "background": "bg_forest",
       "skins": {
         "imp": "sprout",
@@ -37,6 +39,8 @@
       "name": "깊은 숲",
       "from": 6,
       "to": 10,
+      "cover": "cs_02_1",
+      "blurb": "숲 깊은 곳에서 발견한 신비로운 유적. 그 안에 누군가 갇혀 있대요.",
       "background": "bg_deepforest",
       "skins": {
         "imp": "maskdoll",
@@ -59,6 +63,8 @@
       "name": "해골마을",
       "from": 11,
       "to": 15,
+      "cover": "cs_03_1",
+      "blurb": "괴물들에게 점령당한 마을. 마노와 고양이들이 힘을 합쳐 마을을 구해요!",
       "background": "bg_skulltown",
       "skins": {
         "imp": "skeleton",
@@ -81,6 +87,8 @@
       "name": "뜨거운 사막",
       "from": 16,
       "to": 20,
+      "cover": "cs_04_3",
+      "blurb": "뜨거운 모래 아래 괴물들이 숨어 있어요. 사막 깊은 곳엔 고대 신전이 있대요.",
       "background": "bg_desert",
       "skins": {
         "imp": "scorpion",
@@ -106,6 +114,8 @@
       "name": "눈 덮인 산",
       "from": 21,
       "to": 25,
+      "cover": "cs_05_1",
+      "blurb": "눈보라가 몰아치는 설산. 얼음 동굴 깊숙이 설원의 수호자가 잠들어 있어요.",
       "background": "bg_snow",
       "skins": {
         "imp": "icewolf",
@@ -131,6 +141,8 @@
       "name": "하늘 구름 위의 세계",
       "from": 26,
       "to": 30,
+      "cover": "cs_06_2",
+      "blurb": "구름 위에 떠 있는 신비로운 섬들. 하늘의 몬스터들이 탱탱볼을 노려요!",
       "background": "bg_sky",
       "skins": {
         "imp": "griffin",
@@ -153,6 +165,8 @@
       "name": "마왕성",
       "from": 31,
       "to": 35,
+      "cover": "cs_07_1",
+      "blurb": "하늘 끝에 떠 있는 거대한 마왕성. 마왕이 탱탱볼의 힘을 빼앗으려 해요!",
       "background": "bg_castle",
       "skins": {
         "imp": "skullwraith",
