@@ -500,9 +500,7 @@
   },
   "cats": {
     "note": "Cat companions. They join for good after the event of chapter 5's first clear (which also gives one S-grade weapon of the starting kind, once), and come along from activeFromChapter on. They gather coins and experience lying on the field (each its own pick, all three on different ones; everything within `magnet` of a cat flies to it, so a pile goes in one sweep), never fight, never get hurt and never block Mano. Hearts they never pick up.",
-    "eventChapter": 5,
-    "rewardGrade": "S",
-    "activeFromChapter": 6,
+    "activeFromChapter": 11,
     "speed": 300,
     "wanderSpeed": 70,
     "scale": 0.36,
@@ -546,7 +544,7 @@
     "fullAtChapter": 15,
     "writer": {
       "note": "From Tizzzz's chapter on (she rewrites a card at every level-up, so a run's build ends far stronger than before), each phase of the run multiplies the monsters' HP and hits once more, on top of the push above; mid-boss and boss get specialHp (the thief none, so it stays catchable). Tuned so a bot that takes her edits clears chapter 21 a little less often than it did before she came.",
-      "fromChapter": 11,
+      "fromChapter": 16,
       "hp": [
         1,
         2.2,
@@ -572,19 +570,45 @@
       }
     },
     "bossGuard": {
-      "note": "From fromChapter on the skull king loses at most maxShare of its HP each second (burst: seconds' worth that can go at once; damage over that is lost) and hits `hits`× harder (body, charge, slam). With 0.04 a fight lasts at least 25 s however strong the build, and the king can still hurt it. Tuned on bots that pick like a person (the 'human' policy).",
-      "fromChapter": 11,
+      "note": "From fromChapter on (with Tizzzz: she joins at chapter 15's clear) the skull king loses at most maxShare of its HP each second (burst: seconds' worth that can go at once; damage over that is lost) and hits `hits`× harder (body, charge, slam). With 0.04 a fight lasts at least 25 s however strong the build, and the king can still hurt it. Tuned on bots that pick like a person (the 'human' policy).",
+      "fromChapter": 16,
       "maxShare": 0.04,
       "burst": 1,
       "hits": 4
     }
   },
   "tizzzz": {
-    "note": "The writer Tizzzz joins for good after the event of chapter 10's first clear (which also gives one SS-grade weapon of the starting kind, once). From activeFromChapter on, at every level-up she rewrites one of the three cards at random: that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone.",
-    "eventChapter": 10,
-    "rewardGrade": "SS",
-    "activeFromChapter": 11,
+    "note": "The writer Tizzzz joins for good with the reward of chapter 15 (story.json → rewards.skulltown, which also grows the red ball to SS). From activeFromChapter on, at every level-up she rewrites one of the three cards at random: that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone.",
+    "activeFromChapter": 16,
     "times": 2,
     "penSeconds": 1.2
+  },
+  "blessings": {
+    "note": "Battle blessings from the story (story.json → rewards). Temporary balance values. chance: per ball hit; perSecond: at most this many of that blessing in one second however many balls fly (a token bucket, so a screen of balls cannot set it off hundreds of times); seconds: how long it lasts on a monster, a new one only renews it (never stacks). The boss is never frozen: the snow blessing slows it instead. Lightning hits are never a ball hit, so they can never set off more lightning (no chains of chains). final (마왕의 탱탱볼) multiplies every chance.",
+    "phoenix": {
+      "chance": 0.1,
+      "perSecond": 30,
+      "slow": 0.55,
+      "seconds": 2.0,
+      "bossSlow": 0.85
+    },
+    "snow": {
+      "chance": 0.05,
+      "perSecond": 12,
+      "seconds": 1.2,
+      "again": 3.0,
+      "bossSlow": 0.7,
+      "bossSeconds": 0.8
+    },
+    "thunder": {
+      "chance": 0.04,
+      "perSecond": 6,
+      "share": 0.6,
+      "targets": 3,
+      "radius": 90
+    },
+    "final": {
+      "chanceMul": 1.5
+    }
   }
 }

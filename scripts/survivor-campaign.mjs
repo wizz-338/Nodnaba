@@ -27,11 +27,11 @@ async function campaign(seed, skill, policy, maxCh, MAX_TRIES) {
     while (!cleared && tries < MAX_TRIES) {
       tries++
       const s = P.startRun(ch)
-      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz })
+      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, blessings: s.blessings })
       for (const key of run.awards) P.award(s.runId, ch, key)
       const r = run.result || { cleared: false, coins: Math.floor(run.coins), time: run.t }
       P.finishRun(s.runId, ch, r)
-      if (r.cleared) P.claimCatEvent(), P.claimTizzzzEvent() // the stories: an S ball and the cats (ch5), an SS ball and Tizzzz (ch10)
+      // (a region's reward — the red ball's grade, the cats, Tizzzz, a blessing — comes with the clear)
       if (!first) first = { at: n, cleared: r.cleared, time: run.t, bossLeft: r.bossLeft, grade: s.weapon.grade, perma: { ...s.perma }, coins: r.coins, level: run.level, kills: run.kills }
       cleared = r.cleared
       // between runs: chests, fusion, the best weapon, coin stats

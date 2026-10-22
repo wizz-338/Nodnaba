@@ -11,4 +11,6 @@ export const D = {
   cats: read('cats'),
   catFrames: read('cats-frames'),
   tizzzz: read('tizzzz'),
+  story: read('story'),
+  storyAssets: read('story-assets'),
 }

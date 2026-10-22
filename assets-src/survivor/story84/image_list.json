@@ -1,0 +1,506 @@
+[
+  {
+    "file": "01_monsters/01_작은숲/01_새싹요정.png",
+    "name": "01_새싹요정",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/01_작은숲/02_잎사귀토끼.png",
+    "name": "02_잎사귀토끼",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/01_작은숲/03_빨간버섯.png",
+    "name": "03_빨간버섯",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/01_작은숲/04_이끼골렘.png",
+    "name": "04_이끼골렘",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/01_작은숲/05_꽃뿔수호자.png",
+    "name": "05_꽃뿔수호자",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/02_깊은숲/01_나무가면인형.png",
+    "name": "01_나무가면인형",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/02_깊은숲/02_버섯멧돼지.png",
+    "name": "02_버섯멧돼지",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/02_깊은숲/03_버섯망령.png",
+    "name": "03_버섯망령",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/02_깊은숲/04_등불고목.png",
+    "name": "04_등불고목",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/02_깊은숲/05_타락한고목군주.png",
+    "name": "05_타락한고목군주",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/03_해골마을/01_해골병사.png",
+    "name": "01_해골병사",
+    "width": 1237,
+    "height": 1271
+  },
+  {
+    "file": "01_monsters/03_해골마을/02_뼈슬라임.png",
+    "name": "02_뼈슬라임",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/03_해골마을/03_왕관해골사냥개.png",
+    "name": "03_왕관해골사냥개",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/03_해골마을/04_거대해골야수.png",
+    "name": "04_거대해골야수",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/03_해골마을/05_해골왕.png",
+    "name": "05_해골왕",
+    "width": 1223,
+    "height": 1286
+  },
+  {
+    "file": "01_monsters/04_사막/01_사막전갈.png",
+    "name": "01_사막전갈",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/04_사막/02_모래정령.png",
+    "name": "02_모래정령",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/04_사막/03_모래지렁이.png",
+    "name": "03_모래지렁이",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/04_사막/04_수정바위수호자.png",
+    "name": "04_수정바위수호자",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/04_사막/05_피닉스.png",
+    "name": "05_피닉스",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/05_설산/01_얼음늑대.png",
+    "name": "01_얼음늑대",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/05_설산/02_눈정령.png",
+    "name": "02_눈정령",
+    "width": 1374,
+    "height": 1145
+  },
+  {
+    "file": "01_monsters/05_설산/03_빙결곰.png",
+    "name": "03_빙결곰",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/05_설산/04_얼음골렘.png",
+    "name": "04_얼음골렘",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/05_설산/05_설원수호자.png",
+    "name": "05_설원수호자",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/06_하늘/01_그리핀.png",
+    "name": "01_그리핀",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/06_하늘/02_구름정령.png",
+    "name": "02_구름정령",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/06_하늘/03_구름용.png",
+    "name": "03_구름용",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/06_하늘/04_천공골렘.png",
+    "name": "04_천공골렘",
+    "width": 1324,
+    "height": 1188
+  },
+  {
+    "file": "01_monsters/06_하늘/05_천둥정령.png",
+    "name": "05_천둥정령",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/07_마왕성/01_해골망령.png",
+    "name": "01_해골망령",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/07_마왕성/02_공허의눈.png",
+    "name": "02_공허의눈",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/07_마왕성/03_그림자용.png",
+    "name": "03_그림자용",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "01_monsters/07_마왕성/04_공허골렘.png",
+    "name": "04_공허골렘",
+    "width": 1312,
+    "height": 1199
+  },
+  {
+    "file": "01_monsters/07_마왕성/05_마왕.png",
+    "name": "05_마왕",
+    "width": 1536,
+    "height": 1024
+  },
+  {
+    "file": "02_cutscenes/00_시작/01_창밖으로날아간공.png",
+    "name": "01_창밖으로날아간공",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/00_시작/02_모험출발.png",
+    "name": "02_모험출발",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/01_작은숲/01_숲속친구들.png",
+    "name": "01_숲속친구들",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/01_작은숲/02_숲의괴물등장.png",
+    "name": "02_숲의괴물등장",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/01_작은숲/03_S급탱탱볼.png",
+    "name": "03_S급탱탱볼",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/02_깊은숲/01_유적발견.png",
+    "name": "01_유적발견",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/02_깊은숲/02_버튼과몬스터.png",
+    "name": "02_버튼과몬스터",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/02_깊은숲/03_고양이구출.png",
+    "name": "03_고양이구출",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/02_깊은숲/04_새로운동료.png",
+    "name": "04_새로운동료",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/03_해골마을/01_해골마을추격.png",
+    "name": "01_해골마을추격",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/03_해골마을/02_합동전투.png",
+    "name": "02_합동전투",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/03_해골마을/03_Tizzzz의축복.png",
+    "name": "03_Tizzzz의축복",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/04_사막/01_사막기습.png",
+    "name": "01_사막기습",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/04_사막/02_모래아래괴물.png",
+    "name": "02_모래아래괴물",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/04_사막/03_고대신전.png",
+    "name": "03_고대신전",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/04_사막/04_피닉스의보석.png",
+    "name": "04_피닉스의보석",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/05_설산/01_눈보라.png",
+    "name": "01_눈보라",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/05_설산/02_수호자각성.png",
+    "name": "02_수호자각성",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/05_설산/03_설원의축복.png",
+    "name": "03_설원의축복",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/05_설산/04_스프링발견.png",
+    "name": "04_스프링발견",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/06_하늘/01_하늘로발사.png",
+    "name": "01_하늘로발사",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/06_하늘/02_구름위공놀이.png",
+    "name": "02_구름위공놀이",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/06_하늘/03_하늘몬스터기습.png",
+    "name": "03_하늘몬스터기습",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/06_하늘/04_천둥의축복.png",
+    "name": "04_천둥의축복",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/06_하늘/05_검은성등장.png",
+    "name": "05_검은성등장",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/07_마왕성/01_마왕성도착.png",
+    "name": "01_마왕성도착",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/07_마왕성/02_마왕과대치.png",
+    "name": "02_마왕과대치",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/07_마왕성/03_마지막탱탱볼.png",
+    "name": "03_마지막탱탱볼",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "02_cutscenes/07_마왕성/04_집으로귀환.png",
+    "name": "04_집으로귀환",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/01_작은숲.png",
+    "name": "01_작은숲",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/02_깊은숲.png",
+    "name": "02_깊은숲",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/03_해골마을.png",
+    "name": "03_해골마을",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/04_사막.png",
+    "name": "04_사막",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/05_설산.png",
+    "name": "05_설산",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/06_하늘.png",
+    "name": "06_하늘",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "03_backgrounds/07_마왕성.png",
+    "name": "07_마왕성",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "file": "04_rewards/ball_base.png",
+    "name": "기본 빨간 탱탱볼",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/ball_demon.png",
+    "name": "마왕의 탱탱볼",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/ball_s.png",
+    "name": "S급 탱탱볼",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/ball_ss.png",
+    "name": "SS급 탱탱볼",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/blessing_cats.png",
+    "name": "고양이의 축복",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/blessing_snow.png",
+    "name": "설원의 축복",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/blessing_thunder.png",
+    "name": "천둥신의 축복",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/blessing_tizzzz.png",
+    "name": "Tizzzz의 축복",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/gem_phoenix.png",
+    "name": "피닉스의 보석",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "04_rewards/spring.png",
+    "name": "신비한 스프링",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "05_companions/cat_black.png",
+    "name": "검정 고양이",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "05_companions/cat_gray.png",
+    "name": "회색 고양이",
+    "width": 1254,
+    "height": 1254
+  },
+  {
+    "file": "05_companions/cat_orange.png",
+    "name": "주황 고양이",
+    "width": 1254,
+    "height": 1254
+  }
+]
