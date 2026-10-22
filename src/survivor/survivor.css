@@ -2003,3 +2003,200 @@
 .ms button:disabled {
   pointer-events: none;
 }
+
+/* ── the story (마노의 탱탱볼 모험) ───────────────────────────────────────── */
+
+/* the chapter card: the region's ground, its boss standing on it */
+.ms-stagecard__art {
+  background: #3a302c var(--ground) center / cover no-repeat;
+}
+
+.ms-stagecard__art .ms-stagecard__boss {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: auto;
+  height: 86%;
+  max-width: 80%;
+  object-fit: contain;
+  translate: -50% 0;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.35));
+}
+
+.ms-crew__cat img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.ms-ballart {
+  flex: none;
+  object-fit: contain;
+}
+
+/* cutscenes: the picture whole (contained, the rest dark), a line or two,
+   다음 and 건너뛰기 */
+.ms-modal.ms-cut {
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #1d1622;
+}
+
+.ms-cut__pic {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  cursor: pointer;
+}
+
+.ms-cut__pic img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.ms-cut__pic img.is-on {
+  opacity: 1;
+}
+
+.ms-cut__box {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+  padding: 10px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+}
+
+.ms-cut__text {
+  margin: 0;
+  min-height: 3em;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.ms-cut__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ms-cut__count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ms-cut__skip {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: 12px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(241, 230, 211, 0.92);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ms-modal.ms-cut--reward {
+  justify-content: center;
+}
+
+.ms-cut__reward {
+  width: min(100%, 340px);
+  text-align: center;
+}
+
+.ms-cut__props {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ms-cut__prop {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.ms-cut__prop img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  animation: ms-burst-out 0.35s ease-out both;
+}
+
+.ms-cut__line {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  word-break: keep-all;
+}
+
+/* the story's blessings and keepsakes in 장비 */
+.ms-bless {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-bless li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.ms-bless li.is-on {
+  opacity: 1;
+  filter: none;
+}
+
+.ms-bless__img {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.ms-bless__name {
+  margin: 0;
+  font-weight: 800;
+}
+
+.ms-replay {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-cut__pic img {
+    transition: none;
+  }
+
+  .ms-cut__prop img {
+    animation: none;
+  }
+}

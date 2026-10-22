@@ -55,14 +55,26 @@ export function fresh(D) {
     // the cat companions and the writer Tizzzz: kept for good once earned
     cats: freshCats(),
     tizzzz: freshCats(),
+    // the story's battle blessings (story.json → rewards), kept for good
+    blessings: freshBlessings(),
+    // the story: which cutscene groups have been seen (ended or skipped) and
+    // which region rewards were given — apart, so skipping never loses a
+    // reward and a reward never waits on a cutscene. v: 1 once a save from
+    // before the story has been brought into it (migrateStory). news: rewards
+    // that migration gave, to be told once in the lobby.
+    story: { v: STORY_V, seen: [], rewards: [], news: [] },
     sound: true,
   }
 }
 
-// For each companion story (the cats at chapter 5, Tizzzz at chapter 10):
-// eventSeen: the story has been started (it never plays again); unlocked:
-// the companion helps from its activeFromChapter on; rewardGiven: its weapon
-// was put in the pocket (exactly once). Each is kept on its own.
+const STORY_V = 1
+const freshBlessings = () => ({ phoenix: false, snow: false, thunder: false, final: false })
+
+// For each companion (the cats, the writer Tizzzz): unlocked: it helps from its
+// activeFromChapter on. eventSeen / rewardGiven come from the first version
+// of their stories (the cats at chapter 5, Tizzzz at chapter 10, each with a
+// weapon): migrateStory reads them so a save that got those never gets the
+// weapon twice.
 const freshCats = () => ({ unlocked: false, eventSeen: false, rewardGiven: false })
 
 const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v)
@@ -83,7 +95,7 @@ function validate(D, d) {
   for (const it of d.inventory) {
     if (!isObj(it) || typeof it.id !== 'string' || ids.has(it.id) || !known.has(it.weaponId) || !grades.includes(it.grade)) continue
     ids.add(it.id)
-    inventory.push({ id: it.id, weaponId: it.weaponId, grade: it.grade })
+    inventory.push(it.tag === 'demon' ? { id: it.id, weaponId: it.weaponId, grade: it.grade, tag: 'demon' } : { id: it.id, weaponId: it.weaponId, grade: it.grade })
   }
   const out = fresh(D)
   out.inventory = inventory
@@ -105,6 +117,13 @@ function validate(D, d) {
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
   if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
   if (isObj(d.tizzzz)) for (const k of Object.keys(out.tizzzz)) out.tizzzz[k] = d.tizzzz[k] === true
+  if (isObj(d.blessings)) for (const k of Object.keys(out.blessings)) out.blessings[k] = d.blessings[k] === true
+  // a save from before the story keeps v 0 until boot brings it in
+  const groups = new Set(D.story.cutscenes.groups.map((g) => g.id))
+  const rewards = new Set(Object.keys(D.story.rewards).filter((k) => k !== 'note'))
+  const st = isObj(d.story) ? d.story : null
+  const only = (list, set) => (Array.isArray(list) ? [...new Set(list.filter((x) => set.has(x)))] : [])
+  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, rewards) }
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -234,6 +253,7 @@ export function createProgress(D, storage) {
       }
       const d = validate(D, data)
       d.activeRun = null
+      migrateStory(D, d)
       return write(d)
     },
     available: !!storage,
@@ -244,7 +264,8 @@ export function createProgress(D, storage) {
       return change((d) => {
         const lost = d.activeRun
         d.activeRun = null
-        return { data: d, lostRun: !!lost }
+        const supplied = migrateStory(D, d)
+        return { data: d, lostRun: !!lost, supplied }
       })
     },
 
@@ -268,7 +289,7 @@ export function createProgress(D, storage) {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
         d.activeRun = { runId, chapter }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, blessings: { ...d.blessings } }
       })
     },
 
@@ -289,7 +310,7 @@ export function createProgress(D, storage) {
     finishRun(runId, chapter, result) {
       return change((d) => {
         if (d.activeRun && d.activeRun.runId === runId) d.activeRun = null
-        const out = { already: false, coins: 0, chests: [], firstClear: false, gift: null }
+        const out = { already: false, coins: 0, chests: [], firstClear: false, gift: null, story: null }
         if (!spend(d, `${runId}:end`)) return { ...out, already: true }
         out.coins = Math.max(0, Math.floor(result.coins || 0))
         if (result.cleared) {
@@ -308,6 +329,9 @@ export function createProgress(D, storage) {
             }
           }
           d.unlockedChapter = Math.max(d.unlockedChapter, chapter + 1)
+          // a region's last chapter: its reward, in this same write (once,
+          // whatever happens to its cutscene)
+          for (const [rid, Rw] of Object.entries(D.story.rewards)) if (Rw.chapter === chapter) out.story = grantReward(D, d, rid) || out.story
         }
         d.currency += out.coins
         const best = d.bestResults[chapter] || { cleared: false, kills: 0, time: 0, elites: 0 }
@@ -364,21 +388,19 @@ export function createProgress(D, storage) {
       })
     },
 
-    // The cats' story: due once the event chapter has been cleared for the
-    // first time (also for a save that cleared it before the cats existed)
-    // and never seen. Claiming it is one write: the story is marked seen, the
-    // cats join and the S-grade weapon is given, so closing the page in the
-    // middle of the story, skipping it or a second tab can never give twice
-    // or play it again. The weapon is equipped when it beats the one in use.
-    // Returns { ok, item } once, then { ok: false }.
-    claimCatEvent() {
-      return change((d) => claimStory(D, d, 'cats', D.balance.cats))
+    // a cutscene group was seen (ended or skipped): it never plays by itself again
+    markSeen(groupId) {
+      return change((d) => {
+        if (!d.story.seen.includes(groupId)) d.story.seen.push(groupId)
+        return true
+      })
     },
 
-    // Tizzzz's story: due once chapter 10 has been cleared for the first time,
-    // the same way (one write: seen, joined, the SS-grade weapon once).
-    claimTizzzzEvent() {
-      return change((d) => claimStory(D, d, 'tizzzz', D.balance.tizzzz))
+    // the lobby has told the rewards that migration gave
+    clearNews() {
+      return change((d) => {
+        d.story.news = []
+      })
     },
 
     setSound(on) {
@@ -470,25 +492,61 @@ function fuseEverything(D, d) {
   return { ok: fusions > 0, made, fusions, equipped: d.inventory.find((it) => it.id === d.equippedInstanceId) || null }
 }
 
-// A companion story claimed inside one write: due when its chapter has been
-// cleared for the first time and the story was never seen. Marks it seen,
-// makes the companion join and gives its weapon once (equipped when it beats
-// the one in use). Returns { ok, item } once, then { ok: false }.
-function claimStory(D, d, key, C) {
-  const f = d[key]
-  if (f.eventSeen || !d.firstCleared.includes(C.eventChapter)) return { ok: false, already: f.eventSeen }
-  f.eventSeen = true
-  f.unlocked = true
-  let item = null
-  if (!f.rewardGiven) {
-    item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: C.rewardGrade }
+// ── the story's rewards ─────────────────────────────────────────────────────
+
+// Give a region's reward (story.json → rewards) to the save d, once: the red
+// ball grows (a weapon of that grade, equipped when it beats the one in use),
+// the cats / Tizzzz join, a blessing is kept. Returns what was given, or null
+// when it was given before.
+export function grantReward(D, d, rid) {
+  const R = D.story.rewards[rid]
+  if (!R || d.story.rewards.includes(rid)) return null
+  d.story.rewards = [...d.story.rewards, rid]
+  const out = { reward: rid, item: null }
+  if (R.ball) {
+    const item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: R.ball }
+    if (R.tag) item.tag = R.tag
     d.inventory.push(item)
-    f.rewardGiven = true
     const grades = D.balance.grades
     const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
-    if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade)) d.equippedInstanceId = item.id
+    if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade) || (item.tag && grades.indexOf(item.grade) === grades.indexOf(cur.grade) && !cur.tag)) d.equippedInstanceId = item.id
+    out.item = item
   }
-  return { ok: true, item }
+  if (R.cats) Object.assign(d.cats, { unlocked: true, eventSeen: true })
+  if (R.tizzzz) Object.assign(d.tizzzz, { unlocked: true, eventSeen: true })
+  if (R.blessing) d.blessings[R.blessing] = true
+  if (R.final) d.blessings.final = true
+  return out
+}
+
+// A save from before the story (story.v 0), once: the cutscenes of what it
+// has already played count as seen (they can be watched again from 설정),
+// and the region rewards of chapters it already cleared are given now —
+// except what the first version already gave: the S ball of the cats' old
+// chapter-5 story, the cats themselves, Tizzzz and her SS ball of the old
+// chapter-10 story. Nothing it owns is taken back. Returns the rewards given.
+export function migrateStory(D, d) {
+  if (d.story.v >= STORY_V) return []
+  const given = []
+  for (const [rid, R] of Object.entries(D.story.rewards)) {
+    if (rid === 'note' || !d.firstCleared.includes(R.chapter) || d.story.rewards.includes(rid)) continue
+    const before =
+      (rid === 'forest' && d.cats.rewardGiven) || (rid === 'deepforest' && d.cats.unlocked) || (rid === 'skulltown' && d.tizzzz.rewardGiven)
+    if (before) {
+      d.story.rewards = [...d.story.rewards, rid]
+      if (rid === 'skulltown') d.tizzzz.unlocked = true
+      continue
+    }
+    if (grantReward(D, d, rid)) given.push(rid)
+  }
+  const played = d.unlockedChapter > 1 || d.firstCleared.length > 0
+  for (const g of D.story.cutscenes.groups) {
+    const seen = g.when === 'clear' ? d.firstCleared.includes(g.chapter) : g.chapter < d.unlockedChapter || (g.id === 'prologue' && played)
+    if (seen && !d.story.seen.includes(g.id)) d.story.seen.push(g.id)
+  }
+  d.story.v = STORY_V
+  d.story.news = [...new Set([...d.story.news, ...given])]
+  return given
 }
 
 // ── backup files ────────────────────────────────────────────────────────────

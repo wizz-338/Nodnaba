@@ -52,6 +52,19 @@ export function chapterFactor(D, chapter) {
 // after the first (rewards, coins on the field, coins in its chests)
 export const chapterCoins = (D, chapter) => D.balance.rewards.coinGrowth ** (Math.max(1, chapter) - 1)
 
+// the story's region of a chapter (story.json): 7 places of 5 chapters; the
+// chapters past the last region go on in it
+export function regionOf(D, chapter) {
+  const R = D.story.regions
+  return R.find((r) => chapter >= r.from && chapter <= r.to) || (chapter < R[0].from ? R[0] : R[R.length - 1])
+}
+// the monster a role wears in a region (its picture id), and its name
+export const skinOf = (D, region, type) => region.skins[type] || null
+export function enemyName(D, region, type) {
+  const id = skinOf(D, region, type)
+  return (id && D.story.monsters[id] && D.story.monsters[id].name) || D.balance.enemies[type].name || type
+}
+
 // what the coin stats give (same formulas as the shop; see progress.js)
 function perma(D, levels = {}) {
   const S = D.balance.perma.stats
@@ -67,7 +80,9 @@ function perma(D, levels = {}) {
 
 // opts: { chapter, weaponId, grade, seed, runId, perma: { hp: L, damage: L, … },
 //         cats: true once the cat companions have joined,
-//         tizzzz: true once the writer Tizzzz has joined }
+//         tizzzz: true once the writer Tizzzz has joined,
+//         blessings: { phoenix, snow, thunder, final } — the story's battle
+//         blessings owned (story.json → rewards) }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
@@ -133,6 +148,8 @@ export function createRun(D, opts) {
     nyang: 0, // 냥냥 연금술 level this run (0: the cats leave hearts alone)
     writer: withWriter,
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
+    region: regionOf(D, chapter), // where the chapter is: its monsters' looks and mix
+    bless: blessingsFor(D, opts.blessings),
     fireT: 0.4,
     enemies: [],
     balls: [],
@@ -162,7 +179,73 @@ export function createRun(D, opts) {
   if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
   run.hurt = (e, dmg, x, y) => hurtEnemy(run, e, dmg, x, y)
+  // a ball's hit may set off a blessing (lightning never does)
+  run.blessHit = (e, dmg, x, y) => blessHit(run, e, dmg, x, y)
   return run
+}
+
+// ── the story's blessings ───────────────────────────────────────────────────
+
+// what this run has: each owned blessing's settings, its chance times the
+// final strengthening, and a bucket of at most perSecond uses a second
+function blessingsFor(D, owned = {}) {
+  const B = D.balance.blessings
+  const mul = owned.final ? B.final.chanceMul : 1
+  const out = {}
+  for (const k of ['phoenix', 'snow', 'thunder'])
+    if (owned[k]) out[k] = { ...B[k], chance: Math.min(1, B[k].chance * mul), tokens: B[k].perSecond }
+  return out
+}
+
+function blessHit(run, e, dmg, x, y) {
+  const b = run.bless
+  const fire = (k) => {
+    const c = b[k]
+    if (!c || c.tokens < 1 || run.rng() >= c.chance) return false
+    c.tokens -= 1
+    return true
+  }
+  const boss = e.behavior === 'boss'
+  if (b.phoenix && e.state === 'live' && fire('phoenix')) {
+    const c = b.phoenix
+    slowDown(e, boss ? c.bossSlow : c.slow, c.seconds)
+    run.events.push({ type: 'bless', kind: 'slow', x: e.x, y: e.y })
+  }
+  if (b.snow && e.state === 'live' && !(e.frozenAgain > run.t) && fire('snow')) {
+    const c = b.snow
+    // the boss is never frozen: a short slow instead
+    if (boss) slowDown(e, c.bossSlow, c.bossSeconds)
+    else (e.freezeT = Math.max(e.freezeT || 0, c.seconds)), (e.frozenAgain = run.t + c.again)
+    run.events.push({ type: 'bless', kind: 'freeze', x: e.x, y: e.y })
+  }
+  if (b.thunder && fire('thunder')) {
+    const c = b.thunder
+    // the nearest few around the one hit (it too, if still standing), each
+    // struck for a share of the hit; a strike is not a ball hit, so it sets
+    // nothing else off
+    const near = []
+    run.grid.near(x, y, c.radius, (o) => {
+      if (o.state !== 'live') return
+      const d = (o.x - x) ** 2 + (o.y - y) ** 2
+      if (d <= c.radius * c.radius) near.push([d, o])
+    })
+    near.sort((a, q) => a[0] - q[0])
+    for (const [, o] of near.slice(0, c.targets)) {
+      run.events.push({ type: 'bolt', x0: x, y0: y - 30, x1: o.x, y1: o.y })
+      hurtEnemy(run, o, dmg * c.share, o.x, o.y)
+    }
+  }
+}
+
+// slower for a while; a new one renews it (the stronger of the two), never stacks
+function slowDown(e, mul, seconds) {
+  if (!(e.slowT > 0) || mul <= e.slowMul) e.slowMul = mul
+  e.slowT = Math.max(e.slowT || 0, seconds)
+}
+
+// refill the blessings' buckets (perSecond a second, never above it)
+function refillBlessings(run, dt) {
+  for (const c of Object.values(run.bless)) c.tokens = Math.min(c.perSecond, c.tokens + c.perSecond * dt)
 }
 
 // ── spatial grid for enemies (rebuilt every step) ───────────────────────────
@@ -242,13 +325,15 @@ export function spawnInterval(run) {
 
 // ── enemies ─────────────────────────────────────────────────────────────────
 
+// the phase's mix, each role weighed by the region's taste for it
 function pickType(run) {
   const mix = phaseAt(run).mix
+  const bias = run.region.mix || {}
   let total = 0
-  for (const k in mix) total += mix[k]
+  for (const k in mix) total += mix[k] * (bias[k] ?? 1)
   let r = run.rng() * total
   for (const k in mix) {
-    r -= mix[k]
+    r -= mix[k] * (bias[k] ?? 1)
     if (r <= 0) return k
   }
   return Object.keys(mix)[0]
@@ -298,6 +383,7 @@ function spawn(run, type = pickType(run), at = null) {
     speed: def.speed * (special ? 1 : phase.speedMultiplier),
     damage: def.damage * run.factor.damage * late.damage,
     damageMul: run.factor.damage * late.damage, // for the boss's charge and slam
+    skin: skinOf(run.D, run.region, type), // the region's monster it looks like (null: its own pixel art)
     xp: def.xp,
     state: 'spawn', // spawn | live | die | down | gone
     t: 0,
@@ -329,7 +415,7 @@ function spawnSpecial(run, ev) {
     // and hits harder (body, charge, slam), so those seconds are a fight
     if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
   }
-  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: def.name })
+  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: enemyName(run.D, run.region, ev.enemy) })
 }
 
 function hurtEnemy(run, e, dmg, x, y) {
@@ -509,9 +595,14 @@ function moveEnemies(run, dt) {
       continue
     }
     if (e.state !== 'live') continue
-    e.life += dt
+    // a blessing's hold: frozen stands still, slowed moves (and counts) slower
+    let k = 1
+    if (e.freezeT > 0) (e.freezeT -= dt), (k = 0)
+    if (e.slowT > 0) (e.slowT -= dt), (k *= e.slowMul)
+    if (k === 0) continue
+    e.life += dt * k
     const ox = e.x
-    MOVES[e.behavior](run, e, dt)
+    MOVES[e.behavior](run, e, dt * k)
     if (e.state !== 'live') continue
     if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'stompWind')) continue
     if (Math.abs(e.x - ox) > 0.01) e.face = e.x > ox ? 1 : -1
@@ -574,7 +665,8 @@ function movePlayer(run, dt, input) {
 }
 
 // what touching this enemy costs right now (a charging boss hits harder)
-const touchDamage = (run, e) => (e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage)
+// (a frozen one cannot hurt)
+const touchDamage = (run, e) => (e.freezeT > 0 ? 0 : e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage)
 
 // boss overtime hits harder and harder: a run that can no longer win ends
 export const overtimeHit = (run) => {
@@ -1110,6 +1202,7 @@ function tick(run, dt, input) {
   }
   if (run.state !== 'play') return
   run.t += dt
+  refillBlessings(run, dt)
   movePlayer(run, dt, input)
   spawning(run, dt)
   moveEnemies(run, dt)

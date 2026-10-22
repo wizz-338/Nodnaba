@@ -13,5 +13,7 @@ import art from './data/assets-v3.json'
 import cats from './data/cats.json'
 import catFrames from './data/cats-frames.json'
 import tizzzz from './data/tizzzz.json'
+import story from './data/story.json'
+import storyAssets from './data/story-assets.json'
 
-export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz }
+export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets }

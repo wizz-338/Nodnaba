@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime } from './game.js'
+import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName } from './game.js'
+import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
@@ -139,21 +140,25 @@ function nyangText(L) {
   return `Lv.${L} · ${parts.join(', ')} 증가합니다.`
 }
 
-// the pictures of the cats' story (scenes name them by file)
-const STORY_IMG = {
-  story_1: new URL('./assets/story/story_1.webp', import.meta.url).href,
-  story_2: new URL('./assets/story/story_2.webp', import.meta.url).href,
-  story_3: new URL('./assets/story/story_3.webp', import.meta.url).href,
-  tizzzz_1: new URL('./assets/story/tizzzz_1.webp', import.meta.url).href,
+// the lobby's sticker of Mano and her red ball (cut from the lobby mockup)
+const LOBBY_IMG = {
+  mano: new URL('./assets/lobby/mano_ball.webp', import.meta.url).href,
 }
 
-// the lobby's art: the ruins of the skull king (its backdrop, soft and dim,
-// and the chapter card's picture), Mano and her ball, Tizzzz's face
-const LOBBY_IMG = {
-  bg: new URL('./assets/lobby/bg_skull.webp', import.meta.url).href,
-  scene: new URL('./assets/lobby/scene_skull.webp', import.meta.url).href,
-  mano: new URL('./assets/lobby/mano_ball.webp', import.meta.url).href,
-  tizzzz: new URL('./assets/lobby/tizzzz_face.webp', import.meta.url).href,
+// a picture of the story package by its id (story-assets.json); loads when
+// shown, the browser keeps it
+function Art({ id, className = '', alt = '' }) {
+  const src = artUrl(id)
+  return src ? <img className={className} src={src} alt={alt} draggable="false" decoding="async" /> : null
+}
+
+// the red ball's picture for a weapon item: plain up to A, with a gold band
+// at S, with stars from SS, the demon king's for 마왕의 탱탱볼
+const ballArt = (it) => (it.tag === 'demon' ? 'ball_demon' : GRADES.indexOf(it.grade) >= GRADES.indexOf('SS') ? 'ball_ss' : it.grade === 'S' ? 'ball_s' : 'ball_base')
+const itemName = (it) => (it.tag === 'demon' ? '마왕의 탱탱볼' : weaponName(it.weaponId))
+function ItemIcon({ item, size }) {
+  if (item.weaponId !== D.weapons.initialWeaponId) return <Sprite name={weaponIcon(item.weaponId)} size={size} />
+  return <img className="ms-ballart" src={artUrl(ballArt(item))} alt="" style={{ width: size, height: size }} draggable="false" decoding="async" />
 }
 
 // 냥냥 연금술 several levels at once (Tizzzz's rewrite)
@@ -162,9 +167,6 @@ function nyangJump(from, to) {
   return `Lv.${from} → Lv.${to} · 일반 하트 1개 → ${fmt(L.share * 100)}% 회복 하트 ${L.hearts}개`
 }
 
-// the cats' names from data/cats.json, put into a text ({danchu} → 단추)
-const CAT_NAMES = Object.fromEntries(D.cats.companions.map((c) => [c.id, c.name]))
-const withNames = (t) => t.replace(/\{(\w+)\}/g, (m, id) => CAT_NAMES[id] ?? m)
 
 // the best record's crown (drawn here: the art package has none)
 function Crown() {
@@ -307,11 +309,12 @@ function Grade({ g }) {
 function groupInventory(save) {
   const groups = new Map()
   for (const it of save.inventory) {
-    const k = it.weaponId + ':' + it.grade
-    if (!groups.has(k)) groups.set(k, { weaponId: it.weaponId, grade: it.grade, items: [] })
+    // 마왕의 탱탱볼 is its own line, never with the plain EX ones
+    const k = it.weaponId + ':' + it.grade + ':' + (it.tag || '')
+    if (!groups.has(k)) groups.set(k, { weaponId: it.weaponId, grade: it.grade, tag: it.tag, key: k, items: [] })
     groups.get(k).items.push(it)
   }
-  return [...groups.values()].sort((a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade))
+  return [...groups.values()].sort((a, b) => GRADES.indexOf(b.grade) - GRADES.indexOf(a.grade) || !!b.tag - !!a.tag)
 }
 
 // what a coin stat shows: its value now and after one more level
@@ -362,6 +365,12 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     P.current = createProgress(D, browserStorage())
     const b = P.current.boot()
     setSave(b.data)
+    // rewards a save from before the story got for chapters it had cleared
+    const news = b.data.story.news
+    if (news.length) {
+      setNotice(`이미 깬 장의 이야기 보상을 받았어요: ${news.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`)
+      P.current.clearNews()
+    }
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, 99)))
     if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혔어요. 그때까지 받은 엘리트·보스 보상은 그대로예요.')
     else if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
@@ -369,13 +378,10 @@ export default function SurvivorPage({ exitHref = '#/' }) {
       .then((i) => {
         setImg(i)
         setScreen('lobby')
-        // a save that cleared chapter 5 (or 10) before the cats (or Tizzzz)
-        // existed sees their story (once) when the game opens
-        const stories = dueStories(P.current, null)
-        if (stories) {
-          setSave(P.current.get())
-          setModal(stories)
-        }
+        // a chapter's clear cutscene that was cut short (the page closed in
+        // the middle) plays now; its reward was given with the clear
+        const left = leftoverCuts(P.current.get())
+        if (left.length) setModal({ kind: 'cut', groups: left.map((g) => g.id) })
       })
       .catch((e) => setError(e.message))
     // the page behind does not scroll while the game is open
@@ -418,11 +424,19 @@ export default function SurvivorPage({ exitHref = '#/' }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
-    setModal(null)
+    // the story: what this chapter still has to show (seen ones never again)
+    const seen = new Set(P.current.get().story.seen)
+    g.seen = seen
+    g.timeCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'time' && !seen.has(c.id))
+    g.bossCuts = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'boss' && !seen.has(c.id))
+    preloadRegion(g.run.region)
+    for (const c of [...g.timeCuts, ...g.bossCuts]) for (const cut of c.cuts) loadArt(cut.image)
+    const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && !seen.has(c.id))
+    setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
     setScreen('battle')
     refresh()
   }
@@ -477,6 +491,7 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           tab={tab}
           setTab={setTab}
           save={save}
+          onReplay={(groups) => setModal({ kind: 'cut', groups, replay: true })}
           equipped={equipped}
           chapter={chapter}
           setChapter={setChapter}
@@ -540,7 +555,21 @@ export default function SurvivorPage({ exitHref = '#/' }) {
           rerender={() => setBeat((x) => x + 1)}
         />
       )}
-      {modal && modal.kind === 'story' && <Story key={modal.who} who={modal.who} item={modal.item} onDone={() => setModal(modal.after || null)} />}
+      {modal && modal.kind === 'cut' && (
+        <Cutscene
+          key={modal.groups.join(',')}
+          groups={modal.groups}
+          replay={!!modal.replay}
+          onSeen={(id) => {
+            P.current.markSeen(id)
+            if (G.current.seen) G.current.seen.add(id)
+          }}
+          onDone={() => {
+            refresh()
+            setModal(modal.after || null)
+          }}
+        />
+      )}
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
@@ -579,7 +608,8 @@ export default function SurvivorPage({ exitHref = '#/' }) {
 
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
-function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
+  const region = regionOf(D, chapter)
   const tabs = [
     ['go', '출발'],
     ['gear', '장비'],
@@ -587,7 +617,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
     ['settings', '설정'],
   ]
   return (
-    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${LOBBY_IMG.bg})` }}>
+    <div className="ms-page ms-page--lobby" style={{ '--bg': `url(${artUrl(region.background + '_soft')})` }}>
       <header className="ms-top">
         <a className="ms-exit" href={exitHref}>
           ◀ 나가기
@@ -615,7 +645,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
       {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
       {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
       {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
-      {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} />}
+      {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
     </div>
   )
 }
@@ -624,7 +654,11 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
 // grid of them all behind "전체 장 보기". The next locked chapter can be seen,
 // never started.
 const LAST_CHAPTER = 99
-const chapterName = () => `${D.balance.enemies.boss.name} · ${D.ui.lobby.area}`
+// the chapter card's name line: the region, then its boss
+const chapterName = (chapter) => {
+  const r = regionOf(D, chapter)
+  return `${r.name} · ${enemyName(D, r, 'boss')}`
+}
 const clock2 = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
 
 function Go({ save, equipped, chapter, setChapter, onStart }) {
@@ -640,6 +674,11 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
     dir.current = c > chapter ? 'next' : 'prev'
     setChapter(c)
   }
+  const region = regionOf(D, chapter)
+  // this region's pictures start loading while its card is on show
+  useEffect(() => {
+    preloadRegion(region)
+  }, [region.id])
   const cats = save.cats.unlocked
   const catsOn = chapter >= D.balance.cats.activeFromChapter
   const tz = save.tizzzz.unlocked
@@ -667,8 +706,8 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           <div key={chapter} className={`ms-stagecard__inner is-${dir.current}`}>
             <p className="ms-stagecard__no">{chapter}장</p>
             <p className="ms-stagecard__name">{chapterName(chapter)}</p>
-            <div className="ms-stagecard__art">
-              <img src={LOBBY_IMG.scene} alt="" draggable="false" />
+            <div className="ms-stagecard__art" style={{ '--ground': `url(${artUrl(region.background)})` }}>
+              <Art id={region.skins.boss} className="ms-stagecard__boss" alt={enemyName(D, region, 'boss')} />
               <span className="ms-ember" style={{ '--x': '18%', '--d': '7.5s', '--w': '-1.2s' }} />
               <span className="ms-ember" style={{ '--x': '46%', '--d': '9.8s', '--w': '-4.1s' }} />
               <span className="ms-ember" style={{ '--x': '71%', '--d': '8.6s', '--w': '-6.3s' }} />
@@ -688,7 +727,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           <span className="ms-crew__cats">
             {D.cats.companions.map((c) => (
               <span key={c.id} className="ms-crew__cat">
-                <Sprite name={`${c.frames}_r_0`} size={34} />
+                <Art id={c.image} alt={c.name} />
               </span>
             ))}
           </span>
@@ -699,7 +738,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
       )}
       {tz && (
         <p className="ms-crew ms-crew--tz">
-          <img className="ms-crew__face" src={LOBBY_IMG.tizzzz} alt="" />
+          <Art id="tizzzz_face" className="ms-crew__face" />
           <Pen />
           <span className="ms-crew__text">
             {tzOn ? `${D.tizzzz.name}가 레벨업마다 선택지 하나를 고쳐 써 줘요` : `${D.balance.tizzzz.activeFromChapter}장부터 ${D.tizzzz.name}가 함께해요`}
@@ -851,24 +890,24 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
         )}
         <ul className="ms-inv">
           {groups.map((g) => {
-            const on = equipped && equipped.weaponId === g.weaponId && equipped.grade === g.grade
+            const on = equipped && g.items.some((it) => it.id === equipped.id)
             return (
-              <li key={g.weaponId + g.grade}>
+              <li key={g.key}>
                 <button
                   type="button"
                   className={`ms-inv__item ${on ? 'is-on' : ''}`}
                   style={{ '--g': GRADE_COLOR[g.grade] }}
                   onClick={() => {
-                    if (!on) setPopped({ id: g.weaponId + g.grade, key: performance.now() })
+                    if (!on) setPopped({ id: g.key, key: performance.now() })
                     onEquip(g.items[0].id)
                   }}
                   aria-pressed={on}
                 >
-                  <span key={popped && popped.id === g.weaponId + g.grade ? popped.key : 'still'} className={popped && popped.id === g.weaponId + g.grade ? 'ms-hop' : undefined}>
-                    <Sprite name={weaponIcon(g.weaponId)} size={28} />
+                  <span key={popped && popped.id === g.key ? popped.key : 'still'} className={popped && popped.id === g.key ? 'ms-hop' : undefined}>
+                    <ItemIcon item={g.items[0]} size={30} />
                   </span>
                   <span>
-                    {weaponName(g.weaponId)} <Grade g={g.grade} />
+                    {itemName(g.items[0])} <Grade g={g.grade} />
                   </span>
                   <small>
                     ×{g.items.length}
@@ -882,7 +921,34 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
         </ul>
         <p className="ms-dim">같은 무기·같은 등급 3개를 합성하면 다음 등급 1개가 돼요. 모두 합성은 낮은 등급부터 3개씩 계속 합쳐 올려요. 등급은 출발할 때의 기본 피해를 높여요 (D ×1 … EX ×{D.balance.gradeMultipliers[D.balance.gradeMultipliers.length - 1]}).</p>
       </section>
+      <Blessings save={save} />
     </>
+  )
+}
+
+// the story's blessings and keepsakes: those earned in colour, the others
+// greyed with the chapter that brings them
+function Blessings({ save }) {
+  const owned = (b) =>
+    b.id === 'cats' ? save.cats.unlocked : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
+  return (
+    <section className="ms-panel">
+      <h3 className="ms-sub">축복과 보물</h3>
+      <ul className="ms-bless">
+        {D.story.blessings.list.map((b) => {
+          const on = owned(b)
+          return (
+            <li key={b.id} className={on ? 'is-on' : ''}>
+              <Art id={b.image} className="ms-bless__img" />
+              <div>
+                <p className="ms-bless__name">{b.name}</p>
+                <p className="ms-dim">{on ? b.text : `${D.story.rewards[b.from].chapter}장을 깨면 얻어요`}</p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 
@@ -908,7 +974,7 @@ function download(text, name) {
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
 
-function Settings({ save, P, onImported }) {
+function Settings({ save, P, onImported, onReplay }) {
   const file = useRef(null)
   const [snd, setSnd] = useState(audio.getPrefs)
   const setAudio = (p) => {
@@ -995,6 +1061,7 @@ function Settings({ save, P, onImported }) {
         )}
         {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
       </section>
+      <StoryReplay save={save} onReplay={onReplay} />
       <section className="ms-panel ms-sound">
         <div className="ms-row">
           <span className="ms-sub">배경음악</span>
@@ -1042,6 +1109,29 @@ function Settings({ save, P, onImported }) {
         <p className="ms-dim">소리는 화면을 처음 누른 뒤부터 나와요 (브라우저 규칙). 음악 크기는 이 브라우저에만 저장돼요.</p>
       </section>
     </>
+  )
+}
+
+// the cutscenes already seen, region by region, to watch again (nothing is
+// given or saved by watching)
+function StoryReplay({ save, onReplay }) {
+  const seen = CUT_GROUPS.filter((g) => save.story.seen.includes(g.id))
+  const byRegion = D.story.regions.map((r) => ({ r, groups: seen.filter((g) => regionOf(D, g.chapter).id === r.id) })).filter((x) => x.groups.length)
+  return (
+    <section className="ms-panel">
+      <h3 className="ms-sub">이야기 다시 보기</h3>
+      {byRegion.length ? (
+        <div className="ms-replay">
+          {byRegion.map(({ r, groups }) => (
+            <button key={r.id} type="button" className="ms-btn ms-btn--small" onClick={() => onReplay(groups.map((g) => g.id))}>
+              {r.name} ({groups.reduce((n, g) => n + g.cuts.length, 0)}컷)
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="ms-dim">본 이야기가 여기에 모여요.</p>
+      )}
+    </section>
   )
 }
 
@@ -1218,7 +1308,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   useEffect(() => {
     const g = G.current
     const stage = stageRef.current
-    const R = createRenderer(canvasRef.current, img, D)
+    const R = createRenderer(canvasRef.current, img, D, { now: artNow })
     const fit = () => {
       const r = stage.getBoundingClientRect()
       R.resize(r.width, r.height, Math.min(devicePixelRatio, g.dprCap || 2))
@@ -1338,9 +1428,20 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         if (!r.already) {
           g.earned.chests += r.chests.length
           g.earned.coins += r.coins
-          say(`${key === 'boss' ? '해골 왕' : key === 'elite1' ? '보물 도둑' : '왕관 해골 짐승'} 처치! 상자 ${r.chests.length}개 · 코인 ${money(r.coins)}`)
+          say(`${enemyName(D, run.region, key === 'boss' ? 'boss' : key === 'elite1' ? 'thief' : 'brute')} 처치! 상자 ${r.chests.length}개 · 코인 ${money(r.coins)}`)
         }
         refresh()
+      }
+      // the story: a cutscene due at this moment of the fight (the fight
+      // waits under it, and goes on where it was)
+      if (!modalRef.current && run.state === 'play') {
+        const due = []
+        g.timeCuts = g.timeCuts.filter((c) => (run.t >= c.at ? (due.push(c), false) : true))
+        if (run.events.some((ev) => ev.type === 'boss')) due.push(...g.bossCuts.splice(0))
+        if (due.length) {
+          release()
+          setModal({ kind: 'cut', groups: due.map((c) => c.id) })
+        }
       }
       for (const ev of run.events) {
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
@@ -1385,11 +1486,11 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         release()
         const reward = P.current.finishRun(g.runId, g.chapter, run.result)
         g.reward = { ...reward, earned: { ...g.earned } }
-        // the cats' story, once, right after the chapter-5 clear is saved;
-        // the result comes after it
-        const stories = run.result.cleared ? dueStories(P.current, { kind: 'result' }) : null
+        // the chapter's clear cutscene (once), then the result; a region's
+        // reward was given in that same save, whatever the cutscene does
+        const cuts = run.result.cleared ? CUT_GROUPS.filter((c) => c.chapter === g.chapter && c.when === 'clear' && !g.seen.has(c.id)) : []
         refresh()
-        setModal(stories || { kind: 'result' })
+        setModal(cuts.length ? { kind: 'cut', groups: cuts.map((c) => c.id), after: { kind: 'result' } } : { kind: 'result' })
       }
       hudT += dt
       if (hudT > 0.1) {
@@ -1500,10 +1601,10 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
         {big && (
           <div className="ms-bossbar" style={box(H.bossBar)}>
             <span className="ms-bossbar__name">
-              {D.balance.enemies[big.type].name}
+              {enemyName(D, run.region, big.type)}
               {big.guard ? ` · 수호 (초당 최대 ${Math.round(D.balance.lateGame.bossGuard.maxShare * 100)}%)` : ''}
             </span>
-            <Bar w={H.bossBar[2] * k} h={10 * k} fill="hp_full" value={big.hp / big.maxHp} label={`${D.balance.enemies[big.type].name} 체력`} />
+            <Bar w={H.bossBar[2] * k} h={10 * k} fill="hp_full" value={big.hp / big.maxHp} label={`${enemyName(D, run.region, big.type)} 체력`} />
           </div>
         )}
         <div className="ms-wslot" style={box(H.weaponSlot)} aria-label={`장착: ${weaponName(run.weaponDef.id)} ${run.grade}`}>
@@ -1655,105 +1756,110 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onEquip,
   )
 }
 
-// The companion stories now due, claimed (each in its own single save write)
-// and chained: the cats' (chapter 5) first, then Tizzzz's (chapter 10), then
-// `after`. null when none is due.
-function dueStories(P, after) {
-  const due = [
-    ['cats', P.claimCatEvent()],
-    ['tizzzz', P.claimTizzzzEvent()],
-  ].filter(([, r]) => r.ok)
-  if (!due.length) return null
-  return due.reduceRight((next, [who, r]) => ({ kind: 'story', who, item: r.item, after: next }), after)
-}
+// ── the story's cutscenes (story.json → cutscenes) ──────────────────────────
 
-// A companion's story (the cats' at chapter 5, Tizzzz's at chapter 10): each
-// scene's picture with the lines under it, one line per tap (or Enter /
-// Space); 건너뛰기 goes straight to what was given. The save was already
-// written when it started, so leaving at any point loses nothing and can
-// never give twice.
-function Story({ who = 'cats', item, onDone }) {
-  const S = who === 'tizzzz' ? D.tizzzz.story : D.cats.story
-  const steps = []
-  for (const sc of S.scenes) for (const line of sc.lines) steps.push({ image: sc.image, text: withNames(line) })
+const CUT_GROUPS = D.story.cutscenes.groups
+
+// clear cutscenes of chapters already cleared that were never seen to the
+// end (the page closed in the middle): played when the game opens
+const leftoverCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'clear' && save.firstCleared.includes(g.chapter) && !save.story.seen.includes(g.id))
+
+// Cutscenes: the picture whole (never cut; the space left over is dark), a
+// line or two under it, 다음 (or a tap, Enter, Space) and 건너뛰기. A group
+// counts as seen when its last cut has been passed or it was skipped. Then
+// the region reward of the groups that have one (it was given with the clear,
+// so skipping loses nothing). replay: watched again from 설정 (nothing saved).
+function Cutscene({ groups, replay, onSeen, onDone }) {
+  const list = groups.map((id) => CUT_GROUPS.find((g) => g.id === id)).filter(Boolean)
+  const cuts = list.flatMap((g) => g.cuts.map((c, i) => ({ ...c, group: g.id, last: i === g.cuts.length - 1 })))
+  const rewards = list.filter((g) => g.reward).map((g) => g.reward)
   const [i, setI] = useState(0)
   const last = useRef(0)
-  const end = i >= steps.length
+  const marked = useRef(new Set())
+  const mark = (id) => {
+    if (replay || marked.current.has(id)) return
+    marked.current.add(id)
+    onSeen(id)
+  }
+  const atCut = i < cuts.length
+  const r = i - cuts.length // which reward card, once the cuts are over
+  const done = !atCut && r >= rewards.length
+  useEffect(() => {
+    if (done) onDone()
+  }, [done])
+  // the next pictures are fetched while this one is shown
+  useEffect(() => {
+    for (const c of cuts.slice(i, i + 2)) loadArt(c.image)
+  }, [i])
   const next = () => {
     const now = performance.now()
-    if (now - last.current < 250) return // a double tap moves one line
+    if (now - last.current < 250) return // a double tap moves one step
     last.current = now
-    if (!end) setI(i + 1)
+    if (atCut && cuts[i].last) mark(cuts[i].group)
+    setI(i + 1)
+  }
+  const skip = () => {
+    for (const g of list) mark(g.id)
+    setI(cuts.length)
   }
   useEffect(() => {
     const key = (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
       e.preventDefault()
-      if (end) onDone()
-      else next()
+      next()
     }
     addEventListener('keydown', key)
     return () => removeEventListener('keydown', key)
   })
-  if (end)
+  if (done) return null
+  if (!atCut) {
+    const R = D.story.rewards[rewards[r]]
     return (
-      <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label="보상">
-        <div className="ms-panel ms-story__reward">
-          {item && <Sprite name={weaponIcon(item.weaponId)} size={56} className="ms-mascot" />}
-          {S.rewardLines.map((t) => (
-            <p key={t} className="ms-h">
-              {withNames(t)}
+      <div className="ms-modal ms-cut ms-cut--reward" role="dialog" aria-modal="true" aria-label="보상">
+        <div className="ms-panel ms-cut__reward">
+          <div className="ms-cut__props">
+            {R.images.map((id) => (
+              <span key={id} className="ms-cut__prop">
+                <Art id={id} />
+                {R.cats && D.cats.companions.find((c) => c.image === id) && <small>{D.cats.companions.find((c) => c.image === id).name}</small>}
+              </span>
+            ))}
+          </div>
+          {R.lines.map((t) => (
+            <p key={t} className="ms-cut__line">
+              {t}
             </p>
           ))}
-          {who === 'tizzzz' ? (
-            <>
-              <img className="ms-story__face" src={STORY_IMG.tizzzz_1} alt={D.tizzzz.name} />
-              <p className="ms-dim ms-center">{S.rewardNote.replace('{from}', D.balance.tizzzz.activeFromChapter)}</p>
-            </>
-          ) : (
-            <>
-              <div className="ms-story__cats" aria-label={D.cats.companions.map((c) => c.name).join(', ')}>
-                {D.cats.companions.map((c) => (
-                  <span key={c.id}>
-                    <Sprite name={`${c.frames}_r_0`} size={44} />
-                    <small>{c.name}</small>
-                  </span>
-                ))}
-              </div>
-              <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요.</p>
-            </>
-          )}
-          <button type="button" className="ms-btn ms-btn--primary" onClick={onDone}>
+          {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 싸워요.</p>}
+          {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
+          <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
             확인
           </button>
         </div>
       </div>
     )
-  const st = steps[i]
+  }
+  const cut = cuts[i]
   return (
-    <div className="ms-modal ms-story" role="dialog" aria-modal="true" aria-label={S.title || '이야기'} onClick={next}>
-      {S.title && <p className="ms-story__title">{S.title}</p>}
-      <div className="ms-story__pic">
-        {/* every picture is loaded at once, so a change of scene never flashes */}
-        {Object.entries(STORY_IMG).map(([k, src]) => (
-          <img key={k} src={src} alt="" className={k === st.image ? 'is-on' : ''} decoding="async" />
+    <div className="ms-modal ms-cut" role="dialog" aria-modal="true" aria-label="이야기">
+      <div className="ms-cut__pic" onClick={next}>
+        {/* the group's pictures stay in place, only one shown: changing cuts never flashes */}
+        {cuts.map((c, k) => (
+          <Art key={c.image} id={c.image} className={k === i ? 'is-on' : ''} />
         ))}
       </div>
-      <div className="ms-story__box">
-        <p className="ms-story__name">{S.speaker}</p>
-        <p className="ms-story__line">{st.text}</p>
-        <span className="ms-story__more" aria-hidden="true">
-          ▼
-        </span>
+      <div className="ms-cut__box">
+        <p className="ms-cut__text">{cut.text}</p>
+        <div className="ms-cut__row">
+          <span className="ms-cut__count">
+            {i + 1} / {cuts.length}
+          </span>
+          <button type="button" className="ms-btn ms-btn--small ms-btn--primary" onClick={next}>
+            다음
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        className="ms-story__skip"
-        onClick={(e) => {
-          e.stopPropagation()
-          setI(steps.length)
-        }}
-      >
+      <button type="button" className="ms-cut__skip" onClick={skip}>
         건너뛰기
       </button>
     </div>

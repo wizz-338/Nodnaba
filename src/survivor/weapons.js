@@ -139,7 +139,9 @@ function updateBalls(run, dt) {
       const ny = ny0 / d
       const crits = critCount(w.critChance, w.critChance > 0 ? run.rng() : 1)
       if (crits) run.stats.crits++
-      run.hurt(e, b.damage * w.critMul ** crits, b.x - nx * b.r, b.y - ny * b.r)
+      const dmg = b.damage * w.critMul ** crits
+      run.hurt(e, dmg, b.x - nx * b.r, b.y - ny * b.r)
+      if (run.blessHit) run.blessHit(e, dmg, b.x - nx * b.r, b.y - ny * b.r)
       b.locks.push({ id: e.id, until: run.t + LOCK })
       // bounce off: reflect on the contact normal, step out of the enemy
       const dot = b.vx * nx + b.vy * ny

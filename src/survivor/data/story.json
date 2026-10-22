@@ -1,0 +1,737 @@
+{
+  "note": "마노의 탱탱볼 모험 — the story over the chapters. regions: 7 places of 5 chapters each (chapters past the last go on in the last place). Each region dresses the game's enemy roles (imp, spider, slime, bone_beast: the ordinary ones; brute: the mid-boss at 145 s; boss: the chapter's boss at 210 s) in its own monsters — looks, names and sizes only: HP, hits, speed and the hit circle stay the role's (balance.json → enemies), so a region never changes the fight's numbers except through `mix` (how often each ordinary role comes). The thief keeps its own art. friends: monsters of the package that are not enemies in the story. Images are ids in story-assets.json.",
+  "roleSize": {
+    "note": "default drawn size (long side of the body, logical px) of each role; the hit circle is the role's radius in balance.json",
+    "imp": 30,
+    "spider": 30,
+    "slime": 38,
+    "bone_beast": 36,
+    "brute": 66,
+    "boss": 92
+  },
+  "regions": [
+    {
+      "id": "forest",
+      "name": "작은 숲",
+      "from": 1,
+      "to": 5,
+      "background": "bg_forest",
+      "skins": {
+        "imp": "sprout",
+        "spider": "leafbunny",
+        "slime": "redcap",
+        "bone_beast": "leafbunny",
+        "brute": "mossgolem",
+        "boss": "flowerguard"
+      },
+      "mix": {
+        "imp": 1.2,
+        "spider": 1,
+        "slime": 1,
+        "bone_beast": 0.7
+      },
+      "reward": "forest"
+    },
+    {
+      "id": "deepforest",
+      "name": "깊은 숲",
+      "from": 6,
+      "to": 10,
+      "background": "bg_deepforest",
+      "skins": {
+        "imp": "maskdoll",
+        "spider": "mushwraith",
+        "slime": "lanterntree",
+        "bone_beast": "mushboar",
+        "brute": "lanterntree",
+        "boss": "treelord"
+      },
+      "mix": {
+        "imp": 1,
+        "spider": 1,
+        "slime": 0.9,
+        "bone_beast": 1.3
+      },
+      "reward": "deepforest"
+    },
+    {
+      "id": "skulltown",
+      "name": "해골마을",
+      "from": 11,
+      "to": 15,
+      "background": "bg_skulltown",
+      "skins": {
+        "imp": "skeleton",
+        "spider": "crownhound",
+        "slime": "boneslime",
+        "bone_beast": "crownhound",
+        "brute": "skullbeast",
+        "boss": "skullking"
+      },
+      "mix": {
+        "imp": 1.15,
+        "spider": 1,
+        "slime": 1,
+        "bone_beast": 1
+      },
+      "reward": "skulltown"
+    },
+    {
+      "id": "desert",
+      "name": "뜨거운 사막",
+      "from": 16,
+      "to": 20,
+      "background": "bg_desert",
+      "skins": {
+        "imp": "scorpion",
+        "spider": "sandspirit",
+        "slime": "sandworm",
+        "bone_beast": "scorpion",
+        "brute": "sandworm",
+        "boss": "crystalguard"
+      },
+      "mix": {
+        "imp": 1,
+        "spider": 0.8,
+        "slime": 1.15,
+        "bone_beast": 1.35
+      },
+      "friends": [
+        "phoenix"
+      ],
+      "reward": "desert"
+    },
+    {
+      "id": "snow",
+      "name": "눈 덮인 산",
+      "from": 21,
+      "to": 25,
+      "background": "bg_snow",
+      "skins": {
+        "imp": "icewolf",
+        "spider": "snowspirit",
+        "slime": "frostbear",
+        "bone_beast": "icewolf",
+        "brute": "frostbear",
+        "boss": "icegolem"
+      },
+      "mix": {
+        "imp": 1.1,
+        "spider": 0.8,
+        "slime": 1.3,
+        "bone_beast": 1
+      },
+      "friends": [
+        "snowguardian"
+      ],
+      "reward": "snow"
+    },
+    {
+      "id": "sky",
+      "name": "하늘 구름 위의 세계",
+      "from": 26,
+      "to": 30,
+      "background": "bg_sky",
+      "skins": {
+        "imp": "griffin",
+        "spider": "cloudspirit",
+        "slime": "skygolem",
+        "bone_beast": "clouddragon",
+        "brute": "skygolem",
+        "boss": "thunderspirit"
+      },
+      "mix": {
+        "imp": 1.1,
+        "spider": 1.5,
+        "slime": 0.7,
+        "bone_beast": 1
+      },
+      "reward": "sky"
+    },
+    {
+      "id": "castle",
+      "name": "마왕성",
+      "from": 31,
+      "to": 35,
+      "background": "bg_castle",
+      "skins": {
+        "imp": "skullwraith",
+        "spider": "voideye",
+        "slime": "voidgolem",
+        "bone_beast": "shadowdragon",
+        "brute": "voidgolem",
+        "boss": "demonking"
+      },
+      "mix": {
+        "imp": 1,
+        "spider": 1.1,
+        "slime": 1.1,
+        "bone_beast": 1.2
+      },
+      "reward": "castle"
+    }
+  ],
+  "monsters": {
+    "note": "name: shown in the game; size: drawn size (long side, logical px) when not the role's default — the same picture is drawn bigger as a mid-boss or boss; faces: 'right' for a picture seen from the side looking right (it is mirrored when the monster goes left), front-facing pictures are never mirrored",
+    "sprout": {
+      "name": "새싹요정"
+    },
+    "leafbunny": {
+      "name": "잎사귀토끼"
+    },
+    "redcap": {
+      "name": "빨간버섯"
+    },
+    "mossgolem": {
+      "name": "이끼골렘"
+    },
+    "flowerguard": {
+      "name": "꽃뿔수호자"
+    },
+    "maskdoll": {
+      "name": "나무가면인형"
+    },
+    "mushboar": {
+      "name": "버섯멧돼지",
+      "faces": "right"
+    },
+    "mushwraith": {
+      "name": "버섯망령"
+    },
+    "lanterntree": {
+      "name": "등불고목"
+    },
+    "treelord": {
+      "name": "타락한 고목군주"
+    },
+    "skeleton": {
+      "name": "해골병사"
+    },
+    "boneslime": {
+      "name": "뼈슬라임"
+    },
+    "crownhound": {
+      "name": "왕관 해골사냥개",
+      "faces": "right"
+    },
+    "skullbeast": {
+      "name": "거대 해골야수",
+      "faces": "right"
+    },
+    "skullking": {
+      "name": "해골 왕"
+    },
+    "scorpion": {
+      "name": "사막전갈"
+    },
+    "sandspirit": {
+      "name": "모래정령"
+    },
+    "sandworm": {
+      "name": "모래지렁이",
+      "faces": "right"
+    },
+    "crystalguard": {
+      "name": "신전의 수호자",
+      "faces": "right"
+    },
+    "phoenix": {
+      "name": "피닉스"
+    },
+    "icewolf": {
+      "name": "얼음늑대",
+      "faces": "right"
+    },
+    "snowspirit": {
+      "name": "눈정령"
+    },
+    "frostbear": {
+      "name": "빙결곰",
+      "faces": "right"
+    },
+    "icegolem": {
+      "name": "얼음골렘",
+      "faces": "right"
+    },
+    "snowguardian": {
+      "name": "설원의 수호자"
+    },
+    "griffin": {
+      "name": "그리핀",
+      "faces": "right"
+    },
+    "cloudspirit": {
+      "name": "구름정령"
+    },
+    "clouddragon": {
+      "name": "구름용",
+      "faces": "right"
+    },
+    "skygolem": {
+      "name": "천공골렘"
+    },
+    "thunderspirit": {
+      "name": "천둥의 정령"
+    },
+    "skullwraith": {
+      "name": "해골망령"
+    },
+    "voideye": {
+      "name": "공허의 눈"
+    },
+    "shadowdragon": {
+      "name": "그림자용",
+      "faces": "right"
+    },
+    "voidgolem": {
+      "name": "공허골렘"
+    },
+    "demonking": {
+      "name": "마왕"
+    }
+  },
+  "cutscenes": {
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight), boss (when the boss comes), clear (after the chapter is first cleared, before the result). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group.",
+    "groups": [
+      {
+        "id": "prologue",
+        "chapter": 1,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_00_1",
+            "text": "평화로운 작은 집. 빨간 탱탱볼을 가지고 놀던 마노가 그만 공을 창밖으로 날려 버렸어요."
+          },
+          {
+            "image": "cs_00_2",
+            "text": "마노는 가방을 메고 공을 쫓아 집 밖으로 뛰어나갔어요."
+          }
+        ]
+      },
+      {
+        "id": "forest_1",
+        "chapter": 1,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_01_1",
+            "text": "탱탱볼을 쫓아 숲에 들어간 마노. 귀여운 슬라임과 버섯 몬스터들을 만났어요."
+          }
+        ]
+      },
+      {
+        "id": "forest_2",
+        "chapter": 5,
+        "when": "boss",
+        "cuts": [
+          {
+            "image": "cs_01_2",
+            "text": "갑자기 거대한 숲의 괴물이 나타났어요! 마노가 깜짝 놀랐어요."
+          }
+        ]
+      },
+      {
+        "id": "forest_3",
+        "chapter": 5,
+        "when": "clear",
+        "reward": "forest",
+        "cuts": [
+          {
+            "image": "cs_01_3",
+            "text": "괴물을 쓰러뜨리자 빨간 탱탱볼이 특별한 힘을 얻었어요. 마노의 눈이 반짝여요."
+          }
+        ]
+      },
+      {
+        "id": "deepforest_1",
+        "chapter": 6,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_02_1",
+            "text": "더 깊은 숲에서 신비로운 유적을 발견했어요."
+          }
+        ]
+      },
+      {
+        "id": "deepforest_2",
+        "chapter": 8,
+        "when": "time",
+        "at": 60,
+        "cuts": [
+          {
+            "image": "cs_02_2",
+            "text": "튕겨 나간 탱탱볼이 유적의 버튼을 눌렀어요. 위험한 몬스터들이 몰려나와요!"
+          }
+        ]
+      },
+      {
+        "id": "deepforest_3",
+        "chapter": 10,
+        "when": "clear",
+        "reward": "deepforest",
+        "cuts": [
+          {
+            "image": "cs_02_3",
+            "text": "몬스터들을 물리치자 유적 깊숙이 갇혀 있던 고양이 세 마리가 모습을 드러냈어요."
+          },
+          {
+            "image": "cs_02_4",
+            "text": "구출된 세 고양이가 마노의 새로운 모험 동료가 되었어요."
+          }
+        ]
+      },
+      {
+        "id": "skulltown_1",
+        "chapter": 11,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_03_1",
+            "text": "괴물들에게 점령당한 마을. 수많은 괴물이 마노를 쫓아와요!"
+          }
+        ]
+      },
+      {
+        "id": "skulltown_2",
+        "chapter": 15,
+        "when": "boss",
+        "cuts": [
+          {
+            "image": "cs_03_2",
+            "text": "마노와 고양이들이 힘을 합쳐 괴물들에게 맞서요."
+          }
+        ]
+      },
+      {
+        "id": "skulltown_3",
+        "chapter": 15,
+        "when": "clear",
+        "reward": "skulltown",
+        "cuts": [
+          {
+            "image": "cs_03_3",
+            "text": "신비로운 작가 Tizzzz가 나타나 마노에게 특별한 축복을 내려 주었어요."
+          }
+        ]
+      },
+      {
+        "id": "desert_1",
+        "chapter": 16,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_04_1",
+            "text": "더위에 지친 마노. 모래 속에서 튀어나온 몬스터에 놀라 탱탱볼을 떨어뜨렸어요."
+          }
+        ]
+      },
+      {
+        "id": "desert_2",
+        "chapter": 17,
+        "when": "time",
+        "at": 60,
+        "cuts": [
+          {
+            "image": "cs_04_2",
+            "text": "모래 아래에 거대한 지렁이 괴물들과 수많은 몬스터가 숨어 있었어요."
+          }
+        ]
+      },
+      {
+        "id": "desert_3",
+        "chapter": 20,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_04_3",
+            "text": "끊임없이 솟아오르는 괴물들을 피해 사막 깊숙한 곳의 고대 신전을 발견했어요."
+          }
+        ]
+      },
+      {
+        "id": "desert_4",
+        "chapter": 20,
+        "when": "clear",
+        "reward": "desert",
+        "cuts": [
+          {
+            "image": "cs_04_4",
+            "text": "신전의 수호자를 물리치고 피닉스의 보석을 얻었어요."
+          }
+        ]
+      },
+      {
+        "id": "snow_1",
+        "chapter": 21,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_05_1",
+            "text": "눈보라를 뚫고 설산을 오르던 마노가 얼음 몬스터들과 마주쳤어요."
+          }
+        ]
+      },
+      {
+        "id": "snow_2",
+        "chapter": 25,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_05_2",
+            "text": "얼음 동굴 깊숙이 잠들어 있던 설원의 수호자가 깨어났어요."
+          }
+        ]
+      },
+      {
+        "id": "snow_3",
+        "chapter": 25,
+        "when": "clear",
+        "reward": "snow",
+        "cuts": [
+          {
+            "image": "cs_05_3",
+            "text": "설원의 수호자가 마노의 탱탱볼에 축복을 내려 주었어요."
+          },
+          {
+            "image": "cs_05_4",
+            "text": "수호자가 있던 자리에서 거대하고 신비한 스프링을 발견했어요."
+          }
+        ]
+      },
+      {
+        "id": "sky_1",
+        "chapter": 26,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_06_1",
+            "text": "스프링을 밟은 마노와 고양이들이 엄청난 반동으로 구름 위까지 날아올랐어요!"
+          }
+        ]
+      },
+      {
+        "id": "sky_2",
+        "chapter": 27,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_06_2",
+            "text": "하늘에 떠 있는 신비로운 섬에서 탱탱볼을 가지고 뛰어놀아요."
+          }
+        ]
+      },
+      {
+        "id": "sky_3",
+        "chapter": 28,
+        "when": "time",
+        "at": 60,
+        "cuts": [
+          {
+            "image": "cs_06_3",
+            "text": "하늘의 몬스터들이 갑자기 공격해 왔어요! 마노가 탱탱볼을 놓쳤어요."
+          }
+        ]
+      },
+      {
+        "id": "sky_4",
+        "chapter": 30,
+        "when": "clear",
+        "reward": "sky",
+        "cuts": [
+          {
+            "image": "cs_06_4",
+            "text": "천둥의 정령을 물리치자 탱탱볼이 번개의 힘을 얻었어요."
+          },
+          {
+            "image": "cs_06_5",
+            "text": "먹구름이 걷히며 하늘 끝에 떠 있는 거대한 검은 성이 드러났어요."
+          }
+        ]
+      },
+      {
+        "id": "castle_1",
+        "chapter": 31,
+        "when": "enter",
+        "cuts": [
+          {
+            "image": "cs_07_1",
+            "text": "마노와 세 고양이가 거대한 마왕성에 도착했어요."
+          }
+        ]
+      },
+      {
+        "id": "castle_2",
+        "chapter": 35,
+        "when": "boss",
+        "cuts": [
+          {
+            "image": "cs_07_2",
+            "text": "마왕이 특별한 탱탱볼의 힘을 빼앗으려 해요. 마노가 맞서 싸워요!"
+          }
+        ]
+      },
+      {
+        "id": "castle_3",
+        "chapter": 35,
+        "when": "clear",
+        "reward": "castle",
+        "cuts": [
+          {
+            "image": "cs_07_3",
+            "text": "마지막 순간, 마노가 던진 빨간 탱탱볼에 지금까지 얻은 모든 축복이 합쳐졌어요."
+          },
+          {
+            "image": "cs_07_4",
+            "text": "마왕을 쓰러뜨린 마노는 세 고양이, 소중한 빨간 탱탱볼과 함께 집으로 돌아갔어요."
+          }
+        ]
+      }
+    ]
+  },
+  "rewards": {
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "forest": {
+      "chapter": 5,
+      "ball": "S",
+      "images": [
+        "ball_s"
+      ],
+      "lines": [
+        "빨간 탱탱볼이 S급으로 강해졌어요!"
+      ]
+    },
+    "deepforest": {
+      "chapter": 10,
+      "cats": true,
+      "images": [
+        "cat_black",
+        "cat_orange",
+        "cat_gray",
+        "blessing_cats"
+      ],
+      "lines": [
+        "고양이 세 마리가 동료가 되었어요!",
+        "고양이의 축복: 고양이들이 코인과 경험치를 주워 오고, 냥냥 연금술 강화가 나와요."
+      ]
+    },
+    "skulltown": {
+      "chapter": 15,
+      "tizzzz": true,
+      "ball": "SS",
+      "images": [
+        "blessing_tizzzz",
+        "ball_ss"
+      ],
+      "lines": [
+        "Tizzzz의 축복: 레벨업마다 선택지 하나를 더 강하게 고쳐 써 줘요.",
+        "빨간 탱탱볼이 SS급으로 강해졌어요!"
+      ]
+    },
+    "desert": {
+      "chapter": 20,
+      "blessing": "phoenix",
+      "images": [
+        "gem_phoenix",
+        "phoenix"
+      ],
+      "lines": [
+        "피닉스의 보석을 얻었어요!",
+        "탱탱볼에 맞은 몬스터가 일정 확률로 느려져요."
+      ]
+    },
+    "snow": {
+      "chapter": 25,
+      "blessing": "snow",
+      "keep": "spring",
+      "images": [
+        "blessing_snow",
+        "snowguardian",
+        "spring"
+      ],
+      "lines": [
+        "설원의 축복을 받았어요!",
+        "탱탱볼에 맞은 몬스터가 일정 확률로 얼어붙어요.",
+        "신비한 스프링을 찾았어요. (이야기 소품)"
+      ]
+    },
+    "sky": {
+      "chapter": 30,
+      "blessing": "thunder",
+      "images": [
+        "blessing_thunder"
+      ],
+      "lines": [
+        "천둥신의 축복을 받았어요!",
+        "탱탱볼이 맞힐 때 일정 확률로 주변 적에게 번개가 떨어져요."
+      ]
+    },
+    "castle": {
+      "chapter": 35,
+      "ball": "EX",
+      "tag": "demon",
+      "final": true,
+      "images": [
+        "ball_demon"
+      ],
+      "lines": [
+        "마왕의 탱탱볼! 모든 축복이 하나로 합쳐졌어요.",
+        "최종 강화: 모든 축복이 더 자주 일어나요."
+      ]
+    }
+  },
+  "blessings": {
+    "note": "what the lobby lists (in order); `from`: the reward that brings it",
+    "list": [
+      {
+        "id": "cats",
+        "name": "고양이의 축복",
+        "image": "blessing_cats",
+        "from": "deepforest",
+        "text": "고양이 세 마리가 함께 다니며 코인과 경험치를 주워 와요. 냥냥 연금술 강화가 나와요."
+      },
+      {
+        "id": "tizzzz",
+        "name": "Tizzzz의 축복",
+        "image": "blessing_tizzzz",
+        "from": "skulltown",
+        "text": "레벨업마다 선택지 하나를 더 강하게 고쳐 써 줘요."
+      },
+      {
+        "id": "phoenix",
+        "name": "피닉스의 보석",
+        "image": "gem_phoenix",
+        "from": "desert",
+        "text": "맞은 몬스터가 일정 확률로 느려져요."
+      },
+      {
+        "id": "snow",
+        "name": "설원의 축복",
+        "image": "blessing_snow",
+        "from": "snow",
+        "text": "맞은 몬스터가 일정 확률로 얼어붙어요. 보스는 얼지 않고 잠깐 느려져요."
+      },
+      {
+        "id": "thunder",
+        "name": "천둥신의 축복",
+        "image": "blessing_thunder",
+        "from": "sky",
+        "text": "맞힐 때 일정 확률로 주변 적에게 번개가 떨어져요."
+      },
+      {
+        "id": "final",
+        "name": "마왕의 탱탱볼",
+        "image": "ball_demon",
+        "from": "castle",
+        "text": "모든 축복이 하나로 합쳐져 더 자주 일어나요."
+      },
+      {
+        "id": "spring",
+        "name": "신비한 스프링",
+        "image": "spring",
+        "from": "snow",
+        "text": "하늘로 가는 길을 열어 준 이야기 소품이에요. (효과 없음)"
+      }
+    ]
+  }
+}

@@ -38,6 +38,8 @@ const PERCENT = ['ww..w', 'ww.w.', '..w..', '.w.ww', 'w..ww']
 const MAX_FX = 80
 const MAX_NUMBERS = 40
 const ENEMY_DIE = 0.28
+const BOLT = 0.18 // s a lightning stroke stays
+const MAX_BOLTS = 12
 
 // idle frames there are: S/SE/E two, NE/N one; the left side mirrors the right
 const IDLE = { S: ['idle_s', false], SE: ['idle_se', false], E: ['idle_e', false], NE: ['idle_ne', false], N: ['idle_n', false], SW: ['idle_se', true], W: ['idle_e', true], NW: ['idle_ne', true] }
@@ -56,7 +58,9 @@ export function facing(prev, vx, vy) {
   return best
 }
 
-export function createRenderer(canvas, img, D) {
+// art: the story package's pictures, { now(id) → image or null } (a picture
+// not loaded yet, or that failed, falls back to the game's own art)
+export function createRenderer(canvas, img, D, art = { now: () => null }) {
   const ctx = canvas.getContext('2d')
   const view = { w: 360, h: 640, dpr: 1, k: 1 }
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
@@ -66,6 +70,8 @@ export function createRenderer(canvas, img, D) {
   const shade = new Map() // shadows wait here and go down together, one fill per darkness
   const small = new Map() // smoothed copies of frames drawn smaller than their pixels
   const tints = new Map() // white / red silhouettes of each sheet, for flashes
+  const skins = new Map() // the story's monsters, scaled once per size: { base, white, ice }
+  const bolts = [] // lightning of the thunder blessing, a moment each
   const E = D.balance.enemies
   const CATS = D.balance.cats
   let pheart = null // the 퍼센트 하트 bitmap, made once
@@ -104,6 +110,7 @@ export function createRenderer(canvas, img, D) {
     canvas.height = Math.round(cssH * view.dpr)
     field = null
     small.clear()
+    skins.clear()
   }
   const kd = () => view.k * view.dpr
   const world = () => ctx.setTransform(kd(), 0, 0, kd(), 0, 0)
@@ -200,24 +207,47 @@ export function createRenderer(canvas, img, D) {
     }
   }
 
-  // the ground tile laid edge to edge, every other one mirrored so the edges
-  // always meet (the tile is not assumed to be seamless)
-  function paintField() {
+  // The ground, painted once per screen size (and once more when the
+  // region's picture arrives): the region's background covering the whole
+  // 360 × 640 screen (cut evenly at the sides, never stretched, a little
+  // dimmed so monsters, the ball and pickups stand out); until it is there,
+  // or if it fails, the ground tile laid edge to edge, every other one
+  // mirrored so the edges always meet. The field's walls are the game's, not
+  // the picture's: nothing in the picture is solid.
+  const fieldKey = (run) => {
+    const id = run.region && run.region.background
+    return id && art.now(id) ? id : 'tile'
+  }
+  function paintField(run) {
     const c = document.createElement('canvas')
     c.width = canvas.width
     c.height = canvas.height
     const g = c.getContext('2d')
     const K = kd()
-    const tile = img['09_ground.png']
-    const T = tile.width // one art pixel per logical pixel
-    g.imageSmoothingEnabled = false
-    for (let j = 0; j * T < 640; j++)
-      for (let i = 0; i * T < 360; i++) {
-        const fx = i % 2 === 1
-        const fy = j % 2 === 1
-        g.setTransform(fx ? -K : K, 0, 0, fy ? -K : K, (fx ? (i + 1) * T : i * T) * K, (fy ? (j + 1) * T : j * T) * K)
-        g.drawImage(tile, 0, 0)
-      }
+    c.key = fieldKey(run)
+    const bg = c.key !== 'tile' && art.now(c.key)
+    if (bg) {
+      const s = Math.max(360 / bg.width, 640 / bg.height)
+      const w = bg.width * s
+      const h = bg.height * s
+      g.setTransform(K, 0, 0, K, 0, 0)
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = 'high'
+      g.drawImage(bg, (360 - w) / 2, (640 - h) / 2, w, h)
+      g.fillStyle = 'rgba(24, 18, 28, 0.16)'
+      g.fillRect(0, 0, 360, 640)
+    } else {
+      const tile = img['09_ground.png']
+      const T = tile.width // one art pixel per logical pixel
+      g.imageSmoothingEnabled = false
+      for (let j = 0; j * T < 640; j++)
+        for (let i = 0; i * T < 360; i++) {
+          const fx = i % 2 === 1
+          const fy = j % 2 === 1
+          g.setTransform(fx ? -K : K, 0, 0, fy ? -K : K, (fx ? (i + 1) * T : i * T) * K, (fy ? (j + 1) * T : j * T) * K)
+          g.drawImage(tile, 0, 0)
+        }
+    }
     g.setTransform(K, 0, 0, K, 0, 0)
     const [x0, y0, x1, y1] = D.balance.logicalArena.bounds
     // the edge of the field: a soft darker band and a thin line (the balls
@@ -275,10 +305,88 @@ export function createRenderer(canvas, img, D) {
   }
 
   // ── monsters ──
+  // a story monster's picture at one size, made once: as it is, a white
+  // silhouette (hit flash) and a pale blue one (frozen)
+  function skinSet(id, pic, px) {
+    const key = id + '|' + px
+    let c = skins.get(key)
+    if (c) return c
+    const s = px / Math.max(pic.width, pic.height)
+    const w = Math.max(1, Math.round(pic.width * s))
+    const h = Math.max(1, Math.round(pic.height * s))
+    const make = (color) => {
+      const cv = document.createElement('canvas')
+      cv.width = w
+      cv.height = h
+      const g = cv.getContext('2d')
+      g.imageSmoothingEnabled = true
+      g.imageSmoothingQuality = 'high'
+      g.drawImage(pic, 0, 0, w, h)
+      if (color) {
+        g.globalCompositeOperation = 'source-in'
+        g.fillStyle = color
+        g.fillRect(0, 0, w, h)
+      }
+      return cv
+    }
+    c = { base: make(null), white: make('#ffffff'), ice: make('#bfeaff') }
+    skins.set(key, c)
+    return c
+  }
+
+  // A story monster: its still picture, feet on its spot, with life added in
+  // code (no frames exist): a small hop and sway as it goes, a shake before
+  // the boss charges, a lean in the charge, flashes when hit, pale blue and
+  // still when frozen.
+  function drawSkin(run, e, pic) {
+    const meta = D.story.monsters[e.skin] || {}
+    const size = meta.size || D.story.roleSize[e.type] || 32
+    const K = kd()
+    const long = Math.max(pic.width, pic.height)
+    const w = (pic.width / long) * size
+    const h = (pic.height / long) * size
+    const set = skinSet(e.skin, pic, Math.max(8, Math.round(size * K)))
+    const boss = e.behavior === 'boss'
+    const frozen = e.freezeT > 0
+    let bob = 0
+    let rot = 0
+    let dx = 0
+    let alpha = 1
+    let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
+    if (e.state === 'live' && !frozen) {
+      const t = e.life
+      bob = -Math.abs(Math.sin(t * (boss ? 4 : 7.5) + e.id)) * (boss ? 2 : 1.6)
+      rot = Math.sin(t * (boss ? 2.4 : 5) + e.id) * (boss ? 0.025 : 0.06)
+      if (boss && (e.mode === 'windup' || e.mode === 'stompWind')) dx = Math.sin(performance.now() / 22) * 1.3
+      else if (boss && e.mode === 'charge') rot = 0.12 * (e.dx >= 0 ? 1 : -1)
+    }
+    if (e.state === 'down') (rot = 0.45), (alpha = 0.85), (flash = 0)
+    else if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
+    else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
+    else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
+    const flip = meta.faces === 'right' && e.face < 0
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx) * K, (e.y + 3 + bob) * K)
+    if (rot) ctx.rotate(flip ? -rot : rot)
+    ctx.imageSmoothingEnabled = true
+    ctx.globalAlpha = alpha
+    ctx.drawImage(set.base, -w / 2, -h, w, h)
+    if (frozen) {
+      ctx.globalAlpha = alpha * 0.55
+      ctx.drawImage(set.ice, -w / 2, -h, w, h)
+    }
+    if (flash > 0) {
+      ctx.globalAlpha = alpha * flash
+      ctx.drawImage(set.white, -w / 2, -h, w, h)
+    }
+    ctx.globalAlpha = 1
+  }
+
   function drawEnemy(run, e) {
+    const pic = e.skin && art.now(e.skin)
+    if (pic) return drawSkin(run, e, pic)
     const def = E[e.type]
     const s = def.scale
-    const art = def.art // which pictures it wears (the mid-boss wears the boss's)
+    const look = def.art // which pictures it wears (the mid-boss wears the boss's)
     const flip = e.face < 0
     let name
     let alpha = 1
@@ -289,11 +397,33 @@ export function createRenderer(canvas, img, D) {
       else if (e.mode === 'charge') name = 'boss_charge'
       else if (e.hitT > 0) name = 'boss_hit'
       else name = animFrame('boss_run', e.life * 1000)
-    } else name = animFrame(art + '_run', e.life * 1000 + e.id * 37)
+    } else name = animFrame(look + '_run', e.life * 1000 + e.id * 37)
     if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
-    put(name, e.x, e.y, s, { flip, alpha, flash })
+    // frozen (snow blessing): a pale blue cast
+    if (e.freezeT > 0 && !flash) put(name, e.x, e.y, s, { flip, alpha, flash: 0.5, flashColor: '#bfeaff' })
+    else put(name, e.x, e.y, s, { flip, alpha, flash })
+  }
+
+  // a stroke of lightning: a few jagged steps from above the hit to the one struck
+  function drawBolt(b) {
+    const k = 1 - b.t / BOLT
+    world()
+    ctx.beginPath()
+    ctx.moveTo(b.x0, b.y0)
+    for (let i = 1; i < 4; i++) {
+      const f = i / 4
+      ctx.lineTo(b.x0 + (b.x1 - b.x0) * f + b.j[i - 1], b.y0 + (b.y1 - b.y0) * f)
+    }
+    ctx.lineTo(b.x1, b.y1 - 6)
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = `rgba(255, 236, 130, ${0.35 * k})`
+    ctx.lineWidth = 5
+    ctx.stroke()
+    ctx.strokeStyle = `rgba(255, 255, 235, ${0.95 * k})`
+    ctx.lineWidth = 1.8
+    ctx.stroke()
   }
 
   // where the boss will charge: the real band its body sweeps (a capsule as
@@ -442,9 +572,25 @@ export function createRenderer(canvas, img, D) {
   }
 
   // ── one frame ──
+  // a region's monsters made at their sizes as soon as their pictures are
+  // in, so the first mid-boss or boss never pays for it in the middle of a fight
+  let warmed = ''
+  function warm(run) {
+    const R = run.region
+    if (!R || warmed === R.id + kd()) return
+    const roles = Object.entries(R.skins)
+    if (!roles.every(([, id]) => art.now(id))) return
+    for (const [role, id] of roles) {
+      const size = (D.story.monsters[id] || {}).size || D.story.roleSize[role] || 32
+      skinSet(id, art.now(id), Math.max(8, Math.round(size * kd())))
+    }
+    warmed = R.id + kd()
+  }
+
   function draw(run, dt) {
     const now = performance.now()
-    if (!field) field = paintField()
+    if (!field || field.key !== fieldKey(run)) field = paintField(run)
+    warm(run)
     device()
     ctx.drawImage(field, 0, 0)
 
@@ -500,11 +646,19 @@ export function createRenderer(canvas, img, D) {
         numbers.push({ x: ev.x, y: ev.y - 30, text: '냠!', t: 0, color: '#c93c86' })
       } else if (ev.type === 'catSpit') {
         fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.5 })
+      } else if (ev.type === 'bolt') {
+        if (bolts.length < MAX_BOLTS) bolts.push({ ...ev, t: 0, j: [0, 1, 2].map(() => (Math.random() - 0.5) * 14) })
       } else if (ev.type === 'heal') {
         numbers.push({ x: ev.x, y: ev.y - 52, text: `+${Math.round(ev.n)}`, t: 0, color: '#3f9d5a' })
       }
     }
     run.events.length = 0
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const b = bolts[i]
+      b.t += dt
+      if (b.t >= BOLT) bolts.splice(i, 1)
+      else drawBolt(b)
+    }
     for (let i = fx.length - 1; i >= 0; i--) {
       const f = fx[i]
       f.t += dt

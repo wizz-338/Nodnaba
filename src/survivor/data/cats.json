@@ -1,18 +1,26 @@
 {
-  "note": "The three cat companions. Names are placeholders: change \"name\" here and every text in the game follows (story, cards, notices). \"frames\" is the frame name prefix in cats-frames.json.",
+  "note": "The three cat companions. Names are placeholders: change \"name\" here and every text in the game follows (cards, notices). \"frames\" is the frame name prefix in cats-frames.json (their running sprites in battle); \"image\" is their picture from the story package (story-assets.json), for the lobby and the reward.",
   "companions": [
-    { "id": "danchu", "name": "단추", "fur": "검정·흰색", "frames": "cat_danchu" },
-    { "id": "hodu", "name": "호두", "fur": "주황·흰색", "frames": "cat_hodu" },
-    { "id": "moru", "name": "모루", "fur": "회색·흰색", "frames": "cat_moru" }
-  ],
-  "story": {
-    "note": "the chapter-5 first-clear event: scenes in order, each with its picture and Mano's lines. {danchu} {hodu} {moru} become the cats' names.",
-    "speaker": "마노",
-    "scenes": [
-      { "image": "story_1", "lines": ["어?!", "{danchu}! {hodu}! {moru}?!", "너희가 여긴 어쩐 일이야?"] },
-      { "image": "story_2", "lines": ["뭐야, 나 보러 온 거야?"] },
-      { "image": "story_3", "lines": ["어?", "어어?", "탱탱볼?!!", "탱탱볼!!"] }
-    ],
-    "rewardLines": ["S급 탱탱볼 ×1 획득!", "고양이 동료가 합류했습니다!"]
-  }
+    {
+      "id": "danchu",
+      "name": "단추",
+      "fur": "검정·흰색",
+      "frames": "cat_danchu",
+      "image": "cat_black"
+    },
+    {
+      "id": "hodu",
+      "name": "호두",
+      "fur": "주황·흰색",
+      "frames": "cat_hodu",
+      "image": "cat_orange"
+    },
+    {
+      "id": "moru",
+      "name": "모루",
+      "fur": "회색·흰색",
+      "frames": "cat_moru",
+      "image": "cat_gray"
+    }
+  ]
 }

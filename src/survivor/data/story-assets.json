@@ -1,0 +1,1751 @@
+{
+ "note": "The 84-image story package (MANO_COMPLETE_84, built from its image_list.json by scripts/survivor-story-assets.py). source: the original in the package; file: the game copy under src/survivor/assets/s84; body: the opaque box cut out of the original; sha256: the original file.",
+ "package": "MANO_COMPLETE_84",
+ "images": [
+  {
+   "source": "01_monsters/01_작은숲/01_새싹요정.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "6299cbbfa4da6f01309ac74f5c56355b5391f0747c351a64d7f77f39460d72ca",
+   "id": "sprout",
+   "kind": "monster",
+   "region": "forest",
+   "name": "새싹요정",
+   "body": [
+    345,
+    51,
+    1216,
+    929
+   ],
+   "file": "monsters/sprout.webp",
+   "out": [
+    317,
+    320
+   ],
+   "bytes": 26046
+  },
+  {
+   "source": "01_monsters/01_작은숲/02_잎사귀토끼.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "d8b4986710925f407d746c31b3f661984f4e700077fc8b034b10bd2ce1419e25",
+   "id": "leafbunny",
+   "kind": "monster",
+   "region": "forest",
+   "name": "잎사귀토끼",
+   "body": [
+    336,
+    30,
+    1231,
+    971
+   ],
+   "file": "monsters/leafbunny.webp",
+   "out": [
+    304,
+    320
+   ],
+   "bytes": 25044
+  },
+  {
+   "source": "01_monsters/01_작은숲/03_빨간버섯.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "f3993090d3131e2b9e0db2041a686bc53168fab35010501565909345ff5acc67",
+   "id": "redcap",
+   "kind": "monster",
+   "region": "forest",
+   "name": "빨간버섯",
+   "body": [
+    297,
+    12,
+    1271,
+    1013
+   ],
+   "file": "monsters/redcap.webp",
+   "out": [
+    311,
+    320
+   ],
+   "bytes": 23746
+  },
+  {
+   "source": "01_monsters/01_작은숲/04_이끼골렘.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "b247b53a8467a76f65967a38d8b28b6d874566d77635362f69caece617c35485",
+   "id": "mossgolem",
+   "kind": "monster",
+   "region": "forest",
+   "name": "이끼골렘",
+   "body": [
+    168,
+    35,
+    1392,
+    995
+   ],
+   "file": "monsters/mossgolem.webp",
+   "out": [
+    320,
+    251
+   ],
+   "bytes": 38942
+  },
+  {
+   "source": "01_monsters/01_작은숲/05_꽃뿔수호자.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "9a7447499ba921dc9941903d01946114a5961cf5bb334c46d03d175518775213",
+   "id": "flowerguard",
+   "kind": "monster",
+   "region": "forest",
+   "name": "꽃뿔수호자",
+   "body": [
+    86,
+    9,
+    1276,
+    1174
+   ],
+   "file": "monsters/flowerguard.webp",
+   "out": [
+    320,
+    313
+   ],
+   "bytes": 51268
+  },
+  {
+   "source": "01_monsters/02_깊은숲/01_나무가면인형.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "daa0a8ffc72ca83e9ce34ee7e05be080bf1ef64c79414f6f3b09f5c2d17c68c5",
+   "id": "maskdoll",
+   "kind": "monster",
+   "region": "deepforest",
+   "name": "나무가면인형",
+   "body": [
+    305,
+    16,
+    1226,
+    1006
+   ],
+   "file": "monsters/maskdoll.webp",
+   "out": [
+    298,
+    320
+   ],
+   "bytes": 40964
+  },
+  {
+   "source": "01_monsters/02_깊은숲/02_버섯멧돼지.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "3e0064f37ad2a6e6601aef76f04954f3464be8caaa9b09b4e7204da56b394ebb",
+   "id": "mushboar",
+   "kind": "monster",
+   "region": "deepforest",
+   "name": "버섯멧돼지",
+   "body": [
+    245,
+    10,
+    1298,
+    1013
+   ],
+   "file": "monsters/mushboar.webp",
+   "out": [
+    320,
+    305
+   ],
+   "bytes": 47260
+  },
+  {
+   "source": "01_monsters/02_깊은숲/03_버섯망령.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "72c4696c8d3720e82f2f147eefb72279ffd96320dcdd6e9f49130ff3d4c1acd2",
+   "id": "mushwraith",
+   "kind": "monster",
+   "region": "deepforest",
+   "name": "버섯망령",
+   "body": [
+    145,
+    37,
+    1168,
+    1173
+   ],
+   "file": "monsters/mushwraith.webp",
+   "out": [
+    288,
+    320
+   ],
+   "bytes": 53532
+  },
+  {
+   "source": "01_monsters/02_깊은숲/04_등불고목.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "113a7d0ef95f0b4c0b5cd949ecd1d56ddfb044a1ab837c2a5007363327dcd9eb",
+   "id": "lanterntree",
+   "kind": "monster",
+   "region": "deepforest",
+   "name": "등불고목",
+   "body": [
+    154,
+    3,
+    1414,
+    1019
+   ],
+   "file": "monsters/lanterntree.webp",
+   "out": [
+    320,
+    258
+   ],
+   "bytes": 55276
+  },
+  {
+   "source": "01_monsters/02_깊은숲/05_타락한고목군주.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "1543c71cf9da3964ffd3830a621a788729e8832b713c3709d105f4631354d652",
+   "id": "treelord",
+   "kind": "monster",
+   "region": "deepforest",
+   "name": "타락한고목군주",
+   "body": [
+    152,
+    12,
+    1387,
+    1006
+   ],
+   "file": "monsters/treelord.webp",
+   "out": [
+    320,
+    258
+   ],
+   "bytes": 54132
+  },
+  {
+   "source": "01_monsters/03_해골마을/01_해골병사.png",
+   "width": 1237,
+   "height": 1271,
+   "sha256": "de7bd96db445b11af3c3b17f47c26007eb15e12883823611c88b9395b09d4dfd",
+   "id": "skeleton",
+   "kind": "monster",
+   "region": "skulltown",
+   "name": "해골병사",
+   "body": [
+    55,
+    95,
+    1215,
+    1205
+   ],
+   "file": "monsters/skeleton.webp",
+   "out": [
+    320,
+    306
+   ],
+   "bytes": 32462
+  },
+  {
+   "source": "01_monsters/03_해골마을/02_뼈슬라임.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "db5403f3c0822f8284c79de93aa1a8d4067f699162edf6ee5a82ee922d78be08",
+   "id": "boneslime",
+   "kind": "monster",
+   "region": "skulltown",
+   "name": "뼈슬라임",
+   "body": [
+    162,
+    129,
+    1168,
+    1072
+   ],
+   "file": "monsters/boneslime.webp",
+   "out": [
+    320,
+    300
+   ],
+   "bytes": 26484
+  },
+  {
+   "source": "01_monsters/03_해골마을/03_왕관해골사냥개.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "9787e6223a545f6909f5d031bffdd0f4a4243617aa995ac135b8a3c49e26e20a",
+   "id": "crownhound",
+   "kind": "monster",
+   "region": "skulltown",
+   "name": "왕관해골사냥개",
+   "body": [
+    58,
+    84,
+    1269,
+    1138
+   ],
+   "file": "monsters/crownhound.webp",
+   "out": [
+    320,
+    279
+   ],
+   "bytes": 35194
+  },
+  {
+   "source": "01_monsters/03_해골마을/04_거대해골야수.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "6d4b7009fb37f3f82bf64970fa832415e02a554877a71fdd42d7cc1e50fe2006",
+   "id": "skullbeast",
+   "kind": "monster",
+   "region": "skulltown",
+   "name": "거대해골야수",
+   "body": [
+    12,
+    6,
+    1300,
+    1193
+   ],
+   "file": "monsters/skullbeast.webp",
+   "out": [
+    320,
+    295
+   ],
+   "bytes": 42950
+  },
+  {
+   "source": "01_monsters/03_해골마을/05_해골왕.png",
+   "width": 1223,
+   "height": 1286,
+   "sha256": "5217683bc8033bb0a6c55c01072776ce408583420ed28b3bd61e0ca3bf81d4dc",
+   "id": "skullking",
+   "kind": "monster",
+   "region": "skulltown",
+   "name": "해골왕",
+   "body": [
+    21,
+    23,
+    1220,
+    1263
+   ],
+   "file": "monsters/skullking.webp",
+   "out": [
+    309,
+    320
+   ],
+   "bytes": 49870
+  },
+  {
+   "source": "01_monsters/04_사막/01_사막전갈.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "a5553d7f1113902b23416c5ff97db0fa9c542c816c3702041ef3edb3d2f90f3c",
+   "id": "scorpion",
+   "kind": "monster",
+   "region": "desert",
+   "name": "사막전갈",
+   "body": [
+    198,
+    12,
+    1347,
+    995
+   ],
+   "file": "monsters/scorpion.webp",
+   "out": [
+    320,
+    274
+   ],
+   "bytes": 32402
+  },
+  {
+   "source": "01_monsters/04_사막/02_모래정령.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "7f0db072dd4a2ba3394956b41a724f8e8eb564bfb66b0a1ee12bf4bc1cb806b0",
+   "id": "sandspirit",
+   "kind": "monster",
+   "region": "desert",
+   "name": "모래정령",
+   "body": [
+    159,
+    55,
+    1255,
+    1159
+   ],
+   "file": "monsters/sandspirit.webp",
+   "out": [
+    318,
+    320
+   ],
+   "bytes": 40732
+  },
+  {
+   "source": "01_monsters/04_사막/03_모래지렁이.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "0159fb54630781160a801ae984d966347c91948d78b87c90278f51ec54f47c43",
+   "id": "sandworm",
+   "kind": "monster",
+   "region": "desert",
+   "name": "모래지렁이",
+   "body": [
+    149,
+    96,
+    1265,
+    1141
+   ],
+   "file": "monsters/sandworm.webp",
+   "out": [
+    320,
+    300
+   ],
+   "bytes": 35982
+  },
+  {
+   "source": "01_monsters/04_사막/04_수정바위수호자.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "19e9076e65654009dca172b8cedec660fe4ce5feb71dc434f2a92ea58fef3de8",
+   "id": "crystalguard",
+   "kind": "monster",
+   "region": "desert",
+   "name": "수정바위수호자",
+   "body": [
+    167,
+    19,
+    1433,
+    998
+   ],
+   "file": "monsters/crystalguard.webp",
+   "out": [
+    320,
+    247
+   ],
+   "bytes": 31054
+  },
+  {
+   "source": "01_monsters/04_사막/05_피닉스.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "f3e91363ca6189474ea84112b0f9722011969d5666462435448736d3bdd4f1c8",
+   "id": "phoenix",
+   "kind": "monster",
+   "region": "desert",
+   "name": "피닉스",
+   "body": [
+    56,
+    3,
+    1528,
+    1012
+   ],
+   "file": "monsters/phoenix.webp",
+   "out": [
+    320,
+    219
+   ],
+   "bytes": 41550
+  },
+  {
+   "source": "01_monsters/05_설산/01_얼음늑대.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "b6adf3d09988e885b98e99f55ed01527948ac12814b291e81027e241bfd6bddf",
+   "id": "icewolf",
+   "kind": "monster",
+   "region": "snow",
+   "name": "얼음늑대",
+   "body": [
+    127,
+    28,
+    1458,
+    1005
+   ],
+   "file": "monsters/icewolf.webp",
+   "out": [
+    320,
+    235
+   ],
+   "bytes": 36366
+  },
+  {
+   "source": "01_monsters/05_설산/02_눈정령.png",
+   "width": 1374,
+   "height": 1145,
+   "sha256": "0ae2de690a37d541a1faebbd284a1b4afae09c5ea490cb539ab73e614572d5e3",
+   "id": "snowspirit",
+   "kind": "monster",
+   "region": "snow",
+   "name": "눈정령",
+   "body": [
+    157,
+    30,
+    1234,
+    1078
+   ],
+   "file": "monsters/snowspirit.webp",
+   "out": [
+    320,
+    311
+   ],
+   "bytes": 47968
+  },
+  {
+   "source": "01_monsters/05_설산/03_빙결곰.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "3c0aa02ddabebafa4117b724d264968a0c5eaca2b51035446afed14f1e0b5b38",
+   "id": "frostbear",
+   "kind": "monster",
+   "region": "snow",
+   "name": "빙결곰",
+   "body": [
+    215,
+    15,
+    1342,
+    1008
+   ],
+   "file": "monsters/frostbear.webp",
+   "out": [
+    320,
+    282
+   ],
+   "bytes": 43408
+  },
+  {
+   "source": "01_monsters/05_설산/04_얼음골렘.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "e7aff3ebffcc48a57222fc422115869c187b4b774790ec2f2a822731ad9fd710",
+   "id": "icegolem",
+   "kind": "monster",
+   "region": "snow",
+   "name": "얼음골렘",
+   "body": [
+    181,
+    10,
+    1412,
+    1014
+   ],
+   "file": "monsters/icegolem.webp",
+   "out": [
+    320,
+    261
+   ],
+   "bytes": 40424
+  },
+  {
+   "source": "01_monsters/05_설산/05_설원수호자.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "d543dcef9ac1ce9cec720e06ac48a73f1ea1ee7020d8f83ed970f84ba5867b5b",
+   "id": "snowguardian",
+   "kind": "monster",
+   "region": "snow",
+   "name": "설원수호자",
+   "body": [
+    12,
+    6,
+    1525,
+    1019
+   ],
+   "file": "monsters/snowguardian.webp",
+   "out": [
+    320,
+    214
+   ],
+   "bytes": 46242
+  },
+  {
+   "source": "01_monsters/06_하늘/01_그리핀.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "19906130be9893d45a59a2e598260dc131d6e15efad5e78da6e95ad1a0ae9681",
+   "id": "griffin",
+   "kind": "monster",
+   "region": "sky",
+   "name": "그리핀",
+   "body": [
+    169,
+    1,
+    1378,
+    1004
+   ],
+   "file": "monsters/griffin.webp",
+   "out": [
+    320,
+    265
+   ],
+   "bytes": 43266
+  },
+  {
+   "source": "01_monsters/06_하늘/02_구름정령.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "2b1f9f443a6f21276420f6da768f40f2280c72b34160302f8da97d03d16853cc",
+   "id": "cloudspirit",
+   "kind": "monster",
+   "region": "sky",
+   "name": "구름정령",
+   "body": [
+    288,
+    13,
+    1248,
+    973
+   ],
+   "file": "monsters/cloudspirit.webp",
+   "out": [
+    320,
+    320
+   ],
+   "bytes": 38668
+  },
+  {
+   "source": "01_monsters/06_하늘/03_구름용.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "3cd621e2b515ba0b49bae5a0a429436a417a2cd85657d37cae0f04e11ee2585d",
+   "id": "clouddragon",
+   "kind": "monster",
+   "region": "sky",
+   "name": "구름용",
+   "body": [
+    249,
+    16,
+    1284,
+    1009
+   ],
+   "file": "monsters/clouddragon.webp",
+   "out": [
+    320,
+    307
+   ],
+   "bytes": 57408
+  },
+  {
+   "source": "01_monsters/06_하늘/04_천공골렘.png",
+   "width": 1324,
+   "height": 1188,
+   "sha256": "89f7ca8e023c28cbead1e634aabd1769359bcbc677163e3056181eddc976d467",
+   "id": "skygolem",
+   "kind": "monster",
+   "region": "sky",
+   "name": "천공골렘",
+   "body": [
+    43,
+    16,
+    1303,
+    1160
+   ],
+   "file": "monsters/skygolem.webp",
+   "out": [
+    320,
+    291
+   ],
+   "bytes": 45910
+  },
+  {
+   "source": "01_monsters/06_하늘/05_천둥정령.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "8bc88b9b66946389bdfb49a5ba75b02b9f4a6367b65cf137d31135aeb80c39ae",
+   "id": "thunderspirit",
+   "kind": "monster",
+   "region": "sky",
+   "name": "천둥정령",
+   "body": [
+    20,
+    1,
+    1519,
+    1019
+   ],
+   "file": "monsters/thunderspirit.webp",
+   "out": [
+    320,
+    217
+   ],
+   "bytes": 50628
+  },
+  {
+   "source": "01_monsters/07_마왕성/01_해골망령.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "668df3f7a79f8afd69693821a611b6f8bec6cf4f9ef5d3bede9b6505f9291ad8",
+   "id": "skullwraith",
+   "kind": "monster",
+   "region": "castle",
+   "name": "해골망령",
+   "body": [
+    206,
+    31,
+    1310,
+    981
+   ],
+   "file": "monsters/skullwraith.webp",
+   "out": [
+    320,
+    275
+   ],
+   "bytes": 41110
+  },
+  {
+   "source": "01_monsters/07_마왕성/02_공허의눈.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "4373b4194b0f853f500860f38c48ce43541f5b9352303ee716cbfd2a3f957b46",
+   "id": "voideye",
+   "kind": "monster",
+   "region": "castle",
+   "name": "공허의눈",
+   "body": [
+    341,
+    1,
+    1221,
+    994
+   ],
+   "file": "monsters/voideye.webp",
+   "out": [
+    284,
+    320
+   ],
+   "bytes": 44140
+  },
+  {
+   "source": "01_monsters/07_마왕성/03_그림자용.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "4c11e372248b6913a7d9f5bf6ad3a87e3b52286b4edeeb2738f439a252ead203",
+   "id": "shadowdragon",
+   "kind": "monster",
+   "region": "castle",
+   "name": "그림자용",
+   "body": [
+    257,
+    7,
+    1283,
+    1019
+   ],
+   "file": "monsters/shadowdragon.webp",
+   "out": [
+    320,
+    316
+   ],
+   "bytes": 54446
+  },
+  {
+   "source": "01_monsters/07_마왕성/04_공허골렘.png",
+   "width": 1312,
+   "height": 1199,
+   "sha256": "8af9410d0fda0a04601ac3aa691e072584750ad4d1c21d785e2c9285d5ea91fb",
+   "id": "voidgolem",
+   "kind": "monster",
+   "region": "castle",
+   "name": "공허골렘",
+   "body": [
+    70,
+    0,
+    1275,
+    1188
+   ],
+   "file": "monsters/voidgolem.webp",
+   "out": [
+    320,
+    315
+   ],
+   "bytes": 53092
+  },
+  {
+   "source": "01_monsters/07_마왕성/05_마왕.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "28c3e42ddbbfc7c35e234d02c6c2d99b036cd2c8075766aa1bc927330c982f6b",
+   "id": "demonking",
+   "kind": "monster",
+   "region": "castle",
+   "name": "마왕",
+   "body": [
+    18,
+    7,
+    1526,
+    1015
+   ],
+   "file": "monsters/demonking.webp",
+   "out": [
+    320,
+    214
+   ],
+   "bytes": 45174
+  },
+  {
+   "source": "02_cutscenes/00_시작/01_창밖으로날아간공.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "eb50d639f59480bf354f5cb23595b2ba0dd7f7bbf856a330b8dcec279ca11f9b",
+   "id": "cs_00_1",
+   "kind": "cutscene",
+   "region": "prologue",
+   "name": "창밖으로날아간공",
+   "file": "cutscenes/cs_00_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 123562
+  },
+  {
+   "source": "02_cutscenes/00_시작/02_모험출발.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5336fff5ce2814158d6014fd06e60aa56fc1055d61382f471b2a739c677bd837",
+   "id": "cs_00_2",
+   "kind": "cutscene",
+   "region": "prologue",
+   "name": "모험출발",
+   "file": "cutscenes/cs_00_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 151578
+  },
+  {
+   "source": "02_cutscenes/01_작은숲/01_숲속친구들.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "2700389e18c2f5c4e075762c7ba98dd4d2dd47760e7ac901e26f54784cec06fe",
+   "id": "cs_01_1",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "숲속친구들",
+   "file": "cutscenes/cs_01_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 167930
+  },
+  {
+   "source": "02_cutscenes/01_작은숲/02_숲의괴물등장.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "7844b6832a8c4fa05055b6baf58eb06a85ef7883845f7a0caf20e87d3272f4d7",
+   "id": "cs_01_2",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "숲의괴물등장",
+   "file": "cutscenes/cs_01_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 177036
+  },
+  {
+   "source": "02_cutscenes/01_작은숲/03_S급탱탱볼.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "8b12257a6096cfe8af4069c2e1d9e3e64f1305856a6194f179f81ae5d0d0c3c9",
+   "id": "cs_01_3",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "S급탱탱볼",
+   "file": "cutscenes/cs_01_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 159208
+  },
+  {
+   "source": "02_cutscenes/02_깊은숲/01_유적발견.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "40a7c97b56f6dd95382bcc95d93dcb99d5799b1b6b6749003653bd4bd02208e9",
+   "id": "cs_02_1",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "유적발견",
+   "file": "cutscenes/cs_02_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 189486
+  },
+  {
+   "source": "02_cutscenes/02_깊은숲/02_버튼과몬스터.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5bccb1a97f45ed3cbd4905c1028560bc185cdf5f3934ac01008d3ca7e3854a97",
+   "id": "cs_02_2",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "버튼과몬스터",
+   "file": "cutscenes/cs_02_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 230446
+  },
+  {
+   "source": "02_cutscenes/02_깊은숲/03_고양이구출.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5f4fa4cc39f932ee1762e698ab121e25434b7aa839039111e09feff7b293fbb5",
+   "id": "cs_02_3",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "고양이구출",
+   "file": "cutscenes/cs_02_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 154494
+  },
+  {
+   "source": "02_cutscenes/02_깊은숲/04_새로운동료.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "87d3993fc184e8dd9393383bc4a391abafffd8d96b054366f44bfed03db43b79",
+   "id": "cs_02_4",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "새로운동료",
+   "file": "cutscenes/cs_02_4.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 149404
+  },
+  {
+   "source": "02_cutscenes/03_해골마을/01_해골마을추격.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "324a507a7f4d4906e747764ce9b71233f13488358d6b9986fdcb997e210b4cc3",
+   "id": "cs_03_1",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "해골마을추격",
+   "file": "cutscenes/cs_03_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 173082
+  },
+  {
+   "source": "02_cutscenes/03_해골마을/02_합동전투.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "106c23dd163bdaf8d9b19f1076d373967a89ad1469907f6bd67fa9f1060284ca",
+   "id": "cs_03_2",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "합동전투",
+   "file": "cutscenes/cs_03_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 148082
+  },
+  {
+   "id": "tizzzz_face",
+   "kind": "portrait",
+   "region": "skulltown",
+   "source": "02_cutscenes/03_해골마을/03_Tizzzz의축복.png",
+   "crop": [
+    430,
+    100,
+    790,
+    460
+   ],
+   "file": "rewards/tizzzz_face.webp",
+   "out": [
+    160,
+    160
+   ],
+   "bytes": 11426,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5ae78075362144ed9ca2bbfb6378e0e19dcbfff8dff175dfaf508359519918e9"
+  },
+  {
+   "source": "02_cutscenes/03_해골마을/03_Tizzzz의축복.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5ae78075362144ed9ca2bbfb6378e0e19dcbfff8dff175dfaf508359519918e9",
+   "id": "cs_03_3",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "Tizzzz의축복",
+   "file": "cutscenes/cs_03_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 172824
+  },
+  {
+   "source": "02_cutscenes/04_사막/01_사막기습.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "b7fdad6d7aa78f4bb3ec47c89a9a7951cf14beb8d50439bfbb6b29f1776ae321",
+   "id": "cs_04_1",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "사막기습",
+   "file": "cutscenes/cs_04_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 190060
+  },
+  {
+   "source": "02_cutscenes/04_사막/02_모래아래괴물.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "09d3ca6b048caac06c04ba7faeacd22faf5cb17632fb87260f7c9a5ea4202995",
+   "id": "cs_04_2",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "모래아래괴물",
+   "file": "cutscenes/cs_04_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 193772
+  },
+  {
+   "source": "02_cutscenes/04_사막/03_고대신전.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5b35a5a12f7f751c49a970ffc212ca557a10b417a2cad7976f976c3c5725b8ee",
+   "id": "cs_04_3",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "고대신전",
+   "file": "cutscenes/cs_04_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 190544
+  },
+  {
+   "source": "02_cutscenes/04_사막/04_피닉스의보석.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "0236ba76eb5fbbfcdb0ce8745ac3fb10dae7cf458d1f4fb32cd2cc6b68079b2e",
+   "id": "cs_04_4",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "피닉스의보석",
+   "file": "cutscenes/cs_04_4.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 161674
+  },
+  {
+   "source": "02_cutscenes/05_설산/01_눈보라.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "ff31fb40e060c6cf68eafe75c0c564dc55ad23254bac9f2e03e3524eb169bc9f",
+   "id": "cs_05_1",
+   "kind": "cutscene",
+   "region": "snow",
+   "name": "눈보라",
+   "file": "cutscenes/cs_05_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 196764
+  },
+  {
+   "source": "02_cutscenes/05_설산/02_수호자각성.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "9d4086fa0a2cf730d28ac9cee62b283505efe36ab212f02bf04b777687116a14",
+   "id": "cs_05_2",
+   "kind": "cutscene",
+   "region": "snow",
+   "name": "수호자각성",
+   "file": "cutscenes/cs_05_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 173174
+  },
+  {
+   "source": "02_cutscenes/05_설산/03_설원의축복.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "ca1b9436a37e3d7620bf46ad7a70c4f944536d0d99a18ead7087cac4304c23bc",
+   "id": "cs_05_3",
+   "kind": "cutscene",
+   "region": "snow",
+   "name": "설원의축복",
+   "file": "cutscenes/cs_05_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 181134
+  },
+  {
+   "source": "02_cutscenes/05_설산/04_스프링발견.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "9235f0192c8d7d25e3c4695941599837e442de1a0fe6e0e1997ba0822df63bdb",
+   "id": "cs_05_4",
+   "kind": "cutscene",
+   "region": "snow",
+   "name": "스프링발견",
+   "file": "cutscenes/cs_05_4.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 156460
+  },
+  {
+   "source": "02_cutscenes/06_하늘/01_하늘로발사.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "093a5403eaf4c00321754a930ea5bdac9eeeebff082b8927857e3929006d7897",
+   "id": "cs_06_1",
+   "kind": "cutscene",
+   "region": "sky",
+   "name": "하늘로발사",
+   "file": "cutscenes/cs_06_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 194686
+  },
+  {
+   "source": "02_cutscenes/06_하늘/02_구름위공놀이.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "66180a46a465592b005315612dda09a4e260c9531783ea418d3e0fc49343891c",
+   "id": "cs_06_2",
+   "kind": "cutscene",
+   "region": "sky",
+   "name": "구름위공놀이",
+   "file": "cutscenes/cs_06_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 166974
+  },
+  {
+   "source": "02_cutscenes/06_하늘/03_하늘몬스터기습.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "f7840e49388642d4a1a3872b960b251e7b8994d405dc0283f8974289d5e85040",
+   "id": "cs_06_3",
+   "kind": "cutscene",
+   "region": "sky",
+   "name": "하늘몬스터기습",
+   "file": "cutscenes/cs_06_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 198440
+  },
+  {
+   "source": "02_cutscenes/06_하늘/04_천둥의축복.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "9d09101fb49ab9435b4efe0888ac7946a50c9b801342d166dd02d0878c993280",
+   "id": "cs_06_4",
+   "kind": "cutscene",
+   "region": "sky",
+   "name": "천둥의축복",
+   "file": "cutscenes/cs_06_4.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 181512
+  },
+  {
+   "source": "02_cutscenes/06_하늘/05_검은성등장.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "c14c6c463cfa4e5cd48cfa2327b0bac55be1707d93bab70ba7beed6d6c69d655",
+   "id": "cs_06_5",
+   "kind": "cutscene",
+   "region": "sky",
+   "name": "검은성등장",
+   "file": "cutscenes/cs_06_5.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 184590
+  },
+  {
+   "source": "02_cutscenes/07_마왕성/01_마왕성도착.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "32fd90240eb8cba650f85cd62ac1e30ec3d39ab293a096683aecc76693a97aba",
+   "id": "cs_07_1",
+   "kind": "cutscene",
+   "region": "castle",
+   "name": "마왕성도착",
+   "file": "cutscenes/cs_07_1.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 202684
+  },
+  {
+   "source": "02_cutscenes/07_마왕성/02_마왕과대치.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "d8fb36210f4ecef52482294f43de1d36502c829bf5b9c5f795d61abc96c8364e",
+   "id": "cs_07_2",
+   "kind": "cutscene",
+   "region": "castle",
+   "name": "마왕과대치",
+   "file": "cutscenes/cs_07_2.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 210226
+  },
+  {
+   "source": "02_cutscenes/07_마왕성/03_마지막탱탱볼.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "477b761204466a90073dc3c4c20f2a89f0c92c07c91b02bb1be32b3e36c8f762",
+   "id": "cs_07_3",
+   "kind": "cutscene",
+   "region": "castle",
+   "name": "마지막탱탱볼",
+   "file": "cutscenes/cs_07_3.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 239012
+  },
+  {
+   "source": "02_cutscenes/07_마왕성/04_집으로귀환.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "269f84ed323f02e2790eb2043732544c6e1140d8064d8a74cbf41201bc82d3e8",
+   "id": "cs_07_4",
+   "kind": "cutscene",
+   "region": "castle",
+   "name": "집으로귀환",
+   "file": "cutscenes/cs_07_4.webp",
+   "out": [
+    720,
+    1080
+   ],
+   "bytes": 173154
+  },
+  {
+   "id": "bg_forest_soft",
+   "kind": "backdrop",
+   "region": "forest",
+   "source": "03_backgrounds/01_작은숲.png",
+   "file": "backgrounds/bg_forest_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 722,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5933e90feb66afc0ef21826f4700ec938a9140aaf40499222d44c9a89ae58287"
+  },
+  {
+   "source": "03_backgrounds/01_작은숲.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "5933e90feb66afc0ef21826f4700ec938a9140aaf40499222d44c9a89ae58287",
+   "id": "bg_forest",
+   "kind": "background",
+   "region": "forest",
+   "name": "작은숲",
+   "file": "backgrounds/bg_forest.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 77458
+  },
+  {
+   "id": "bg_deepforest_soft",
+   "kind": "backdrop",
+   "region": "deepforest",
+   "source": "03_backgrounds/02_깊은숲.png",
+   "file": "backgrounds/bg_deepforest_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 862,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "2f4e7f5c6d09efe34989a7f5256d27e001c641b54d4ab74d26ef7ecac6c25489"
+  },
+  {
+   "source": "03_backgrounds/02_깊은숲.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "2f4e7f5c6d09efe34989a7f5256d27e001c641b54d4ab74d26ef7ecac6c25489",
+   "id": "bg_deepforest",
+   "kind": "background",
+   "region": "deepforest",
+   "name": "깊은숲",
+   "file": "backgrounds/bg_deepforest.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 97954
+  },
+  {
+   "id": "bg_skulltown_soft",
+   "kind": "backdrop",
+   "region": "skulltown",
+   "source": "03_backgrounds/03_해골마을.png",
+   "file": "backgrounds/bg_skulltown_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 670,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "bddf6bdbbbe70c7434fcf498951b08d36bd6d2400bf4890b21a7c9c08d16657a"
+  },
+  {
+   "source": "03_backgrounds/03_해골마을.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "bddf6bdbbbe70c7434fcf498951b08d36bd6d2400bf4890b21a7c9c08d16657a",
+   "id": "bg_skulltown",
+   "kind": "background",
+   "region": "skulltown",
+   "name": "해골마을",
+   "file": "backgrounds/bg_skulltown.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 120536
+  },
+  {
+   "id": "bg_desert_soft",
+   "kind": "backdrop",
+   "region": "desert",
+   "source": "03_backgrounds/04_사막.png",
+   "file": "backgrounds/bg_desert_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 772,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "d490054dca96a04dafa2d5c5de2b6a07b8b7c87a1b51d1b64d9313a58ccfa735"
+  },
+  {
+   "source": "03_backgrounds/04_사막.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "d490054dca96a04dafa2d5c5de2b6a07b8b7c87a1b51d1b64d9313a58ccfa735",
+   "id": "bg_desert",
+   "kind": "background",
+   "region": "desert",
+   "name": "사막",
+   "file": "backgrounds/bg_desert.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 41128
+  },
+  {
+   "id": "bg_snow_soft",
+   "kind": "backdrop",
+   "region": "snow",
+   "source": "03_backgrounds/05_설산.png",
+   "file": "backgrounds/bg_snow_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 1048,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "1a1685a794d9a78545e16cc8fe66c84e1d47c221addf70a302a3e59578601ada"
+  },
+  {
+   "source": "03_backgrounds/05_설산.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "1a1685a794d9a78545e16cc8fe66c84e1d47c221addf70a302a3e59578601ada",
+   "id": "bg_snow",
+   "kind": "background",
+   "region": "snow",
+   "name": "설산",
+   "file": "backgrounds/bg_snow.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 68616
+  },
+  {
+   "id": "bg_sky_soft",
+   "kind": "backdrop",
+   "region": "sky",
+   "source": "03_backgrounds/06_하늘.png",
+   "file": "backgrounds/bg_sky_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 830,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "a94ff84be0b3de176aa2eb6a06cbeb1b28c8fb0ef2aa126d6be59ca19ab1fc15"
+  },
+  {
+   "source": "03_backgrounds/06_하늘.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "a94ff84be0b3de176aa2eb6a06cbeb1b28c8fb0ef2aa126d6be59ca19ab1fc15",
+   "id": "bg_sky",
+   "kind": "background",
+   "region": "sky",
+   "name": "하늘",
+   "file": "backgrounds/bg_sky.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 50798
+  },
+  {
+   "id": "bg_castle_soft",
+   "kind": "backdrop",
+   "region": "castle",
+   "source": "03_backgrounds/07_마왕성.png",
+   "file": "backgrounds/bg_castle_soft.webp",
+   "out": [
+    216,
+    324
+   ],
+   "bytes": 680,
+   "width": 1024,
+   "height": 1536,
+   "sha256": "39950c93f759b57e8b1842e502618c57ddc99e470bda1f90f875b2abd8248e54"
+  },
+  {
+   "source": "03_backgrounds/07_마왕성.png",
+   "width": 1024,
+   "height": 1536,
+   "sha256": "39950c93f759b57e8b1842e502618c57ddc99e470bda1f90f875b2abd8248e54",
+   "id": "bg_castle",
+   "kind": "background",
+   "region": "castle",
+   "name": "마왕성",
+   "file": "backgrounds/bg_castle.webp",
+   "out": [
+    864,
+    1296
+   ],
+   "bytes": 57184
+  },
+  {
+   "source": "04_rewards/ball_base.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "989b9eba15354b4e88487d02a6304c890d4b4b6a9b68c7b3abf3dbb8077f13b2",
+   "id": "ball_base",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    102,
+    104,
+    1152,
+    1150
+   ],
+   "file": "rewards/ball_base.webp",
+   "out": [
+    256,
+    255
+   ],
+   "bytes": 14960
+  },
+  {
+   "source": "04_rewards/ball_demon.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "a7d3e09475e0fee511f63b36fcd9c79f0c695b7a708c9b1bde3506b4dcb9f8cb",
+   "id": "ball_demon",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    35,
+    134,
+    1224,
+    1108
+   ],
+   "file": "rewards/ball_demon.webp",
+   "out": [
+    256,
+    210
+   ],
+   "bytes": 21798
+  },
+  {
+   "source": "04_rewards/ball_s.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "f0ee4820fb66daaebbac8c2d87bea5c9bc2f2bd4610b216b11baac42777f9067",
+   "id": "ball_s",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    138,
+    113,
+    1158,
+    1138
+   ],
+   "file": "rewards/ball_s.webp",
+   "out": [
+    255,
+    256
+   ],
+   "bytes": 20282
+  },
+  {
+   "source": "04_rewards/ball_ss.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "7abb39cb83704f027622c61d2ff01443cddfa6edd45da8004d1e85a1aba622d4",
+   "id": "ball_ss",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    82,
+    74,
+    1171,
+    1175
+   ],
+   "file": "rewards/ball_ss.webp",
+   "out": [
+    253,
+    256
+   ],
+   "bytes": 22868
+  },
+  {
+   "source": "04_rewards/blessing_cats.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "27be545da6e734933d6e4df373fd013cfc29deb3a67daabad61c298046d339d0",
+   "id": "blessing_cats",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    94,
+    26,
+    1208,
+    1194
+   ],
+   "file": "rewards/blessing_cats.webp",
+   "out": [
+    244,
+    256
+   ],
+   "bytes": 25820
+  },
+  {
+   "source": "04_rewards/blessing_snow.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "e5541798d4f142216262ee7f7eb7269d3297f449c8f01d731b842c39fe80cb6a",
+   "id": "blessing_snow",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    92,
+    35,
+    1162,
+    1206
+   ],
+   "file": "rewards/blessing_snow.webp",
+   "out": [
+    234,
+    256
+   ],
+   "bytes": 26240
+  },
+  {
+   "source": "04_rewards/blessing_thunder.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "0baa022dc06114d2061ca245d1d398a0ec8bb91414098b1b9bae561e82c8df23",
+   "id": "blessing_thunder",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    35,
+    177,
+    1220,
+    1078
+   ],
+   "file": "rewards/blessing_thunder.webp",
+   "out": [
+    256,
+    195
+   ],
+   "bytes": 20074
+  },
+  {
+   "source": "04_rewards/blessing_tizzzz.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "e56b5483b81918054f2c9e61bd6cf92c16ce29d83fb7fdf74c9d9e6e405af7d7",
+   "id": "blessing_tizzzz",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    219,
+    49,
+    1214,
+    1205
+   ],
+   "file": "rewards/blessing_tizzzz.webp",
+   "out": [
+    220,
+    256
+   ],
+   "bytes": 14452
+  },
+  {
+   "source": "04_rewards/gem_phoenix.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "94edfe52e57929d867a702353fce1dfa315614120638414087a0644dabd915e9",
+   "id": "gem_phoenix",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    27,
+    19,
+    1227,
+    1215
+   ],
+   "file": "rewards/gem_phoenix.webp",
+   "out": [
+    256,
+    255
+   ],
+   "bytes": 25450
+  },
+  {
+   "source": "04_rewards/spring.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "6a716b7850fd081f17e0bf406ed16b44497e771e674ef7f2054b00393455c4c7",
+   "id": "spring",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    154,
+    95,
+    1101,
+    1178
+   ],
+   "file": "rewards/spring.webp",
+   "out": [
+    224,
+    256
+   ],
+   "bytes": 21352
+  },
+  {
+   "source": "05_companions/cat_black.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "f4703d196c2ad80c58c3390cc8e71d14c5be803ef946a46bbaae6bb369717688",
+   "id": "cat_black",
+   "kind": "companion",
+   "region": null,
+   "body": [
+    60,
+    80,
+    1188,
+    1204
+   ],
+   "file": "rewards/cat_black.webp",
+   "out": [
+    256,
+    255
+   ],
+   "bytes": 29626
+  },
+  {
+   "source": "05_companions/cat_gray.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "be9cda56cde74d892be06103f66c097b9b9390d5f0df582dfde87f49eb2e0250",
+   "id": "cat_gray",
+   "kind": "companion",
+   "region": null,
+   "body": [
+    70,
+    83,
+    1213,
+    1204
+   ],
+   "file": "rewards/cat_gray.webp",
+   "out": [
+    256,
+    251
+   ],
+   "bytes": 29112
+  },
+  {
+   "source": "05_companions/cat_orange.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "8865092a72a7134c463e6125140d3e27f341ef2b8c2bb34bd7a52b2c2d694c6c",
+   "id": "cat_orange",
+   "kind": "companion",
+   "region": null,
+   "body": [
+    101,
+    36,
+    1206,
+    1224
+   ],
+   "file": "rewards/cat_orange.webp",
+   "out": [
+    238,
+    256
+   ],
+   "bytes": 26208
+  }
+ ]
+}

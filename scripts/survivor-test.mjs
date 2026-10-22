@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, spawnInterval, gradeMul, regionOf, enemyName, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
@@ -624,62 +624,102 @@ const still = { x: 0, y: 0 }
   ok(N.boot().data.inventory.length === 1 && !N.available, 'with no storage the game still plays (nothing is kept, and it says so)')
 }
 
-// ── the cat companions ──────────────────────────────────────────────────────
-// the chapter-5 first-clear story: once, with exactly one S-grade ball
+// ── the story (story.json): region rewards, cutscenes seen, old saves ──────
+// a new save: each region's reward comes once with the first clear of its
+// last chapter, in that same write; the cats at 10, Tizzzz at 15
 {
-  const C = B.cats
+  const S = D.story
   const mem = new Mem()
   mem.setItem('nodnaba:colony:save', 'COLONY')
   const P = createProgress(D, mem)
-  P.boot()
-  ok(!P.claimCatEvent().ok && !P.get().cats.unlocked, 'before chapter 5 is cleared there is no cat story')
-  const r4 = P.startRun(4)
-  P.finishRun(r4.runId, 4, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
-  ok(!P.claimCatEvent().ok, 'clearing chapter 4 is not enough')
-  const r5 = P.startRun(C.eventChapter)
-  ok(r5.cats === false, 'a chapter-5 run starts without cats')
-  P.finishRun(r5.runId, C.eventChapter, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
-  const sBefore = P.get().inventory.filter((it) => it.grade === C.rewardGrade).length
-  const ev = P.claimCatEvent()
-  const after = P.get()
-  ok(ev.ok && ev.item.grade === 'S' && ev.item.weaponId === D.weapons.initialWeaponId && after.inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'the first chapter-5 clear: the story plays and one S-grade bouncy ball is given')
-  ok(after.cats.unlocked && after.cats.eventSeen && after.cats.rewardGiven, 'the cats have joined, the story is marked seen, the reward is recorded (all in that one save)')
-  ok(after.equippedInstanceId === ev.item.id, 'the S ball is equipped (it beats the D ball in use)')
-  ok(!P.claimCatEvent().ok && P.get().inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'asking again (double tap, skip, second tab) gives nothing and plays nothing')
-  const r5b = P.startRun(C.eventChapter)
-  P.finishRun(r5b.runId, C.eventChapter, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
-  ok(!P.claimCatEvent().ok, 'clearing chapter 5 again: no story')
+  const b0 = P.boot()
+  ok(b0.supplied.length === 0 && b0.data.story.v === 1 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
+  const clear = (ch) => {
+    const r = P.startRun(ch)
+    return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  }
+  const got = {}
+  for (let ch = 1; ch <= 35; ch++) {
+    const r = clear(ch)
+    if (r.story) got[ch] = r.story
+  }
+  const chapters = Object.keys(got).map(Number)
+  ok(chapters.join() === '5,10,15,20,25,30,35', `rewards come at the clears of ${chapters.join(', ')}, nowhere else`)
+  const d = P.get()
+  const balls = (g, tag) => d.inventory.filter((it) => it.grade === g && (tag ? it.tag === tag : !it.tag)).length
+  ok(got[5].item.grade === 'S' && got[15].item.grade === 'SS' && got[35].item.grade === 'EX' && got[35].item.tag === 'demon', '5: the red ball grows to S; 15: to SS; 35: 마왕의 탱탱볼 (EX)')
+  ok(d.cats.unlocked && d.tizzzz.unlocked && d.blessings.phoenix && d.blessings.snow && d.blessings.thunder && d.blessings.final, '10: the cats; 15: Tizzzz; 20, 25, 30: the phoenix gem, the snow and thunder blessings; 35: the last strengthening')
+  ok(d.equippedInstanceId === got[35].item.id, '마왕의 탱탱볼 is equipped (it beats the SS)')
+  ok(d.story.rewards.length === 7 && d.story.seen.length === 0, 'the rewards are recorded apart from the cutscenes (none seen here: skipping or closing never costs a reward)')
+  const before = JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')])
+  for (const ch of [5, 10, 15, 35]) ok(!clear(ch).story, `clearing chapter ${ch} again gives nothing more`)
+  ok(JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')]) === before, 'still one S, one SS, one 마왕의 탱탱볼 from the story')
+  P.markSeen('forest_3')
+  P.markSeen('forest_3')
   const again = createProgress(D, mem)
-  const re = again.boot().data
-  ok(re.cats.unlocked && re.cats.eventSeen && !again.claimCatEvent().ok && re.inventory.filter((it) => it.grade === 'S').length === sBefore + 1, 'after a reload the cats are still there and the story stays seen')
-  ok(again.startRun(C.activeFromChapter).cats === true, 'a run started now brings the cats')
-  ok(parseBackup(D, again.exportText()).data.cats.unlocked, 'a backup keeps the cats')
+  const re = again.boot()
+  ok(re.supplied.length === 0 && re.data.story.seen.join() === 'forest_3' && re.data.blessings.thunder && re.data.inventory.some((it) => it.tag === 'demon'), 'after a reload: one seen mark, the blessings and 마왕의 탱탱볼 kept, nothing given again')
+  const s35 = again.startRun(35)
+  ok(s35.cats && s35.tizzzz && s35.blessings.phoenix && s35.blessings.snow && s35.blessings.thunder && s35.blessings.final, 'a run started now brings the cats, Tizzzz and every blessing')
+  const bk = parseBackup(D, again.exportText()).data
+  ok(bk.blessings.snow && bk.story.rewards.length === 7 && bk.inventory.some((it) => it.tag === 'demon'), 'a backup keeps the story, the blessings and 마왕의 탱탱볼')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "the other games' saves are untouched")
+  ok(!canFuse(D, again.get(), again.get().inventory.filter((it) => it.grade === 'EX').slice(0, 3).map((it) => it.id)).ok, '마왕의 탱탱볼 never goes into a fusion')
 }
-// a save that cleared chapter 5 before the cats existed sees the story once
+// a save from before the story (the first versions: cats and their S ball at
+// chapter 5, Tizzzz and her SS ball at chapter 10), at chapter 28: nothing is
+// taken back, nothing given twice; what it cleared since is made up once
 {
   const mem = new Mem()
   const P = createProgress(D, mem)
   P.boot()
   const d = P.get()
-  d.firstCleared = [1, 2, 3, 4, 5, 6, 7]
-  d.unlockedChapter = 8
-  delete d.cats
+  d.firstCleared = Array.from({ length: 28 }, (_, i) => i + 1)
+  d.unlockedChapter = 29
+  d.inventory.push({ id: 'w90', weaponId: 'bouncy_ball', grade: 'S' }, { id: 'w91', weaponId: 'bouncy_ball', grade: 'SS' })
+  d.equippedInstanceId = 'w91'
+  d.cats = { unlocked: true, eventSeen: true, rewardGiven: true }
+  d.tizzzz = { unlocked: true, eventSeen: true, rewardGiven: true }
+  delete d.story
+  delete d.blessings
   mem.setItem(KEY, JSON.stringify(d))
   const P2 = createProgress(D, mem)
-  const b = P2.boot().data
-  ok(!b.cats.unlocked && !b.cats.eventSeen, 'an older save loads with the cats not yet met')
-  const ev = P2.claimCatEvent()
-  ok(ev.ok && ev.item.grade === 'S' && !P2.claimCatEvent().ok, 'it gets the story and the S ball once')
+  const b = P2.boot()
+  const n = b.data
+  ok(b.supplied.join() === 'desert,snow' && n.story.news.join() === 'desert,snow', `it is given what chapters 20 and 25 now bring (${b.supplied.join(', ')}), and told so once`)
+  ok(n.blessings.phoenix && n.blessings.snow && !n.blessings.thunder && !n.blessings.final, 'the phoenix gem and the snow blessing; not yet thunder (chapter 30)')
+  ok(n.inventory.length === d.inventory.length && n.equippedInstanceId === 'w91', 'no ball given again (its S and SS came from the old stories); its equipped SS stays')
+  ok(n.cats.unlocked && n.tizzzz.unlocked, 'the cats and Tizzzz stay')
+  ok(['prologue', 'forest_3', 'deepforest_3', 'skulltown_3', 'desert_4', 'snow_3', 'sky_1', 'sky_2', 'sky_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('castle_1'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it')
+  P2.clearNews()
+  const third = createProgress(D, mem).boot()
+  ok(third.supplied.length === 0 && third.data.story.news.length === 0 && third.data.inventory.length === n.inventory.length, 'the next visit gives and tells nothing more')
 }
-// in battle: from chapter 6 on, with the cats; the magnet makes room for 냥냥 연금술
+// an even older save (from before the cats), past chapter 12: the S ball and
+// the cats are made up; Tizzzz waits for chapter 15
+{
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.firstCleared = Array.from({ length: 12 }, (_, i) => i + 1)
+  d.unlockedChapter = 13
+  delete d.cats
+  delete d.tizzzz
+  delete d.story
+  mem.setItem(KEY, JSON.stringify(d))
+  const b = createProgress(D, mem).boot()
+  ok(b.supplied.join() === 'forest,deepforest' && b.data.inventory.filter((it) => it.grade === 'S').length === 1 && b.data.cats.unlocked && !b.data.tizzzz.unlocked, 'it gets the S ball and the cats once; Tizzzz comes with chapter 15')
+  ok(b.data.story.seen.includes('skulltown_1') && !b.data.story.seen.includes('skulltown_2') && !b.data.story.seen.includes('skulltown_3') && b.data.story.seen.includes('deepforest_3'), 'what it played (to chapter 12) counts as seen; chapter 15\'s cutscenes still play')
+}
+// in battle: from their chapter on, with the cats; the magnet makes room for 냥냥 연금술
 {
   const C = B.cats
-  const r5 = newRun({ chapter: 5, cats: true })
-  ok(r5.cats.length === 0 && r5.pool.includes('pickup') && !r5.pool.includes('nyang'), 'chapter 5 (cats unlocked): no cats yet, the magnet card is there')
-  const r6n = newRun({ chapter: 6, cats: false })
-  ok(r6n.cats.length === 0 && r6n.pool.includes('pickup'), 'chapter 6 without the cats: unchanged')
-  const r6 = newRun({ chapter: 6, cats: true, seed: 21 })
+  const r5 = newRun({ chapter: B.cats.activeFromChapter - 1, cats: true })
+  ok(r5.cats.length === 0 && r5.pool.includes('pickup') && !r5.pool.includes('nyang'), `chapter ${B.cats.activeFromChapter - 1} (cats unlocked): no cats yet, the magnet card is there`)
+  const r6n = newRun({ chapter: B.cats.activeFromChapter, cats: false })
+  ok(r6n.cats.length === 0 && r6n.pool.includes('pickup'), `chapter ${B.cats.activeFromChapter} without the cats: unchanged`)
+  const r6 = newRun({ chapter: B.cats.activeFromChapter, cats: true, seed: 21 })
   ok(r6.cats.length === 3 && r6.cats.map((c) => c.id).join() === D.cats.companions.map((c) => c.id).join(), `chapter ${C.activeFromChapter} with the cats: ${D.cats.companions.map((c) => c.name).join(', ')} come along`)
   ok(!r6.pool.includes('pickup') && r6.pool.includes('nyang') && r6.pool.length === r6n.pool.length, `the magnet's place goes to 냥냥 연금술 (still ${r6.pool.length} cards, 3 shown)`)
   let shown = 0
@@ -703,7 +743,7 @@ const still = { x: 0, y: 0 }
 }
 // the cats fetch coins and experience: run there, picked up as by Mano
 {
-  const run = newRun({ chapter: 6, cats: true, seed: 5 })
+  const run = newRun({ chapter: B.cats.activeFromChapter, cats: true, seed: 5 })
   run.spawnT = -1e9
   run.nextEvent = 9
   run.xp = -1e15 // no level-up pauses
@@ -729,7 +769,7 @@ const still = { x: 0, y: 0 }
 }
 // a pile goes in one sweep: everything within a cat's magnet flies to it
 {
-  const run = newRun({ chapter: 6, cats: true, seed: 8 })
+  const run = newRun({ chapter: B.cats.activeFromChapter, cats: true, seed: 8 })
   run.spawnT = -1e9
   run.nextEvent = 9
   run.xp = -1e15
@@ -745,7 +785,7 @@ const still = { x: 0, y: 0 }
 {
   const T = B.upgrades.effects.nyang.levels
   const heartRun = (L) => {
-    const run = newRun({ chapter: 6, cats: true, seed: 9 })
+    const run = newRun({ chapter: B.cats.activeFromChapter, cats: true, seed: 9 })
     run.spawnT = -1e9
     run.nextEvent = 9
     run.xp = -1e15
@@ -773,7 +813,7 @@ const still = { x: 0, y: 0 }
   ok(r.orbs.filter((o) => o.kind === 'pheal').length === n0 && r.stats.catEats === 1, `30 s later the same ${n0} 퍼센트 하트 lie there: never turned again, never picked up by a cat`)
   // Mano picks one up: a share of her maximum HP, never past it
   for (const maxHp of [1000, 10000]) {
-    const run = newRun({ chapter: 6, cats: true })
+    const run = newRun({ chapter: B.cats.activeFromChapter, cats: true })
     run.spawnT = -1e9
     run.player.maxHp = maxHp
     run.player.hp = maxHp / 2
@@ -781,16 +821,21 @@ const still = { x: 0, y: 0 }
     step(run, FIXED * 2, still)
     ok(near(run.player.hp, maxHp / 2 + maxHp * 0.02, 1e-6), `a 2% 퍼센트 하트 at max HP ${maxHp} heals ${maxHp * 0.02}`)
   }
-  const full = newRun({ chapter: 6, cats: true })
+  const full = newRun({ chapter: B.cats.activeFromChapter, cats: true })
   full.spawnT = -1e9
   full.orbs.push({ kind: 'pheal', x: full.player.x, y: full.player.y, v: 0.04, pull: false })
   step(full, FIXED * 2, still)
   ok(full.player.hp === full.player.maxHp, 'at full HP it heals nothing past the maximum')
   ok(B.drops.healChance === 0.005, 'the normal heart drop chance is unchanged')
 }
-// Mano can stand still: the cats bring in nearly everything, and fast
+// Mano can stand still: the cats bring in nearly everything, and fast (their
+// way of fetching, measured at chapter 8 where it was tuned: they are let in
+// there for this check only)
 {
+  const from = B.cats.activeFromChapter
+  B.cats.activeFromChapter = 6
   const run = newRun({ chapter: 8, cats: true, grade: 'SS', seed: 4, perma: { hp: 40, damage: 50, interval: 50, crit: 40 } })
+  B.cats.activeFromChapter = from
   run.player.hp = run.player.maxHp = 1e15
   const born = new Map()
   let dropped = 0
@@ -811,6 +856,8 @@ const still = { x: 0, y: 0 }
 {
   const L = B.lateGame
   const W = L.writer
+  // Tizzzz's answer counts from her chapter on
+  const wOn = (ch, m) => (ch >= W.fromChapter ? m : 1)
   const wl = W.hp.length - 1
   const at = (chapter, t) => {
     const run = newRun({ chapter })
@@ -822,14 +869,14 @@ const still = { x: 0, y: 0 }
   const mid = at(L.fromChapter + 2, last)
   const full = at(L.fullAtChapter, last)
   const later = at(L.fullAtChapter + 10, last)
-  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1] * W.hp[wl]) && near(later.hp, full.hp) && near(full.specialHp('boss'), L.specialHp.boss * W.specialHp.boss), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss ×${full.specialHp('boss')}, mid-boss ×${full.specialHp('brute')}, thief only ×${full.specialHp('thief')})`)
+  ok(mid.hp > 1 && mid.hp < full.hp && near(full.hp, L.hp[L.hp.length - 1] * wOn(L.fullAtChapter, W.hp[wl])) && near(later.hp, L.hp[L.hp.length - 1] * wOn(L.fullAtChapter + 10, W.hp[wl])) && near(full.specialHp('boss'), L.specialHp.boss * wOn(L.fullAtChapter, W.specialHp.boss)), `the end of a run: monster HP ×${mid.hp.toFixed(1)} at chapter ${L.fromChapter + 2}, ×${full.hp} from chapter ${L.fullAtChapter} on (boss ×${full.specialHp('boss')}, mid-boss ×${full.specialHp('brute')}, thief only ×${full.specialHp('thief')})`)
   const run = newRun({ chapter: L.fullAtChapter, seed: 3 })
   run.spawnT = -1e9
   run.t = last
   run.nextEvent = 2
   step(run, FIXED * 2, still)
   const boss = run.boss
-  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss * W.specialHp.boss, 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1] * W.damage[wl] * (L.fullAtChapter >= L.bossGuard.fromChapter ? L.bossGuard.hits : 1), 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push (and its guard\'s harder hits)')
+  ok(boss && near(boss.maxHp, B.enemies.boss.hp * run.factor.hp * L.specialHp.boss * wOn(L.fullAtChapter, W.specialHp.boss), 1e-6 * boss.maxHp) && near(boss.damage, B.enemies.boss.damage * run.factor.damage * L.damage[L.damage.length - 1] * wOn(L.fullAtChapter, W.damage[wl]) * (L.fullAtChapter >= L.bossGuard.fromChapter ? L.bossGuard.hits : 1), 1e-9 * boss.damage), 'the boss there: its own HP and hit times the late push (and its guard\'s harder hits)')
   // Tizzzz's answer: from her chapter on, once more per phase on top
   const k = Math.min(1, (W.fromChapter - L.fromChapter + 1) / (L.fullAtChapter - L.fromChapter + 1))
   const before = at(W.fromChapter - 1, last)
@@ -885,58 +932,10 @@ const still = { x: 0, y: 0 }
 }
 
 // ── the writer Tizzzz ───────────────────────────────────────────────────────
-// her chapter-10 story: once, with exactly one SS ball, apart from the cats'
+// her rewrite: from her chapter on, at every level-up, one card does its effect twice
 {
   const T = B.tizzzz
-  const mem = new Mem()
-  const P = createProgress(D, mem)
-  P.boot()
-  const clear = (ch) => {
-    const r = P.startRun(ch)
-    P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
-  }
-  for (let ch = 1; ch <= 9; ch++) clear(ch)
-  ok(!P.claimTizzzzEvent().ok && !P.get().tizzzz.unlocked, 'before chapter 10 is cleared there is no Tizzzz story')
-  const cats = P.claimCatEvent()
-  ok(cats.ok && cats.item.grade === 'S' && !P.get().tizzzz.eventSeen, "the cats' story (chapter 5) is its own: it does not touch Tizzzz's")
-  clear(T.eventChapter)
-  const ss0 = P.get().inventory.filter((it) => it.grade === 'SS').length
-  const ev = P.claimTizzzzEvent()
-  const d = P.get()
-  ok(ev.ok && ev.item.grade === 'SS' && ev.item.weaponId === D.weapons.initialWeaponId && d.inventory.filter((it) => it.grade === 'SS').length === ss0 + 1, 'the first chapter-10 clear: Tizzzz comes and one SS-grade bouncy ball is given')
-  ok(d.tizzzz.unlocked && d.tizzzz.eventSeen && d.tizzzz.rewardGiven && d.equippedInstanceId === ev.item.id, 'Tizzzz has joined, the story is marked seen, the reward recorded; the SS ball is equipped (it beats the S)')
-  ok(d.inventory.filter((it) => it.grade === 'S').length === 1 && d.cats.unlocked, "the chapter-5 S ball and the cats are untouched")
-  ok(!P.claimTizzzzEvent().ok && !P.claimCatEvent().ok, 'asking again gives nothing and plays nothing')
-  clear(T.eventChapter)
-  ok(!P.claimTizzzzEvent().ok && P.get().inventory.filter((it) => it.grade === 'SS').length === ss0 + 1, 'clearing chapter 10 again: no story, still one SS ball')
-  const again = createProgress(D, mem)
-  const re = again.boot().data
-  ok(re.tizzzz.unlocked && re.tizzzz.eventSeen && re.tizzzz.rewardGiven && !again.claimTizzzzEvent().ok, 'after a reload Tizzzz is still there and the story stays seen')
-  ok(again.startRun(T.activeFromChapter).tizzzz === true && parseBackup(D, again.exportText()).data.tizzzz.unlocked, 'a run started now brings her; a backup keeps her')
-  again.setSound(false)
-  ok(createProgress(D, mem).boot().data.sound === false, 'the sound setting is kept')
-}
-// a save that cleared chapter 10 before Tizzzz (or the cats) existed
-{
-  const mem = new Mem()
-  const P = createProgress(D, mem)
-  P.boot()
-  const d = P.get()
-  d.firstCleared = Array.from({ length: 12 }, (_, i) => i + 1)
-  delete d.cats
-  delete d.tizzzz
-  mem.setItem(KEY, JSON.stringify(d))
-  const P2 = createProgress(D, mem)
-  const b = P2.boot().data
-  ok(!b.tizzzz.unlocked && !b.cats.unlocked && b.sound === true, 'an older save loads with neither met yet')
-  const a = P2.claimCatEvent()
-  const t = P2.claimTizzzzEvent()
-  ok(a.ok && t.ok && a.item.grade === 'S' && t.item.grade === 'SS' && P2.get().inventory.length === 3, 'it gets both stories, each with its own ball (S and SS)')
-}
-// her rewrite: from chapter 11, at every level-up, one card does its effect twice
-{
-  const T = B.tizzzz
-  ok(!newRun({ chapter: T.eventChapter, tizzzz: true }).writer && !newRun({ chapter: T.activeFromChapter, tizzzz: false }).writer && newRun({ chapter: T.activeFromChapter, tizzzz: true }).writer, `she rewrites from chapter ${T.activeFromChapter}, once she has joined`)
+  ok(!newRun({ chapter: T.activeFromChapter - 1, tizzzz: true }).writer && !newRun({ chapter: T.activeFromChapter, tizzzz: false }).writer && newRun({ chapter: T.activeFromChapter, tizzzz: true }).writer, `she rewrites from chapter ${T.activeFromChapter}, once she has joined`)
   const run = newRun({ chapter: T.activeFromChapter, tizzzz: true, cats: true, seed: 12 })
   run.spawnT = -1e9
   let sets = 0
@@ -995,7 +994,7 @@ const still = { x: 0, y: 0 }
 // the cats cost little with a full screen
 {
   const make = (cats) => {
-    const run = newRun({ chapter: 6, cats, seed: 33 })
+    const run = newRun({ chapter: B.cats.activeFromChapter, cats, seed: 33 })
     run.player.hp = run.player.maxHp = 1e12
     run.xp = -1e15
     run.t = 185
@@ -1015,6 +1014,99 @@ const still = { x: 0, y: 0 }
   const a = time(false)
   const b = time(true)
   ok(b.ms < a.ms + 0.5, `10 s with 300 pickups and a full screen: ${a.ms.toFixed(3)} ms a step without cats, ${b.ms.toFixed(3)} ms with them (${b.run.enemies.length} monsters, ${b.run.stats.catPicks || 0} pickups fetched)`)
+}
+
+// ── the 84-image story package: the map, the regions, the blessings ─────────
+{
+  const fs = await import('fs')
+  const A = D.storyAssets.images
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait'].includes(x.kind))
+  const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
+  ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
+  ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
+  const missing = A.filter((x) => !fs.existsSync(new URL('../src/survivor/assets/s84/' + x.file, import.meta.url)))
+  ok(missing.length === 0, `every game file the map names is there (${A.length} files)${missing.length ? ': missing ' + missing.map((x) => x.file).join(', ') : ''}`)
+  const ids = new Set(A.map((x) => x.id))
+  const S = D.story
+  const used = S.cutscenes.groups.flatMap((g) => g.cuts.map((c) => c.image))
+  ok(used.length === 29 && new Set(used).size === 29 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene'), 'each of the 29 cutscenes is placed once')
+  const per = S.regions.map((r) => S.cutscenes.groups.filter((g) => regionOf(D, g.chapter).id === r.id).reduce((n, g) => n + g.cuts.length, 0))
+  ok(per.join() === '5,4,3,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
+  ok(S.cutscenes.groups.every((g) => g.when !== 'time' || (g.at > 0 && g.at < 210)) && S.cutscenes.groups.every((g) => ['enter', 'time', 'boss', 'clear'].includes(g.when)), 'every cutscene has its moment: before the fight, a time in it, the boss, or the clear')
+  const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
+  ok(rr === '1-5,6-10,11-15,16-20,21-25,26-30,31-35' && S.regions.every((r) => ids.has(r.background) && A.find((x) => x.id === r.background).region === r.id), `7 regions of 5 chapters (${rr}), each with its own background`)
+  const roles = ['imp', 'spider', 'slime', 'bone_beast', 'brute', 'boss']
+  ok(S.regions.every((r) => roles.every((k) => r.skins[k] && ids.has(r.skins[k]) && A.find((x) => x.id === r.skins[k]).region === r.id)), 'every role in every region wears a monster of that region')
+  const placed = new Set(S.regions.flatMap((r) => [...Object.values(r.skins), ...(r.friends || [])]))
+  ok(A.filter((x) => x.kind === 'monster').every((x) => placed.has(x.id)), 'all 35 monsters are placed (33 as enemies, the phoenix and the snow guardian as friends)')
+  ok(!Object.values(S.regions.find((r) => r.id === 'snow').skins).includes('snowguardian'), 'the snow guardian never fights Mano')
+  ok(regionOf(D, 1).id === 'forest' && regionOf(D, 5).id === 'forest' && regionOf(D, 6).id === 'deepforest' && regionOf(D, 35).id === 'castle' && regionOf(D, 60).id === 'castle', 'chapters 1–5 are 작은 숲 … 31–35 마왕성; past 35 the fight goes on in 마왕성')
+  ok(Object.values(S.rewards).filter((r) => r.chapter).every((r) => r.images.every((id) => ids.has(id))), 'every reward picture is in the map')
+  // in battle: monsters wear their region's look, the fight's numbers are the role's
+  const r1 = newRun({ chapter: 3, seed: 3 })
+  const r28 = newRun({ chapter: 28, seed: 3 })
+  for (let i = 0; i < 180; i++) step(r1, FIXED, still), step(r28, FIXED, still), (r1.events.length = r28.events.length = 0)
+  const e1 = r1.enemies.find((e) => e.type === 'imp')
+  const e28 = r28.enemies.find((e) => e.type === 'imp')
+  ok(e1 && e28 && e1.skin === 'sprout' && e28.skin === 'griffin' && e1.r === e28.r && e1.r === B.enemies.imp.radius, `an imp is a 새싹요정 in 작은 숲 and a 그리핀 in the sky, with the same hit circle (${e1 && e1.r})`)
+  ok(enemyName(D, regionOf(D, 15), 'boss') === '해골 왕' && enemyName(D, regionOf(D, 35), 'boss') === '마왕' && enemyName(D, regionOf(D, 3), 'thief') === B.enemies.thief.name, 'the boss is named by its region; the thief keeps its own art and name')
+}
+// the blessings: slow, freeze (never the boss), lightning that never chains,
+// and at most perSecond of each however many balls fly
+{
+  const G = B.blessings
+  const all = { phoenix: true, snow: true, thunder: true }
+  const none = newRun({ chapter: 20, seed: 7 })
+  ok(Object.keys(none.bless).length === 0 && !newRun({ chapter: 20, seed: 7, blessings: { phoenix: true } }).bless.snow, 'only what is owned is in the run')
+  const run = newRun({ chapter: 20, seed: 7, blessings: all })
+  run.rng = () => 0 // every chance comes up
+  run.spawnT = -1e9
+  const mk = (x, y, type = 'imp') => {
+    const e = { id: run.nextId++, type, behavior: B.enemies[type].behavior, rank: B.enemies[type].rank || null, x, y, r: 10, hp: 1e9, maxHp: 1e9, speed: 40, damage: 5, damageMul: 1, state: 'live', t: 0, life: 0, hitT: 0, face: 1, mode: null, modeT: 0 }
+    run.enemies.push(e)
+    return e
+  }
+  const a = mk(100, 300)
+  const b2 = mk(130, 300)
+  const c = mk(160, 300)
+  const far = mk(340, 600)
+  run.grid.rebuild(run.enemies)
+  const hp0 = b2.hp
+  run.blessHit(a, 1000, a.x, a.y)
+  ok(a.slowT > 0 && a.slowMul === G.phoenix.slow && a.freezeT > 0, `a hit slows (×${G.phoenix.slow} for ${G.phoenix.seconds} s) and freezes (${G.snow.seconds} s)`)
+  ok(b2.hp < hp0 && c.hp < c.maxHp && far.hp === far.maxHp, `lightning strikes the nearest ${G.thunder.targets} within ${G.thunder.radius} px, not the far one`)
+  const hits = run.stats.hits
+  const x0 = a.x
+  for (let i = 0; i < 30; i++) step(run, FIXED, still)
+  ok(a.x === x0 || a.freezeT <= 0, 'frozen, it does not move')
+  ok(run.stats.hits === hits, 'the lightning set off nothing more (no chain)')
+  // a screen of balls: 5000 hits in one second
+  const r2 = newRun({ chapter: 20, seed: 8, blessings: all })
+  r2.rng = () => 0
+  const e = (() => {
+    const o = { id: 1, type: 'imp', behavior: 'chase', x: 100, y: 300, r: 10, hp: 1e30, maxHp: 1e30, speed: 40, damage: 5, damageMul: 1, state: 'live', t: 0, life: 0, hitT: 0, face: 1, mode: null, modeT: 0 }
+    r2.enemies.push(o)
+    return o
+  })()
+  r2.grid.rebuild(r2.enemies)
+  let bolts = 0
+  for (let i = 0; i < 60; i++) {
+    for (let k = 0; k < 84; k++) r2.blessHit(e, 10, e.x, e.y)
+    bolts += r2.events.filter((ev) => ev.type === 'bolt').length
+    r2.events.length = 0
+    r2.t += FIXED
+    e.frozenAgain = 0
+    r2.bless.thunder.tokens = Math.min(r2.bless.thunder.perSecond, r2.bless.thunder.tokens + r2.bless.thunder.perSecond * FIXED)
+  }
+  ok(bolts <= 2 * G.thunder.perSecond, `5040 hits in a second, every chance coming up: ${bolts} lightning strikes (at most about ${G.thunder.perSecond} a second)`)
+  // the boss: never frozen, slowed instead
+  const r3 = newRun({ chapter: 20, seed: 9, blessings: { snow: true } })
+  r3.rng = () => 0
+  const boss = { id: 1, type: 'boss', behavior: 'boss', rank: 'boss', x: 100, y: 300, r: 24, hp: 1e9, maxHp: 1e9, speed: 30, damage: 5, damageMul: 1, state: 'live', t: 0, life: 0, hitT: 0, face: 1, mode: null, modeT: 0 }
+  r3.enemies.push(boss)
+  r3.blessHit(boss, 10, boss.x, boss.y)
+  ok(!(boss.freezeT > 0) && boss.slowT > 0 && boss.slowMul === G.snow.bossSlow, `the boss is never frozen: slowed ×${G.snow.bossSlow} for ${G.snow.bossSeconds} s instead`)
+  ok(near(newRun({ chapter: 35, seed: 1, blessings: { ...all, final: true } }).bless.thunder.chance, G.thunder.chance * G.final.chanceMul), `마왕의 탱탱볼: every chance ×${G.final.chanceMul}`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
