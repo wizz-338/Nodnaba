@@ -2221,6 +2221,14 @@
   pointer-events: none;
 }
 
+/* a card beside the chosen one lights up under the pointer: it can be picked */
+@media (hover: hover) {
+  .ms-ep:not(.is-on):hover {
+    border-color: #f6d27a;
+    filter: brightness(1.05);
+  }
+}
+
 .ms-ep.is-on {
   border-color: #f6d27a;
   box-shadow:
