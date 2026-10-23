@@ -46,6 +46,8 @@ const MAX_FX = 80
 const MAX_NUMBERS = 40
 const MAX_SLASH = 24 // friend cats' scratches on screen at once (a busy screen: a third)
 const SLASH = 0.2 // s a scratch shows
+const FRIEND_INK = '#3b2530' // the friend cats' outline (the art package's ink)
+const FRIEND_LINE = 1.1 // its width in logical px
 const CRIT_COLOR = '#e5303a'
 // the game's round font (survivor.css loads it; until it is in, the system's)
 const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif"
@@ -970,20 +972,37 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   // with its pivot on the cat's feet. Facing west: the east frames mirrored.
   // Scratching: the attack poses through the scratch, then the paw coming
   // back; running: the legs follow the distance run; else idle.
-  function friendAtlas(q) {
-    let c = fcScaled.get(q)
+  function friendAtlas(q, ow) {
+    const key = q + '|' + ow
+    let c = fcScaled.get(key)
     if (c) return c
     const atlas = art.now('friend_cat')
     if (!atlas) return null
-    c = document.createElement('canvas')
-    c.width = Math.ceil(atlas.width * q)
-    c.height = Math.ceil(atlas.height * q)
-    const g = c.getContext('2d')
+    const make = () => {
+      const k = document.createElement('canvas')
+      k.width = Math.ceil(atlas.width * q)
+      k.height = Math.ceil(atlas.height * q)
+      return k
+    }
+    const base = make()
+    const g = base.getContext('2d')
     g.imageSmoothingEnabled = true
     g.imageSmoothingQuality = 'high'
-    g.drawImage(atlas, 0, 0, c.width, c.height)
+    g.drawImage(atlas, 0, 0, base.width, base.height)
+    // the outline: the cat's shape in ink, ow px out all round, under the cat
+    // (the painted sheets' own lines vanish when the cat is drawn this small)
+    const ink = make()
+    const gi = ink.getContext('2d')
+    gi.drawImage(base, 0, 0)
+    gi.globalCompositeOperation = 'source-in'
+    gi.fillStyle = FRIEND_INK
+    gi.fillRect(0, 0, ink.width, ink.height)
+    c = make()
+    const go = c.getContext('2d')
+    for (let a = 0; a < 16; a++) go.drawImage(ink, Math.cos((a * Math.PI) / 8) * ow, Math.sin((a * Math.PI) / 8) * ow)
+    go.drawImage(base, 0, 0)
     if (fcScaled.size > 8) fcScaled.clear()
-    fcScaled.set(q, c)
+    fcScaled.set(key, c)
     return c
   }
 
@@ -991,7 +1010,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const s = (FCB.drawH / FC.idleH) * c.size // logical px per atlas px
     const K = kd()
     const q = Math.min(1, Math.ceil(s * K * 20) / 20)
-    const atlas = friendAtlas(q)
+    // about a logical px of outline, as thick as Mano's and the other cats' lines
+    const ow = Math.max(1, Math.round(FRIEND_LINE * K))
+    const atlas = friendAtlas(q, ow)
     if (!atlas) return
     let anim = 'idle'
     let i
@@ -1000,15 +1021,15 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (c.moving) (anim = 'move'), (i = Math.floor(c.step / (9 * c.size)) % 4)
     else i = Math.floor(now / FC.ms.idle + c.id * 1.7) % 4
     const f = FC.animations[anim][c.dir][i]
-    const dw = f[2] * s * K
-    const dh = f[3] * s * K
+    // the frame with room round it for the outline (the atlas keeps pad free)
+    const e = Math.min(FC.pad / 2, Math.ceil((ow + 1) / q))
     const flip = c.face < 0
     const ox = (c.x - cam.x) * K
     const oy = (c.y - cam.y) * K
     ctx.imageSmoothingEnabled = true
     if (flip) ctx.setTransform(-1, 0, 0, 1, ox, oy)
     else ctx.setTransform(1, 0, 0, 1, ox, oy)
-    ctx.drawImage(atlas, f[0] * q, f[1] * q, f[2] * q, f[3] * q, -f[4] * s * K, -f[5] * s * K, dw, dh)
+    ctx.drawImage(atlas, (f[0] - e) * q, (f[1] - e) * q, (f[2] + 2 * e) * q, (f[3] + 2 * e) * q, -(f[4] + e) * s * K, -(f[5] + e) * s * K, (f[2] + 2 * e) * s * K, (f[3] + 2 * e) * s * K)
   }
 
   // a scratch: the claw marks across where it landed, turned the way the
