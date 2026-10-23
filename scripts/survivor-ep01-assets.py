@@ -26,12 +26,23 @@ scale for every frame of every sheet (never a fit frame by frame).
 friend_size_reference.png (three round bodies) and
 collectors_design_reference.png (단추·호두·모루) are references only: 뚱냥이 draws
 the same frames larger, and the three collectors keep their sprites.
+
+The friend cats wear no scarf (the red scarf is 단추·호두·모루's): the red of
+the scarf (and the gold bell hanging from it) is taken off every frame
+before cutting. Where it lay across the body the fur is painted back in from
+the fur around it (inpainting, colour from opaque fur only); where it stuck
+out past the body (the knot's tails) it becomes see-through. The body's
+outline there is found by closing the rest of the body (a 71 px disc).
+The thick outline that matches the game's other characters is drawn by the
+game at the size the cat is shown (render.js), so frames keep room for it
+(PAD).
 """
 import hashlib
 import json
 import os
 import sys
 
+import cv2
 import numpy as np
 from PIL import Image
 from scipy import ndimage
@@ -65,6 +76,7 @@ FACES = ['se', 'e', 'ne']
 ALPHA = 24
 DEBRIS = 400
 CAT_H = 100  # an idle pose's height in atlas px (the one scale)
+PAD = 14  # atlas px between frames (the outline drawn round them needs room)
 DURATIONS = {'idle': 170, 'move': 75, 'attack': 70, 'recover': 80}
 
 
@@ -82,10 +94,54 @@ def body(im):
     return [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
 
 
+def hsv(a):
+    a = a.astype(np.float32)
+    R, G, B = a[..., 0], a[..., 1], a[..., 2]
+    mx = np.maximum(np.maximum(R, G), B)
+    mn = np.minimum(np.minimum(R, G), B)
+    d = np.maximum(mx - mn, 1e-6)
+    h = np.where(mx == R, ((G - B) / d) % 6, np.where(mx == G, (B - R) / d + 2, (R - G) / d + 4)) * 60
+    return h, (mx - mn) / np.maximum(mx, 1), mx / 255
+
+
+def without_scarf(arr):
+    """the sheet with the red scarf and its bell taken off (see the top)"""
+    A = arr[..., 3]
+    h, s, v = hsv(arr)
+    # the scarf: strong pure red in large pieces (not the pink ears, the
+    # mouths or the amber eyes)
+    red = (A > ALPHA) & (arr[..., 0] >= arr[..., 1]) & (arr[..., 0] >= arr[..., 2]) & ((h < 14) | (h > 340)) & (s > 0.55) & (v > 0.31)
+    lab, n = ndimage.label(red, structure=np.ones((3, 3), bool))
+    sizes = ndimage.sum(red, lab, range(1, n + 1))
+    scarf = np.isin(lab, [i + 1 for i, z in enumerate(sizes) if z >= 150])
+    # the bell: gold touching the scarf, or yellow gold a little further (under a paw)
+    bell = np.zeros_like(scarf)
+    for reach, (h0, h1, s0, v0) in ((18, (25, 62, 0.45, 0.35)), (45, (38, 62, 0.5, 0.45))):
+        near = ndimage.binary_dilation(scarf, iterations=reach)
+        gold = (A > ALPHA) & (h > h0) & (h < h1) & (s > s0) & (v > v0)
+        gl, _ = ndimage.label(gold, structure=np.ones((3, 3), bool))
+        t = np.unique(gl[near & gold])
+        bell |= np.isin(gl, t[t > 0])
+    bell = ndimage.binary_dilation(ndimage.binary_fill_holes(ndimage.binary_closing(bell, iterations=4)), iterations=3)
+    wide = ndimage.binary_dilation(scarf, iterations=25)
+    mask = ndimage.binary_dilation(scarf | bell | (red & wide), iterations=4)
+    body = ((A > ALPHA) & ~mask).astype(np.uint8)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (71, 71))
+    big = cv2.copyMakeBorder(body, 40, 40, 40, 40, cv2.BORDER_CONSTANT, value=0)
+    filled = cv2.morphologyEx(big, cv2.MORPH_CLOSE, k)[40:-40, 40:-40].astype(bool) | ndimage.binary_fill_holes(body)
+    hole = mask | ((A <= ALPHA) & ndimage.binary_dilation(mask, iterations=24))
+    rgb = cv2.inpaint(np.ascontiguousarray(arr[..., :3]), (hole * 255).astype(np.uint8), 9, cv2.INPAINT_TELEA)
+    out = arr.copy()
+    out[..., :3] = np.where(mask[..., None], rgb, arr[..., :3])
+    out[..., 3] = np.where(mask, np.where(filled, 255, 0), A)
+    return out, int(scarf.sum()), int(bell.sum())
+
+
 def frames_of(path):
-    """the sheet's 12 shapes, [row][col] → (box, mask)"""
+    """the sheet's 12 shapes (scarf off), [row][col] → (box, mask)"""
     sheet = Image.open(path).convert('RGBA')
-    arr = np.asarray(sheet)
+    arr, scarf_px, bell_px = without_scarf(np.asarray(sheet))
+    print(f'{os.path.basename(path)}: scarf {scarf_px} px, bell {bell_px} px taken off')
     a = arr[:, :, 3]
     H, W = a.shape
     lab, n = ndimage.label(a > ALPHA, structure=np.ones((3, 3), bool))
@@ -176,7 +232,7 @@ def main(src, review=None):
                 im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
                 cells[(s, face, c)] = (im, px * k, py * k)
     # the atlas: one strip per (sheet, face)
-    pad = 2
+    pad = PAD
     rows = [(s, f) for s in SHEETS for f in FACES]
     aw = max(sum(cells[(s, f, c)][0].width + pad for c in range(4)) for s, f in rows) + pad
     ah = sum(max(cells[(s, f, c)][0].height for c in range(4)) + pad for s, f in rows) + pad
@@ -198,10 +254,10 @@ def main(src, review=None):
     images.append({'source': 'cat_units/friend_*_sheet.png', 'id': 'friend_cat', 'kind': 'atlas', 'region': None, 'name': '친구냥이', 'file': atlas_file, 'out': [aw, ah], 'bytes': os.path.getsize(os.path.join(OUT, '..', atlas_file))})
 
     data = {
-        'note': 'MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose\'s height in atlas px (the one scale), ms: each frame\'s time.',
+        'note': 'MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file; no scarf, see the script), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose\'s height in atlas px (the one scale), pad: atlas px free round every frame (for the outline the game draws), ms: each frame\'s time.',
         'package': 'MANO_EP01',
         'images': images,
-        'friendCat': {'file': atlas_file, 'idleH': CAT_H, 'ms': DURATIONS, 'faces': FACES, 'animations': anims},
+        'friendCat': {'file': atlas_file, 'idleH': CAT_H, 'pad': PAD, 'ms': DURATIONS, 'faces': FACES, 'animations': anims},
     }
     json.dump(data, open(MAP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     total = sum(x['bytes'] for x in images)
