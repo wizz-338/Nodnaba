@@ -643,410 +643,390 @@
     }
   },
   "bossTypes": {
-    "note": "the ordinary bosses (the 145 s mid-boss and the 210 s boss of every chapter but an episode's 3rd and 5th, whose special bosses keep their own attacks): each gets ONE of these when it comes, from a shuffled bag of the four (the next four come in a new shuffle), and keeps it until it falls. A: walks, stops, shows the path and charges along it (its own windup, charge speed and charge hit). B: walks at Mano weaving left and right (weave: the most it turns off her direction, radians; period: s for one weave). C: walks, stops, shows three lanes for aim s, then shoots three shots along them (a fan of spread degrees; each hits like its charge). D: walks; then, shown for warn s (it shakes, a ring round it), runs at mul x its speed for seconds s, turning at most turn rad/s, then walks again. Its HP, hits, reward and when it comes do not change.",
+    "note": "the ordinary bosses (the 145 s mid-boss and the 210 s boss of every chapter; the extra special bosses that come after the boss in some chapters fight their own way: extraBosses): each gets ONE of these when it comes, from a shuffled bag of the four (the next four come in a new shuffle), and keeps it until it falls. A: walks, stops, shows the path and charges along it (its own windup, charge speed and charge hit). B: walks at Mano weaving left and right (weave: the most it turns off her direction, radians; period: s for one weave). C: walks, stops, shows three lanes for aim s, then shoots three shots along them (a fan of spread degrees; each hits like its charge). D: walks; then, shown for warn s (it shakes, a ring round it), runs at mul x its speed for seconds s, turning at most turn rad/s, then walks again. Its HP, hits, reward and when it comes do not change.",
     "order": ["A", "B", "C", "D"],
     "B": { "weave": 0.6, "period": 1.8 },
     "C": { "aim": 0.85, "count": 3, "spread": 34, "speed": 140, "r": 6, "ttl": 5, "look": "bone", "show": 110 },
     "D": { "warn": 0.6, "mul": 2.6, "seconds": 0.9, "turn": 1.8 }
   },
-  "specialBosses": {
-    "note": "The story's special bosses (bosses.js): each episode's 3rd chapter has the region's mid-boss (its brute character), its 5th its final boss (its boss character), at the chapter's usual boss time with the boss's usual HP and hits (no new multipliers): only how they fight is their own. Every attack: warn (its warning shows on the ground from the start, in its real shape), its blows land once each, then recover; walk: seconds walking between attacks. Distances are logical px (the phone field is 340 × 536; Mano's base speed 125/s, her hit circle 9). The demon king's phases change with its HP (above: share of HP), with phasePause seconds of rest and its field cleared at each change. In a mid-boss chapter the 145 s elite wears the region's bone_beast character, so the boss is not met twice.",
-    "midChapter": 3,
-    "walkSeconds": 1.6,
-    "recoverSeconds": 0.7,
-    "strikeShow": 0.3,
-    "phasePause": 1.6,
-    "minWarn": 0.75,
+  "extraBosses": {
+    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this, never guarded or capped: a strong build ends it quickly. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart). walk: s between attacks; recover: s after one. phases: the last boss's attack lists by HP share left (above).",
+    "chapters": {
+      "3": "x_snail",
+      "5": "x_moth",
+      "8": "x_toad",
+      "10": "x_spider",
+      "13": "x_bellkeeper",
+      "15": "x_organ",
+      "18": "x_scarab",
+      "20": "x_sultan",
+      "23": "x_jelly",
+      "25": "x_peacock",
+      "28": "x_ray",
+      "30": "x_clock",
+      "33": "x_queen",
+      "35": "x_eclipse"
+    },
+    "intro": {
+      "calm": 0.45,
+      "warn": 1.7,
+      "appear": 0.6
+    },
+    "minWarn": 1.1,
+    "blowCap": 0.34,
+    "blowCapNote": "no single blow of an extra boss (its warned shapes or its body) takes more than this share of Mano's full HP (the last boss: its own blowCap), so one mistake is never the end, however strong the chapter's monsters hit",
+    "walk": 1.8,
+    "recover": 1.1,
+    "speed": 24,
+    "radius": 30,
+    "size": 128,
+    "hpMul": 0.8,
+    "downSeconds": 1.7,
     "bosses": {
-      "mossgolem": {
-        "role": "mid",
+      "x_snail": {
+        "line": "숲 전체에 커다란 종소리가 울려요!",
+        "look": "bell",
         "attacks": [
           {
-            "type": "cone",
-            "warn": 1.0,
-            "range": 120,
-            "angle": 70,
-            "damage": 24,
-            "recover": 1.1
-          }
-        ]
-      },
-      "flowerguard": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "radial",
-            "warn": 0.95,
-            "count": 12,
-            "gap": 2,
-            "speed": 72,
-            "r": 6,
-            "damage": 16,
-            "look": "seed"
-          },
-          {
-            "type": "cone",
-            "warn": 1.0,
-            "range": 110,
-            "angle": 60,
-            "damage": 24,
-            "recover": 1.1
-          },
-          {
-            "type": "radial",
-            "warn": 0.95,
-            "count": 14,
-            "gap": 3,
-            "speed": 78,
-            "r": 6,
-            "damage": 16,
-            "look": "seed"
-          }
-        ]
-      },
-      "lanterntree": {
-        "role": "mid",
-        "attacks": [
-          {
-            "type": "marks",
-            "count": 3,
-            "every": 0.5,
-            "delay": 1.15,
-            "r": 34,
-            "damage": 22
-          }
-        ]
-      },
-      "treelord": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "roots",
-            "warn": 1.4,
-            "cols": 5,
-            "rows": 3,
-            "spacing": 70,
-            "r": 34,
-            "safe": 2,
-            "step": 0.22,
-            "damage": 24,
-            "recover": 0.8
-          },
-          {
-            "type": "marks",
-            "count": 4,
-            "every": 0.45,
-            "delay": 1.15,
-            "r": 34,
-            "damage": 22
-          }
-        ]
-      },
-      "skullbeast": {
-        "role": "mid",
-        "attacks": [
-          {
-            "type": "charge",
-            "warn": 1.1,
-            "lock": 0.6,
-            "speed": 300,
-            "seconds": 0.5,
-            "damage": 30,
-            "recover": 0.9
-          }
-        ]
-      },
-      "skullking": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "fan",
-            "warn": 0.9,
-            "lock": 0.7,
-            "count": 5,
-            "spread": 64,
-            "speed": 140,
-            "r": 6,
-            "damage": 18,
-            "look": "bone"
-          },
-          {
-            "type": "summon",
-            "warn": 0.9,
-            "count": 3,
-            "cap": 5,
-            "enemy": "imp",
-            "recover": 0.6
-          },
-          {
-            "type": "fan",
-            "warn": 0.9,
-            "lock": 0.7,
-            "count": 7,
-            "spread": 84,
-            "speed": 140,
-            "r": 6,
-            "damage": 18,
-            "look": "bone"
-          }
-        ]
-      },
-      "sandworm": {
-        "role": "mid",
-        "attacks": [
-          {
-            "type": "burrow",
-            "warn": 1.2,
-            "dig": 0.35,
-            "r": 46,
-            "damage": 26,
-            "recover": 0.9
-          }
-        ]
-      },
-      "crystalguard": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "lines",
-            "warn": 1.0,
-            "count": 4,
+            "type": "ringwave",
+            "warn": 1.5,
+            "speed": 150,
             "width": 30,
-            "len": 420,
-            "step": 0.3,
-            "rotate": 45,
-            "damage": 24,
-            "recover": 0.8
-          },
+            "gaps": 2,
+            "gapDeg": 58,
+            "damage": 24
+          }
+        ]
+      },
+      "x_moth": {
+        "line": "꽃가루 폭풍이 피어나요!",
+        "look": "flower",
+        "attacks": [
           {
-            "type": "radial",
-            "warn": 0.95,
-            "count": 10,
-            "gap": 2,
-            "speed": 80,
-            "r": 6,
-            "damage": 16,
-            "look": "crystal"
-          },
-          {
-            "type": "lines",
-            "warn": 1.0,
-            "count": 6,
-            "width": 26,
-            "len": 420,
+            "type": "bloom",
+            "warn": 1.3,
+            "petals": 6,
+            "petalDeg": 46,
+            "skip": 2,
+            "inner": 34,
             "step": 0.22,
-            "rotate": 30,
-            "damage": 24,
-            "recover": 0.8
+            "damage": 24
           }
         ]
       },
-      "frostbear": {
-        "role": "mid",
+      "x_toad": {
+        "line": "목이 부풀어 올라요… 포자를 조심해!",
+        "look": "spore",
         "attacks": [
           {
-            "type": "slams",
-            "warn": 0.9,
-            "count": 3,
-            "every": 0.45,
-            "reach": 46,
-            "r": 40,
-            "damage": 22,
-            "recover": 1.0
-          }
-        ]
-      },
-      "icegolem": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "floor",
-            "warn": 0.8,
-            "count": 3,
-            "r": 42,
-            "spread": 90,
-            "life": 5,
-            "cap": 5,
-            "slow": 0.72,
-            "recover": 0.6
-          },
-          {
-            "type": "fan",
-            "warn": 1.0,
-            "lock": 0.7,
-            "count": 5,
-            "spread": 70,
-            "speed": 130,
-            "r": 6,
-            "damage": 18,
-            "look": "ice"
-          }
-        ]
-      },
-      "skygolem": {
-        "role": "mid",
-        "attacks": [
-          {
-            "type": "wind",
-            "warn": 0.8,
-            "range": 150,
-            "push": 120,
-            "seconds": 0.3,
-            "recover": 0.3
-          },
-          {
-            "type": "bolts",
-            "warn": 1.1,
-            "count": 3,
-            "r": 34,
-            "spread": 80,
-            "step": 0.35,
-            "damage": 24,
-            "recover": 0.8
-          }
-        ]
-      },
-      "thunderspirit": {
-        "role": "final",
-        "walk": 1.3,
-        "attacks": [
-          {
-            "type": "chain",
-            "warn": 1.0,
+            "type": "spores",
+            "warn": 1.4,
             "count": 6,
-            "spacing": 56,
-            "r": 30,
-            "step": 0.25,
-            "damage": 22,
-            "recover": 0.8
-          },
-          {
-            "type": "radial",
-            "warn": 0.95,
-            "count": 14,
-            "gap": 3,
-            "speed": 90,
-            "r": 6,
-            "damage": 16,
-            "look": "spark"
-          },
-          {
-            "type": "bolts",
-            "warn": 1.0,
-            "count": 4,
-            "r": 32,
-            "spread": 90,
-            "step": 0.3,
-            "damage": 22,
-            "recover": 0.8
+            "r": 48,
+            "step": 0.24,
+            "damage": 22
           }
         ]
       },
-      "voidgolem": {
-        "role": "mid",
+      "x_spider": {
+        "line": "유적의 룬 거미줄이 깨어나요!",
+        "look": "web",
         "attacks": [
           {
-            "type": "combo",
-            "parts": [
-              {
-                "type": "marks",
-                "count": 3,
-                "every": 0.45,
-                "delay": 1.1,
-                "r": 34,
-                "damage": 22
-              },
-              {
-                "type": "charge",
-                "warn": 1.1,
-                "lock": 0.6,
-                "speed": 300,
-                "seconds": 0.5,
-                "damage": 30,
-                "recover": 0.9,
-                "after": 1.7
-              }
-            ]
+            "type": "web",
+            "warn": 1.4,
+            "threads": 6,
+            "fire": 3,
+            "width": 30,
+            "step": 0.3,
+            "damage": 24
           }
         ]
       },
-      "demonking": {
-        "role": "final",
-        "walk": 1.1,
+      "x_bellkeeper": {
+        "line": "망자의 종이 울려요!",
+        "look": "ghost",
+        "attacks": [
+          {
+            "type": "sweep",
+            "warn": 1.4,
+            "width": 64,
+            "speed": 230,
+            "gaps": 1,
+            "gap": 130,
+            "damage": 24
+          }
+        ]
+      },
+      "x_organ": {
+        "line": "죽음의 선율이 시작돼요!",
+        "look": "organ",
+        "attacks": [
+          {
+            "type": "rows",
+            "warn": 1.4,
+            "rows": 6,
+            "damage": 24
+          }
+        ]
+      },
+      "x_scarab": {
+        "line": "태양이 땅으로 내려와요!",
+        "look": "sun",
+        "attacks": [
+          {
+            "type": "ringwave",
+            "warn": 1.5,
+            "speed": 170,
+            "width": 36,
+            "gaps": 1,
+            "gapDeg": 84,
+            "damage": 26
+          }
+        ]
+      },
+      "x_sultan": {
+        "line": "시간의 모래가 쏟아져요!",
+        "look": "sand",
+        "attacks": [
+          {
+            "type": "sweep",
+            "warn": 1.4,
+            "width": 84,
+            "speed": 200,
+            "gaps": 2,
+            "gap": 110,
+            "damage": 24
+          }
+        ]
+      },
+      "x_jelly": {
+        "line": "눈꽃이 피며 한기가 번져요!",
+        "look": "snow",
+        "attacks": [
+          {
+            "type": "branches",
+            "warn": 1.4,
+            "count": 6,
+            "branchDeg": 26,
+            "damage": 24
+          }
+        ]
+      },
+      "x_peacock": {
+        "line": "얼음 깃이 활짝 펼쳐져요!",
+        "look": "ice",
+        "attacks": [
+          {
+            "type": "pillars",
+            "warn": 1.3,
+            "rays": 5,
+            "spreadDeg": 110,
+            "perRay": 4,
+            "r": 28,
+            "step": 0.18,
+            "damage": 24
+          }
+        ]
+      },
+      "x_ray": {
+        "line": "폭풍이 하늘을 갈라요!",
+        "look": "storm",
+        "attacks": [
+          {
+            "type": "sweep",
+            "warn": 1.4,
+            "width": 80,
+            "speed": 230,
+            "gaps": 1,
+            "gap": 140,
+            "push": 55,
+            "damage": 24
+          }
+        ]
+      },
+      "x_clock": {
+        "line": "하늘의 시계가 움직이기 시작해요!",
+        "look": "clock",
+        "attacks": [
+          {
+            "type": "clock",
+            "warn": 1.3,
+            "sectors": 12,
+            "lit": 4,
+            "inner": 40,
+            "step": 0.3,
+            "damage": 24
+          }
+        ]
+      },
+      "x_queen": {
+        "line": "공허의 체스판이 펼쳐져요!",
+        "look": "chess",
+        "attacks": [
+          {
+            "type": "chess",
+            "warn": 1.5,
+            "cols": 6,
+            "rows": 5,
+            "lines": 3,
+            "damage": 26
+          }
+        ]
+      },
+      "x_eclipse": {
+        "line": "별이 삼켜져요. 마지막 싸움이에요!",
+        "look": "eclipse",
+        "final": true,
+        "blowCap": 0.45,
+        "size": 168,
+        "radius": 38,
+        "hpMul": 1.15,
+        "downSeconds": 2.3,
+        "intro": {
+          "calm": 0.9,
+          "warn": 1.8,
+          "appear": 0.8
+        },
         "phases": [
           {
-            "above": 0.66,
+            "above": 0.65,
+            "walk": 1.6,
             "attacks": [
               {
-                "type": "cone",
-                "warn": 1.0,
-                "range": 130,
-                "angle": 80,
-                "damage": 28,
-                "recover": 1.1
+                "type": "ringwave",
+                "warn": 1.3,
+                "speed": 190,
+                "width": 34,
+                "gaps": 1,
+                "gapDeg": 72,
+                "damage": 30
               },
               {
-                "type": "radial",
-                "warn": 0.95,
-                "count": 14,
-                "gap": 3,
-                "speed": 80,
-                "r": 6,
-                "damage": 16,
-                "look": "void"
+                "type": "sweep",
+                "warn": 1.3,
+                "width": 80,
+                "speed": 260,
+                "gaps": 1,
+                "gap": 120,
+                "damage": 30
               }
             ]
           },
           {
-            "above": 0.33,
+            "above": 0.3,
+            "walk": 1.4,
             "attacks": [
               {
-                "type": "marks",
-                "count": 4,
-                "every": 0.45,
-                "delay": 1.15,
-                "r": 34,
-                "damage": 26
+                "type": "combo",
+                "after": [
+                  1.4
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 1.2,
+                    "speed": 190,
+                    "width": 34,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 30
+                  },
+                  {
+                    "type": "sweep",
+                    "warn": 1.2,
+                    "width": 80,
+                    "speed": 260,
+                    "gaps": 1,
+                    "gap": 120,
+                    "damage": 30
+                  }
+                ]
               },
               {
-                "type": "fan",
-                "warn": 0.9,
-                "lock": 0.7,
-                "count": 7,
-                "spread": 80,
-                "speed": 140,
-                "r": 6,
-                "damage": 20,
-                "look": "void"
+                "type": "combo",
+                "after": [
+                  1.4
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 1.2,
+                    "width": 80,
+                    "speed": 260,
+                    "gaps": 1,
+                    "gap": 120,
+                    "damage": 30
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 1.2,
+                    "speed": 190,
+                    "width": 34,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 30
+                  }
+                ]
               }
             ]
           },
           {
             "above": 0,
+            "walk": 1.1,
+            "core": true,
             "attacks": [
               {
-                "type": "chain",
-                "warn": 1.0,
-                "count": 6,
-                "spacing": 56,
-                "r": 30,
-                "step": 0.25,
-                "damage": 26,
-                "recover": 0.8
+                "type": "combo",
+                "after": [
+                  1.0
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 1.1,
+                    "speed": 210,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 66,
+                    "damage": 32
+                  },
+                  {
+                    "type": "sweep",
+                    "warn": 1.1,
+                    "width": 84,
+                    "speed": 280,
+                    "gaps": 1,
+                    "gap": 115,
+                    "damage": 32
+                  }
+                ]
               },
               {
-                "type": "charge",
-                "warn": 1.1,
-                "lock": 0.6,
-                "speed": 300,
-                "seconds": 0.5,
-                "damage": 34,
-                "recover": 0.9
+                "type": "combo",
+                "after": [
+                  1.0
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 1.1,
+                    "width": 84,
+                    "speed": 280,
+                    "gaps": 1,
+                    "gap": 115,
+                    "damage": 32
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 1.1,
+                    "speed": 210,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 66,
+                    "damage": 32
+                  }
+                ]
               }
             ]
           }

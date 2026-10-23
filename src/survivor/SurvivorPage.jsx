@@ -4,7 +4,7 @@ import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDe
 import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
 import { createRenderer, short } from './render.js'
-import { specialOf } from './bosses.js'
+import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
@@ -492,6 +492,8 @@ function Game({ exitHref }) {
     const seen = new Set(P.current.get().story.seen)
     g.seen = seen
     preloadRegion(g.run.region, pf.background)
+    // (and the chapter's extra special boss, if it has one)
+    if (extraOf(D, ch)) loadArt('motion:' + extraOf(D, ch))
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
     setScreen('battle')
@@ -761,11 +763,18 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
 // chapters below, and the start button. The next locked chapter can be seen,
 // never started. The story ends at the last region's last chapter (35).
 const LAST_CHAPTER = lastChapter(D)
-// the boss a chapter ends with: its special boss (an episode's 3rd and 5th
-// chapters), else the region's boss
+// the chapter's boss, and the extra special boss that comes after it in the
+// chapters that have one
 const chapterBoss = (region, ch) => {
-  const sp = specialOf(D, region, ch)
-  return sp ? D.story.monsters[sp.id].name : enemyName(D, region, 'boss')
+  const x = extraOf(D, ch)
+  return x ? (
+    <>
+      {enemyName(D, region, 'boss')}
+      <small className="ms-epinfo__extra">+ {D.motion.characters[x].name}</small>
+    </>
+  ) : (
+    enemyName(D, region, 'boss')
+  )
 }
 // at most this many health bars of elites and bosses at once
 const MAX_BARS = 4
@@ -1447,7 +1456,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   const knobRef = useRef(null)
   const [hint, setHint] = useState(firstTime)
   const [toast, setToast] = useState(null)
-  const [warning, setWarning] = useState(null) // when the last WARNING! came (its key)
+  const [warning, setWarning] = useState(null) // the extra special boss's WARNING!: { key, name, line, final }
   const modalRef = useRef(modal)
   modalRef.current = modal
 
@@ -1602,9 +1611,13 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         refresh()
       }
       for (const ev of run.events) {
-        // a special boss (an episode's 3rd and 5th chapters): WARNING! over
-        // the fight, which goes on under it
-        if (ev.type === 'boss' && ev.special) setWarning(run.t)
+        // the extra special boss's turn: the music hushes, then WARNING!
+        // with its name and line and the siren, then the fight
+        if (ev.type === 'extraCalm') audio.duck(true)
+        else if (ev.type === 'extraWarn') {
+          setWarning({ key: run.t, name: ev.name, line: ev.line, final: ev.final })
+          audio.siren(ev.final)
+        } else if (ev.type === 'extraAppear') audio.duck(false)
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
         else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
         else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
@@ -1683,6 +1696,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
 
     return () => {
       clearTimeout(toastTimer)
+      audio.stopSiren()
+      audio.duck(false)
       cancelAnimationFrame(raf)
       ro.disconnect()
       release()
@@ -1723,7 +1738,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   const waves = C.phases.filter((ph) => ph.from < bossAt)
   const waveNo = waves.filter((ph) => ph.from <= run.t).length
   const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
-  const stageText = run.boss ? (ot ? '보스전 연장' : '보스전') : `${waveNo}/${waves.length} 웨이브`
+  const stageText = run.extra ? '특별 보스전' : run.boss ? (ot ? '보스전 연장' : '보스전') : `${waveNo}/${waves.length} 웨이브`
   const timeText = run.boss ? clock(run.t) : `보스 ${clock(Math.max(0, Math.ceil(bossAt - run.t)))}`
   const R0 = JOY.radius * k
 
@@ -1791,10 +1806,15 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         </div>
       </div>
       {toast && <p className="ms-toast">{toast}</p>}
-      {warning !== null && (
-        <p key={warning} className="ms-warning" aria-live="assertive" onAnimationEnd={() => setWarning(null)}>
-          WARNING!
-        </p>
+      {warning && (
+        <div key={warning.key} className={`ms-xwarn${warning.final ? ' is-final' : ''}`} role="alert" onAnimationEnd={(e) => e.target === e.currentTarget && setWarning(null)}>
+          <i className="ms-xwarn__band ms-xwarn__band--top" />
+          {warning.final && <i className="ms-xwarn__eclipse" />}
+          <p className="ms-xwarn__word">WARNING!</p>
+          <p className="ms-xwarn__name">{warning.name}</p>
+          <p className="ms-xwarn__line">{warning.line}</p>
+          <i className="ms-xwarn__band ms-xwarn__band--bottom" />
+        </div>
       )}
       {hint && <p className="ms-hint">{pf.input === 'keys' ? 'WASD나 방향키로 마노가 달려요. 공격은 자동이에요. Esc: 일시정지' : '화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.'}</p>}
       {pf.input === 'touch' && (

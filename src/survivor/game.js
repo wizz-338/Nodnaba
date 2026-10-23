@@ -13,7 +13,7 @@
 // overtime (the fight goes on and monsters come faster), never a free clear.
 
 import { BEHAVIORS } from './weapons.js'
-import { specialOf, updateSpecial, updateHazards, clearOwned, setSpawner, addHazard, fireShot } from './bosses.js'
+import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -69,9 +69,9 @@ export function enemyName(D, region, type) {
   const id = skinOf(D, region, type)
   return (id && D.story.monsters[id] && D.story.monsters[id].name) || D.balance.enemies[type].name || type
 }
-// the name of one monster on the field: the look it wears (a special boss or
-// a mid-boss chapter's second elite wear another role's), else its role's
-export const monsterName = (D, region, e) => (e.skin && D.story.monsters[e.skin] && D.story.monsters[e.skin].name) || enemyName(D, region, e.type)
+// the name of one monster on the field: the look it wears (the extra
+// special boss wears its own), else its role's
+export const monsterName = (D, region, e) => (e.skin && ((D.story.monsters[e.skin] && D.story.monsters[e.skin].name) || (D.motion.characters[e.skin] && D.motion.characters[e.skin].name))) || enemyName(D, region, e.type)
 
 // what the coin stats give (same formulas as the shop; see progress.js)
 function perma(D, levels = {}) {
@@ -154,8 +154,8 @@ export function createRun(D, opts) {
       xpMul: 1,
       coinMul: pm.coins,
       inv: 0,
-      slow: 1, // frost under her feet (a special boss's): her speed × this
-      push: null, // a gust (a special boss's): { vx, vy, until }
+      slow: 1, // frost under her feet: her speed × this
+      push: null, // a gust (the storm ray's): { vx, vy, until }
       hitT: 0,
       moving: false,
     },
@@ -178,9 +178,10 @@ export function createRun(D, opts) {
     orbs: [],
     events: [], // for the renderer: impacts, deaths, numbers (drained every frame)
     awards: [], // rewards earned this run ('elite1', 'elite2', 'boss'), for the page to save
-    // a special boss's attacks (bosses.js): warnings and blows on the
-    // ground, its shots, its frost
+    // bosses' attacks (bosses.js): warnings and blows on the ground, shots
     hazards: [],
+    // the chapter's extra special boss, once its turn has come (see startExtra)
+    extra: null,
     bossBag: opts.bossBag || { order: [] }, // the ordinary bosses' types to come (see nextBossType)
     shots: [],
     floors: [],
@@ -234,7 +235,7 @@ function blessHit(run, e, dmg, x, y) {
     c.tokens -= 1
     return true
   }
-  const boss = e.behavior === 'boss' || e.behavior === 'special'
+  const boss = e.behavior === 'boss' || e.behavior === 'extra'
   if (b.phoenix && e.state === 'live' && fire('phoenix')) {
     const c = b.phoenix
     slowDown(e, boss ? c.bossSlow : c.slow, c.seconds)
@@ -284,7 +285,8 @@ function refillBlessings(run, dt) {
 // view is the field.
 function follow(run) {
   const A = run.arena
-  if (!A.view) return
+  // the extra special boss's fight: the camera holds still on its area
+  if (!A.view || (run.extra && run.extra.box)) return
   const [x0, y0, x1, y1] = A.bounds
   const [w, h] = A.view
   const p = run.player
@@ -362,7 +364,9 @@ export function lateGame(run) {
 }
 
 // boss overtime: the clock has run out and the boss still stands
-export const overtime = (run) => run.t > run.D.balance.chapter.overtime.after && !!run.boss && run.boss.state !== 'down'
+// (only while the chapter's boss stands: not once it has fallen, nor in the
+// extra special boss's fight after it)
+export const overtime = (run) => run.t > run.D.balance.chapter.overtime.after && !!run.boss && (run.boss.state === 'live' || run.boss.state === 'spawn')
 
 // how much faster the ordinary monsters run while the chapter's boss has
 // lived long (overtime.mobSpeed): by whole steps of the clock since it came,
@@ -494,9 +498,6 @@ function spawn(run, type = pickType(run), at = null) {
   return e
 }
 
-// a special boss's summons come like any monster of the wave (bosses.js)
-setSpawner((run, type, x, y) => spawn(run, type, { x, y }))
-
 // the ordinary bosses' types (balance.json → bossTypes) come out of a bag:
 // the four in a shuffled order, then a new shuffle. The bag may be the
 // page's (opts.bossBag, kept from one run to the next) or the run's own
@@ -527,13 +528,6 @@ function spawnSpecial(run, ev) {
   if (run.arena.view && def.behavior === 'flee') e.roam = true // it may leave the view (never the field)
   e.key = ev.key
   run.elites[ev.key] = e
-  // the story's special bosses (bosses.js): the 3rd chapter's mid-boss and
-  // the 5th's final boss take the boss's place (its HP, its hits) and fight
-  // their own way; in a mid-boss chapter the 145 s elite is another of the
-  // region's monsters, so the boss is not met twice
-  const sp = specialOf(run.D, run.region, run.chapter)
-  if (sp && ev.key === 'boss') Object.assign(e, { behavior: 'special', special: sp.id, role: sp.role, skin: sp.id })
-  if (sp && sp.role === 'mid' && ev.key === 'elite2') e.skin = run.region.skins.bone_beast || e.skin
   // an ordinary boss: its one way of fighting, the next from the bag
   if (e.behavior === 'boss') e.btype = nextBossType(run)
   if (ev.key === 'boss') {
@@ -544,7 +538,7 @@ function spawnSpecial(run, ev) {
     // and hits harder (body, charge, slam), so those seconds are a fight
     if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
   }
-  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e), special: e.behavior === 'special' })
+  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e) })
 }
 
 function hurtEnemy(run, e, dmg, x, y, crit = false) {
@@ -561,7 +555,7 @@ function hurtEnemy(run, e, dmg, x, y, crit = false) {
   const B = run.D.balance
   run.events.push({ type: 'die', x: e.x, y: e.y, kind: e.type })
   run.orbs.push({ kind: 'xp', x: e.x, y: e.y, v: e.xp, pull: false })
-  if (e.rank) {
+  if (e.rank && e.key !== 'extra') {
     // an elite or the boss: its reward is earned now (the page saves it at once)
     run.awards.push(e.key)
     if (e.key !== 'boss') {
@@ -569,10 +563,11 @@ function hurtEnemy(run, e, dmg, x, y, crit = false) {
       run.player.hp = Math.min(run.player.maxHp, run.player.hp + B.chapter.eliteHeal)
     }
   }
-  if (e.behavior === 'boss' || e.behavior === 'special') {
+  if (e.behavior === 'boss' || e.behavior === 'extra') {
     // falls (its death plays once) and stops at once: no more attacks, no
     // touch; whatever it had on the ground or in the air goes with it. The
-    // boss's fall clears the chapter when that ends; an elite fades away
+    // boss's fall clears the chapter when that ends (or, where an extra
+    // special boss is to come, brings it on); an elite fades away
     e.state = 'down'
     e.mode = null
     e.atk = null
@@ -611,10 +606,9 @@ const toward = (e, x, y) => {
 
 // how each kind moves; returns nothing, moves e
 const MOVES = {
-  // the story's special bosses: walk at Mano, then one of their attacks
-  // (bosses.js)
-  special(run, e, dt) {
-    updateSpecial(run, e, dt, { chase: MOVES.chase })
+  // the extra special boss: drifts at Mano, then one of its attacks (bosses.js)
+  extra(run, e, dt) {
+    updateExtra(run, e, dt, { chase: MOVES.chase })
   },
   // straight at Mano
   chase(run, e, dt) {
@@ -777,7 +771,7 @@ function moveEnemies(run, dt) {
     }
     // a fallen elite (not the boss: its fall ends the chapter) fades away
     // once its death has played; nothing stays lying on the field
-    if (e.state === 'down' && e !== run.boss && e.t >= run.D.balance.enemies[e.type].downSeconds) (e.state = 'gone'), (e.t = 0)
+    if (e.state === 'down' && e !== run.boss && e.behavior !== 'extra' && e.t >= run.D.balance.enemies[e.type].downSeconds) (e.state = 'gone'), (e.t = 0)
     if (e.state !== 'live') continue
     // a blessing's hold: frozen stands still, slowed moves (and counts) slower
     let k = 1
@@ -794,7 +788,7 @@ function moveEnemies(run, dt) {
     const v = Math.hypot(e.x - ox, e.y - oy) / dt
     e.pace = (e.pace || 0) * 0.8 + v * 0.2
     if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind')) continue
-    if (e.behavior === 'special' && e.atk) continue // its attack faced it
+    if (e.behavior === 'extra' && e.atk) continue // its attack faced it
     // left or right: by where it is going, with a margin, so small sways and
     // pushes never flip it back and forth; standing, it looks at Mano
     e.vxs = (e.vxs || 0) * 0.8 + ((e.x - ox) / dt) * 0.2
@@ -807,7 +801,7 @@ function moveEnemies(run, dt) {
   run.grid.rebuild(run.enemies.filter((e) => e.state === 'live' && !e.under))
   for (const e of run.enemies) {
     if (e.state !== 'live') continue
-    if (e.behavior !== 'boss' && e.behavior !== 'special') {
+    if (e.behavior !== 'boss' && e.behavior !== 'extra') {
       let px = 0
       let py = 0
       run.grid.near(e.x, e.y, e.r + 30, (o) => {
@@ -818,7 +812,7 @@ function moveEnemies(run, dt) {
         const d2 = dx * dx + dy * dy
         if (d2 >= min * min || d2 === 0) return
         const d = Math.sqrt(d2)
-        const push = (min - d) * (o.behavior === 'boss' || o.behavior === 'special' ? 1 : 0.5)
+        const push = (min - d) * (o.behavior === 'boss' || o.behavior === 'extra' ? 1 : 0.5)
         px += (dx / d) * push
         py += (dy / d) * push
       })
@@ -842,15 +836,15 @@ function moveEnemies(run, dt) {
 
 function movePlayer(run, dt, input) {
   const p = run.player
-  const [x0, y0, x1, y1] = run.arena.bounds
+  // (the extra special boss's fight is in the area on screen when it began)
+  const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
   let ix = input ? input.x : 0
   let iy = input ? input.y : 0
   const m = Math.hypot(ix, iy)
   // any angle; never faster on a diagonal; no sliding: she stops when the
   // stick is let go
   if (m > 1) (ix /= m), (iy /= m)
-  // (on a special boss's frost she is a little slower; a gust carries her a
-  // short way)
+  // (on frost she is a little slower; a gust carries her a short way)
   const sp = p.speed * (p.slow || 1)
   p.vx = ix * sp + (p.push ? p.push.vx : 0)
   p.vy = iy * sp + (p.push ? p.push.vy : 0)
@@ -866,7 +860,15 @@ function movePlayer(run, dt, input) {
 // what touching this enemy costs right now (a charging boss hits harder)
 // (a frozen one cannot hurt)
 const touchDamage = (run, e) =>
-  e.freezeT > 0 || e.under ? 0 : e.dash ? e.dash.damage : e.behavior === 'boss' && e.mode === 'charge' ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul : e.damage
+  e.freezeT > 0 || e.under
+    ? 0
+    : e.dash
+      ? e.dash.damage
+      : e.behavior === 'boss' && e.mode === 'charge'
+        ? run.D.balance.enemies[e.type].chargeDamage * e.damageMul
+        : e.blowCap
+          ? Math.min(e.damage, e.blowCap * run.player.maxHp) // (the extra special boss's body too)
+          : e.damage
 
 // boss overtime hits harder and harder: a run that can no longer win ends
 export const overtimeHit = (run) => {
@@ -876,6 +878,8 @@ export const overtimeHit = (run) => {
 
 function hurtPlayer(run, dmg, from = 'touch') {
   const p = run.player
+  // nothing hurts while the extra special boss is on its way
+  if (run.extra && run.extra.phase !== 'fight') return
   const n = dmg * p.armor * overtimeHit(run)
   p.hp = Math.max(0, p.hp - n)
   p.inv = run.D.balance.player.contactInvulnerability
@@ -901,7 +905,8 @@ function contact(run) {
 }
 
 function summary(run, cleared) {
-  const b = run.boss
+  // (in the extra special boss's fight, how much of it was left)
+  const b = run.extra && run.extra.boss ? run.extra.boss : run.boss
   return {
     cleared,
     time: run.t,
@@ -910,6 +915,7 @@ function summary(run, cleared) {
     level: run.level,
     elites: run.eliteKills,
     bossLeft: b ? Math.max(0, b.hp) / b.maxHp : null,
+    extra: run.extra ? run.extra.id : null,
     // telemetry
     shots: run.stats.shots,
     hits: run.stats.hits,
@@ -1340,16 +1346,111 @@ export function choose(run, id, seq) {
 function advanceClock(run) {
   const C = run.D.balance.chapter
   while (run.nextEvent < C.events.length && run.t >= C.events[run.nextEvent].at) spawnSpecial(run, C.events[run.nextEvent++])
-  // cleared when the boss has fallen and lain down for a moment
+  // cleared when the boss has fallen and lain down for a moment; where the
+  // chapter has an extra special boss, that comes then, and the chapter is
+  // cleared when it falls in its turn
   const b = run.boss
-  if (b && b.state === 'down' && b.t >= run.D.balance.enemies[b.type].downSeconds) {
+  if (!run.extra && b && b.state === 'down' && b.t >= run.D.balance.enemies[b.type].downSeconds) {
     run.bossDown = true
+    if (extraOf(run.D, run.chapter)) startExtra(run)
+    else {
+      run.state = 'over'
+      run.result = summary(run, true)
+    }
+  }
+  if (run.extra) extraClock(run)
+}
+
+// ── the extra special boss ──────────────────────────────────────────────────
+// Its turn: the field is cleared (the monsters fade away, every attack on the
+// ground or in the air goes), a moment of quiet, WARNING! with its name and
+// line (the page sounds the siren), then it comes in where Mano is not; only
+// then the fight. Until then nothing can hurt Mano, and it cannot be hit
+// before it stands. It comes once a run, every run (a cleared chapter too).
+// The fight is in the play area as it is now (on the PC the camera holds).
+function startExtra(run) {
+  const id = extraOf(run.D, run.chapter)
+  const S = extraSpec(run.D, id)
+  run.extra = { id, phase: 'calm', t: 0, box: run.view.slice(), boss: null, final: !!S.final }
+  // (the fallen boss has lain its time: it fades with the rest)
+  for (const e of run.enemies) if (e.state !== 'gone') (e.state = 'gone'), (e.t = 0)
+  run.hazards = []
+  run.shots = []
+  run.floors = []
+  run.player.push = null
+  run.events.push({ type: 'extraCalm', id, final: run.extra.final })
+}
+
+function extraClock(run) {
+  const X = run.extra
+  if (X.phase === 'done') return
+  const S = extraSpec(run.D, X.id)
+  const I = S.intro
+  X.t = run.t - (X.t0 ??= run.t)
+  if (X.phase === 'calm' && X.t >= I.calm) {
+    X.phase = 'warn'
+    run.events.push({ type: 'extraWarn', id: X.id, name: run.D.motion.characters[X.id].name, line: S.line, final: X.final })
+  }
+  if (X.phase === 'warn' && X.t >= I.calm + I.warn) {
+    X.phase = 'appear'
+    X.boss = spawnExtra(run, S, I.appear)
+    run.events.push({ type: 'extraAppear', id: X.id, x: X.boss.x, y: X.boss.y, final: X.final })
+  }
+  if (X.phase === 'appear' && X.t >= I.calm + I.warn + I.appear) {
+    X.phase = 'fight'
+    run.player.inv = Math.max(run.player.inv, 0.5) // a moment to start moving
+  }
+  const e = X.boss
+  if (X.phase === 'fight' && e && e.state === 'down' && e.t >= S.downSeconds) {
+    X.phase = 'done'
     run.state = 'over'
     run.result = summary(run, true)
   }
 }
 
+// it comes in at the place of its area furthest from Mano (never on her)
+function spawnExtra(run, S, appear) {
+  const B = run.extra.box
+  const p = run.player
+  const W = B[2] - B[0]
+  const H = B[3] - B[1]
+  let best = null
+  for (const [fx, fy] of [[0.28, 0.3], [0.72, 0.3], [0.28, 0.7], [0.72, 0.7], [0.5, 0.25], [0.5, 0.75]]) {
+    const x = B[0] + W * fx
+    const y = B[1] + H * fy
+    const d = Math.hypot(x - p.x, y - p.y)
+    if (!best || d > best.d) best = { x, y, d }
+  }
+  const base = run.boss // the chapter boss: its strength is the measure
+  const e = spawn(run, 'boss', { x: best.x, y: best.y })
+  const hp = base.maxHp * S.hpMul
+  Object.assign(e, {
+    behavior: 'extra',
+    extra: run.extra.id,
+    key: 'extra',
+    skin: run.extra.id,
+    look: S.look,
+    r: S.radius,
+    hp,
+    maxHp: hp,
+    speed: run.D.balance.extraBosses.speed,
+    damage: base.damage,
+    damageMul: base.damageMul,
+    final: !!S.final,
+    blowCap: S.blowCap,
+    size: S.size,
+    downSeconds: S.downSeconds,
+    t: TELEGRAPH - appear, // its entry lasts `appear` s (no ball, no touch until it stands)
+    enter: appear,
+  })
+  e.face = p.x > e.x ? 1 : -1
+  run.elites.extra = e
+  return e
+}
+
 function spawning(run, dt) {
+  // the extra special boss is fought alone
+  if (run.extra) return
   const B = run.D.balance
   const iv = spawnInterval(run)
   const alive = run.enemies.reduce((n, e) => n + (e.state === 'live' || e.state === 'spawn'), 0)

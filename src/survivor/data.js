@@ -5,7 +5,8 @@
 // package's frame table exactly as delivered. cats.json names the three cat
 // companions and holds their story; cats-frames.json cuts their sheet;
 // tizzzz.json holds the writer Tizzzz's story and texts. motion.json: the
-// monsters' animation frames (move / attack / death, the motion package).
+// monsters' animation frames (move / attack / death, the motion package);
+// extra-motion.json the extra special bosses' (MANO_EXTRA_BOSSES), merged in.
 import balance from './data/balance.json'
 import weapons from './data/weapons.json'
 import upgrades from './data/upgrades.json'
@@ -16,6 +17,9 @@ import catFrames from './data/cats-frames.json'
 import tizzzz from './data/tizzzz.json'
 import story from './data/story.json'
 import storyAssets from './data/story-assets.json'
-import motion from './data/motion.json'
+import motionBase from './data/motion.json'
+import extraMotion from './data/extra-motion.json'
+
+const motion = { ...motionBase, characters: { ...motionBase.characters, ...extraMotion.characters } }
 
 export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets, motion }

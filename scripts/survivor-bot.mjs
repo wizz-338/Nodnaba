@@ -9,7 +9,7 @@
 //   human    a person's order (see POLICIES.human), Tizzzz's card when it is one
 //   natural  the first card shown (cards come in random order)
 import { createRun, step, choose, chargePath, FIXED } from '../src/survivor/game.js'
-import { touches } from '../src/survivor/bosses.js'
+import { touches, inGap, reachesAt } from '../src/survivor/bosses.js'
 
 export const POLICIES = {
   core: ['count', 'interval', 'damage', 'bounce'],
@@ -29,7 +29,7 @@ export const SKILLS = {
 export function botInput(run, skill = SKILLS.good, mem = {}) {
   if (skill.every && mem.t !== undefined && run.t - mem.t < skill.every && mem.input) return mem.input
   const p = run.player
-  const [x0, y0, x1, y1] = run.arena.bounds
+  const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
   const live = run.enemies.filter((e) => e.state === 'live' || e.state === 'spawn')
   const def = (e) => run.D.balance.enemies[e.type]
   // warnings it has noticed (a casual player sees them a moment late)
@@ -60,6 +60,20 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
     // a special boss's warnings (the sooner they land, the worse) and shots
     // (where they will be by then), as a person sees them on the ground
     for (const h of run.hazards) {
+      // a ring or a band on its way: be in one of its gaps (or where it will
+      // not reach) before its front comes; judged after a longer stride too
+      if (h.kind === 'wave' || h.kind === 'band') {
+        if (run.t > h.until || h.hit) continue
+        for (const [x, y, w] of [
+          [nx, ny, 1],
+          [Math.max(x0 + 10, Math.min(x1 - 10, p.x + dx * p.speed * 0.9)), Math.max(y0 + 10, Math.min(y1 - 10, p.y + dy * p.speed * 0.9)), 0.5],
+        ]) {
+          const t2 = reachesAt(h, x, y)
+          if (t2 === null || t2 > h.until || t2 < run.t - 0.1 || t2 - run.t > 3) continue
+          if (!inGap(h, x, y, p.hitR + 4)) danger += w * (40 + 20 / Math.max(0.2, t2 - run.t))
+        }
+        continue
+      }
       // the aim lines of a volley about to fly: their lanes are where the shots go
       if (h.kind === 'ray' && h.at - run.t < 0.8) {
         const t = (nx - h.x) * h.dx + (ny - h.y) * h.dy
