@@ -8,7 +8,12 @@
 //   survival hp / armor / regen / move first
 //   human    a person's order (see POLICIES.human), Tizzzz's card when it is one
 //   natural  the first card shown (cards come in random order)
-import { createRun, step, choose, chargePath, FIXED } from '../src/survivor/game.js'
+//   ballFocus / catFocus  the red ball's cards first / the friend cats' cards
+//            first, then crit and staying alive; they redraw (the rerolls)
+//            cards that have none of their line
+//   unlucky  the first card shown and never a redraw (see survivor-cats-dps.mjs)
+//   mixed    the ball's and the cats' cards in turn
+import { createRun, step, choose, reroll, chargePath, FIXED } from '../src/survivor/game.js'
 import { touches, inGap, reachesAt } from '../src/survivor/bosses.js'
 
 export const POLICIES = {
@@ -19,7 +24,14 @@ export const POLICIES = {
   // then the rest; pickup, split and move only when nothing else is there
   human: ['damage', 'count', 'crit', 'maxHp', 'armor', 'luck', 'xpGain', 'interval', 'regen', 'bounce', 'nyang', 'critDamage', 'ballSpeed', 'size'],
   natural: [],
+  ballFocus: ['count', 'damage', 'interval', 'bounce', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'split', 'size', 'ballSpeed', 'move', 'nyang'],
+  catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'move', 'nyang'],
+  unlucky: [],
+  // both lines taken turn about (survivor-cats-dps.mjs: does mixing blow up?)
+  mixed: ['catSummon', 'count', 'catClaw', 'damage', 'interval', 'catRate', 'bounce', 'catSize', 'catSpeed', 'crit', 'critDamage', 'maxHp', 'armor', 'regen'],
 }
+// the line a policy redraws for
+const LINE = { ballFocus: ['count', 'damage', 'interval', 'bounce'], catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed'] }
 
 export const SKILLS = {
   good: { every: 0, look: 0.45, warnSeen: 0, noise: 0 },
@@ -141,13 +153,17 @@ export function pick(run, policy) {
   return c[0]
 }
 
-// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, arena, maxTime }
-export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, blessings = {}, arena, maxTime = 600 } = {}) {
-  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, blessings, arena })
+// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, rerolls, arena, maxTime }
+export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, blessings = {}, rerolls = 0, arena, maxTime = 600 } = {}) {
+  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, blessings, rerolls, arena })
   const mem = {}
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
-    if (run.state === 'levelup') choose(run, pick(run, policy), run.choiceSeq)
+    if (run.state === 'levelup') {
+      const line = LINE[policy]
+      while (line && run.rerolls > 0 && !run.choices.some((id) => line.includes(id))) reroll(run, run.choiceSeq)
+      choose(run, pick(run, policy), run.choiceSeq)
+    }
     step(run, FIXED, botInput(run, S, mem))
     run.events.length = 0
   }

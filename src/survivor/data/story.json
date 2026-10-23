@@ -55,8 +55,7 @@
         "spider": 1,
         "slime": 0.9,
         "bone_beast": 1.3
-      },
-      "reward": "deepforest"
+      }
     },
     {
       "id": "skulltown",
@@ -305,7 +304,7 @@
     }
   },
   "cutscenes": {
-    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. play: false — kept (pictures and lines, watchable in 설정 by a save that saw it) but never played by itself: the episodes' opening cutscenes (chapters 6, 11, 16, 21, 26, 31) were taken out; the clear of an episode's last chapter leads into the next region instead. {next}: the name of the region after the group's own (from regions), with its particle (로/으로). text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
     "speaker": "마노",
     "groups": [
       {
@@ -346,14 +345,30 @@
         ]
       },
       {
-        "id": "forest_3",
+        "id": "ep01_clear",
         "chapter": 5,
         "when": "clear",
         "reward": "forest",
         "cuts": [
           {
-            "image": "cs_01_3",
-            "text": "어? 탱탱볼이 반짝반짝해졌어! 나 조금 세진 것 같아!"
+            "image": "ep01_clear_01",
+            "text": "어? 단추? 호두? 모루?"
+          },
+          {
+            "image": "ep01_clear_02",
+            "text": "나 따라온 거야??"
+          },
+          {
+            "image": "ep01_clear_03",
+            "text": "어어? 탱탱볼??"
+          },
+          {
+            "image": "ep01_clear_04",
+            "text": "탱탱볼!!!"
+          },
+          {
+            "image": "ep01_clear_05",
+            "text": "좋아! 이번엔 {next} 가볼까!"
           }
         ]
       },
@@ -366,7 +381,8 @@
             "image": "cs_02_1",
             "text": "우와, 오래된 유적이다! 살짝만 들여다보고 갈게."
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "deepforest_2",
@@ -381,22 +397,6 @@
         ]
       },
       {
-        "id": "deepforest_3",
-        "chapter": 10,
-        "when": "clear",
-        "reward": "deepforest",
-        "cuts": [
-          {
-            "image": "cs_02_3",
-            "text": "고양이가 셋이나 갇혀 있었어! 이제 괜찮아, 많이 무서웠지?"
-          },
-          {
-            "image": "cs_02_4",
-            "text": "같이 갈래? 좋아, 오늘부터 우리는 탱탱볼 탐험대야!"
-          }
-        ]
-      },
-      {
         "id": "skulltown_1",
         "chapter": 11,
         "when": "enter",
@@ -405,7 +405,8 @@
             "image": "cs_03_1",
             "text": "마을에 해골이 가득해… 얘들아, 내 뒤에 꼭 붙어 있어!"
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "skulltown_2",
@@ -439,7 +440,8 @@
             "image": "cs_04_1",
             "text": "더워서 녹을 것 같아… 으악, 모래에서 뭐가 튀어나왔어!"
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "desert_2",
@@ -485,7 +487,8 @@
             "image": "cs_05_1",
             "text": "추워추워… 얼음 친구들, 싸우지 말고 길 좀 비켜 줄래?"
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "snow_2",
@@ -523,7 +526,8 @@
             "image": "cs_06_1",
             "text": "으아아, 너무 높이 날았어! 그래도 구름 위는 정말 예쁘다!"
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "sky_2",
@@ -573,7 +577,8 @@
             "image": "cs_07_1",
             "text": "여기가 마왕성… 다리가 후들거리지만 괜찮아, 우리 넷이 함께니까!"
           }
-        ]
+        ],
+        "play": false
       },
       {
         "id": "castle_2",
@@ -605,29 +610,21 @@
     ]
   },
   "rewards": {
-    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run; blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
     "forest": {
       "chapter": 5,
       "ball": "S",
-      "images": [
-        "ball_s"
-      ],
-      "lines": [
-        "빨간 탱탱볼이 S급으로 강해졌어요!"
-      ]
-    },
-    "deepforest": {
-      "chapter": 10,
       "cats": true,
+      "rerolls": 2,
       "images": [
-        "cat_black",
-        "cat_orange",
-        "cat_gray",
-        "blessing_cats"
+        "reward_cats",
+        "reward_s_ball",
+        "reward_reroll"
       ],
       "lines": [
-        "고양이 세 마리가 동료가 되었어요!",
-        "고양이의 축복: 고양이들이 코인과 경험치를 주워 오고, 냥냥 연금술 강화가 나와요."
+        "단추·호두·모루가 동료가 되었어요!",
+        "S급 탱탱볼을 받았어요!",
+        "강화 리롤 2회가 열렸어요!"
       ]
     },
     "skulltown": {
@@ -702,8 +699,15 @@
         "id": "cats",
         "name": "고양이의 축복",
         "image": "blessing_cats",
-        "from": "deepforest",
-        "text": "고양이 세 마리가 함께 다니며 코인과 경험치를 주워 와요. 냥냥 연금술 강화가 나와요."
+        "from": "forest",
+        "text": "고양이 세 마리가 함께 다니며 코인과 경험치를 주워 와요. 냥냥 연금술과 친구냥이 강화가 나와요."
+      },
+      {
+        "id": "reroll",
+        "name": "강화 리롤",
+        "image": "reward_reroll",
+        "from": "forest",
+        "text": "한 판에 2번, 강화 선택지를 새로 뽑을 수 있어요."
       },
       {
         "id": "tizzzz",

@@ -12,7 +12,11 @@ export const D = {
   catFrames: read('cats-frames'),
   tizzzz: read('tizzzz'),
   story: read('story'),
-  storyAssets: read('story-assets'),
+  storyAssets: (() => {
+    const a = read('story-assets')
+    return { ...a, images: [...a.images, ...read('ep01-assets').images] }
+  })(),
+  friendCat: read('ep01-assets').friendCat,
   motion: (() => {
     const m = read('motion')
     return { ...m, characters: { ...m.characters, ...read('extra-motion').characters } }

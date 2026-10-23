@@ -1,5 +1,5 @@
 {
-  "note": "names and icons of the in-run upgrades (numbers live in balance.json → upgrades)",
+  "note": "names and icons of the in-run upgrades (numbers live in balance.json → upgrades); art: a picture of the story package (story-assets.json / ep01-assets.json) shown instead of the sprite icon",
   "options": {
     "count": {
       "name": "탱탱볼 개수",
@@ -69,6 +69,31 @@
       "name": "냥냥 연금술",
       "icon": "cat_hodu_l_0",
       "note": "only in runs with the cats; texts per level are built from balance.json → upgrades.effects.nyang"
+    },
+    "catSummon": {
+      "name": "친구냥이",
+      "icon": "cat_hodu_r_0",
+      "art": "skill_cat_summon"
+    },
+    "catSize": {
+      "name": "뚱냥이",
+      "icon": "cat_hodu_r_0",
+      "art": "skill_cat_size"
+    },
+    "catSpeed": {
+      "name": "스피드냥이",
+      "icon": "cat_hodu_r_0",
+      "art": "skill_cat_speed"
+    },
+    "catRate": {
+      "name": "빠르게 할퀴기",
+      "icon": "cat_hodu_r_0",
+      "art": "skill_cat_attack_rate"
+    },
+    "catClaw": {
+      "name": "발톱 갈기",
+      "icon": "cat_hodu_r_0",
+      "art": "skill_cat_damage"
     }
   }
 }

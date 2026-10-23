@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""MANO SURVIVOR — the chapter 5 clear package (MANO_EP01).
+
+    python3 -I scripts/survivor-ep01-assets.py <MANO_EP01_ALL folder> [review folder]
+
+Reads the package's pictures (the originals are not changed or copied) and
+writes, under src/survivor/assets/s84/ep01/ (so the story pictures' loader
+finds them):
+  cutscenes/ep01_clear_0N.webp   the five cuts of chapter 5's first clear (16:9, whole)
+  rewards/reward_*.webp          the three rewards of that clear (its box cut out)
+  skills/skill_cat_*.webp        the five cat upgrade icons
+  fx/fx_cat_slash*.webp          the scratch effects
+  friend_cat.webp                the friend cat's atlas (idle, move, attack, recover)
+and src/survivor/data/ep01-assets.json: the pictures (same form as
+story-assets.json, merged into it by data.js) and the friend cat's frames.
+
+The friend cat's sheets (cat_units/friend_*_sheet.png) are 4 poses across and
+3 rows down, one row per way it faces (south-east, east, north-east; the
+other three are these mirrored). The cells are not exact, so a frame is an
+opaque shape (8-connected alpha) placed in the row and column its middle
+falls in; each sheet must give exactly 12 shapes (anything else is reported
+and stops the build). Pivot: across, the middle of the body's lower part
+(its legs, so a paw reaching out never moves the cat); down, its feet. One
+scale for every frame of every sheet (never a fit frame by frame).
+
+friend_size_reference.png (three round bodies) and
+collectors_design_reference.png (단추·호두·모루) are references only: 뚱냥이 draws
+the same frames larger, and the three collectors keep their sprites.
+"""
+import hashlib
+import json
+import os
+import sys
+
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, 'src', 'survivor', 'assets', 's84', 'ep01')
+MAP = os.path.join(ROOT, 'src', 'survivor', 'data', 'ep01-assets.json')
+
+CUTS = [
+    ('ep01_clear_01', 'episode_01_cutscenes/ep01_clear_01_reunion.png', '마노와 세 고양이의 재회'),
+    ('ep01_clear_02', 'episode_01_cutscenes/ep01_clear_02_followed.png', '숲속에서 만난 마노와 세 고양이'),
+    ('ep01_clear_03', 'episode_01_cutscenes/ep01_clear_03_ball.png', '모루가 건넨 빨간 공'),
+    ('ep01_clear_04', 'episode_01_cutscenes/ep01_clear_04_received.png', '마노와 세 고양이의 빨간 공 축제'),
+    ('ep01_clear_05', 'episode_01_cutscenes/ep01_clear_05_departure.png', '마노와 세 고양이의 숲길 모험'),
+]
+CUT_OUT = (1440, 810)
+PICS = [
+    ('reward_cats', 'rewards/reward_cats.png', 'reward', '행복한 고양이 삼총사', 256),
+    ('reward_s_ball', 'rewards/reward_s_ball.png', 'reward', '금빛 월계관의 붉은 바운싱 볼', 256),
+    ('reward_reroll', 'rewards/reward_reroll.png', 'reward', '청록 리롤 화살표와 세 장의 카드', 256),
+    ('skill_cat_summon', 'cat_skills/skill_cat_summon.png', 'icon', '세 마리 고양이 소환', 128),
+    ('skill_cat_size', 'cat_skills/skill_cat_size.png', 'icon', '통통 고양이 몸집 키우기', 128),
+    ('skill_cat_speed', 'cat_skills/skill_cat_speed.png', 'icon', '질주하는 크림빛 아기 고양이', 128),
+    ('skill_cat_attack_rate', 'cat_skills/skill_cat_attack_rate.png', 'icon', '고양이 발톱 두 번 할퀴기', 128),
+    ('skill_cat_damage', 'cat_skills/skill_cat_damage.png', 'icon', '크림 고양이 발톱 강타', 128),
+    ('fx_cat_slash', 'effects/fx_cat_slash.png', 'fx', '할퀴기', 192),
+    ('fx_cat_slash_power', 'effects/fx_cat_slash_power.png', 'fx', '강한 할퀴기', 192),
+]
+SHEETS = ['idle', 'move', 'attack', 'recover']
+FACES = ['se', 'e', 'ne']
+ALPHA = 24
+DEBRIS = 400
+CAT_H = 100  # an idle pose's height in atlas px (the one scale)
+DURATIONS = {'idle': 170, 'move': 75, 'attack': 70, 'recover': 80}
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def body(im):
+    a = np.asarray(im)[:, :, 3]
+    ys, xs = np.nonzero(a > ALPHA)
+    return [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
+
+
+def frames_of(path):
+    """the sheet's 12 shapes, [row][col] → (box, mask)"""
+    sheet = Image.open(path).convert('RGBA')
+    arr = np.asarray(sheet)
+    a = arr[:, :, 3]
+    H, W = a.shape
+    lab, n = ndimage.label(a > ALPHA, structure=np.ones((3, 3), bool))
+    sizes = ndimage.sum(np.ones_like(lab), lab, index=np.arange(1, n + 1))
+    objs = ndimage.find_objects(lab)
+    cells = {}
+    dust = 0
+    for i in range(n):
+        if sizes[i] < DEBRIS:
+            dust += 1
+            continue
+        ys, xs = objs[i]
+        cy = (ys.start + ys.stop) / 2
+        cx = (xs.start + xs.stop) / 2
+        key = (int(cy * 3 // H), int(cx * 4 // W))
+        if key in cells:
+            raise SystemExit(f'{path}: two shapes in row {key[0]} column {key[1]}')
+        cells[key] = i + 1
+    if len(cells) != 12:
+        raise SystemExit(f'{path}: {len(cells)} shapes, not 12')
+    out = []
+    for r in range(3):
+        row = []
+        for c in range(4):
+            k = cells[(r, c)]
+            ys, xs = objs[k - 1]
+            mask = lab[ys, xs] == k
+            img = np.zeros((ys.stop - ys.start, xs.stop - xs.start, 4), np.uint8)
+            img[mask] = arr[ys, xs][mask]
+            row.append(img)
+        out.append(row)
+    return out, dust
+
+
+def pivot(img):
+    """across: the middle of the lower 35% (the legs); down: the feet"""
+    a = img[:, :, 3] > ALPHA
+    ys, xs = np.nonzero(a)
+    y1 = ys.max() + 1
+    low = ys >= y1 - (y1 - ys.min()) * 0.35
+    return float(np.median(xs[low])), float(y1)
+
+
+def main(src, review=None):
+    os.makedirs(OUT, exist_ok=True)
+    images = []
+    notes = []
+    for gid, rel, name in CUTS:
+        path = os.path.join(src, rel)
+        im = Image.open(path).convert('RGB')
+        if abs(im.width / im.height - 16 / 9) > 0.01:
+            notes.append(f'{rel}: {im.width}×{im.height} is not 16:9')
+        out = im.resize(CUT_OUT, Image.LANCZOS)
+        f = f'ep01/cutscenes/{gid}.webp'
+        os.makedirs(os.path.dirname(os.path.join(OUT, '..', f)), exist_ok=True)
+        out.save(os.path.join(OUT, '..', f), 'WEBP', quality=80, method=6)
+        images.append({'source': rel, 'width': im.width, 'height': im.height, 'sha256': sha(path), 'id': gid, 'kind': 'cutscene', 'region': 'forest', 'name': name, 'file': f, 'out': list(CUT_OUT), 'bytes': os.path.getsize(os.path.join(OUT, '..', f))})
+    for gid, rel, kind, name, size in PICS:
+        path = os.path.join(src, rel)
+        im = Image.open(path).convert('RGBA')
+        if np.asarray(im)[:, :, 3].min() > 0:
+            notes.append(f'{rel}: no transparent background')
+        b = body(im)
+        crop = im.crop(b)
+        k = size / max(crop.size)
+        out = crop.resize((max(1, round(crop.width * k)), max(1, round(crop.height * k))), Image.LANCZOS)
+        sub = {'reward': 'rewards', 'icon': 'skills', 'fx': 'fx'}[kind]
+        f = f'ep01/{sub}/{gid}.webp'
+        os.makedirs(os.path.join(OUT, sub), exist_ok=True)
+        out.save(os.path.join(OUT, '..', f), 'WEBP', quality=88, method=6)
+        images.append({'source': rel, 'width': im.width, 'height': im.height, 'sha256': sha(path), 'id': gid, 'kind': kind, 'region': None, 'name': name, 'body': b, 'file': f, 'out': list(out.size), 'bytes': os.path.getsize(os.path.join(OUT, '..', f))})
+
+    # the friend cat: every sheet's shapes, one scale (from the idle poses)
+    shapes = {}
+    for s in SHEETS:
+        path = os.path.join(src, 'cat_units', f'friend_{s}_sheet.png')
+        shapes[s], dust = frames_of(path)
+        if dust:
+            notes.append(f'friend_{s}_sheet.png: {dust} specks of dust left out')
+    idle_h = np.median([img.shape[0] for row in shapes['idle'] for img in row])
+    k = CAT_H / idle_h
+    cells = {}
+    for s in SHEETS:
+        for r, face in enumerate(FACES):
+            for c, img in enumerate(shapes[s][r]):
+                px, py = pivot(img)
+                im = Image.fromarray(img, 'RGBA')
+                im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
+                cells[(s, face, c)] = (im, px * k, py * k)
+    # the atlas: one strip per (sheet, face)
+    pad = 2
+    rows = [(s, f) for s in SHEETS for f in FACES]
+    aw = max(sum(cells[(s, f, c)][0].width + pad for c in range(4)) for s, f in rows) + pad
+    ah = sum(max(cells[(s, f, c)][0].height for c in range(4)) + pad for s, f in rows) + pad
+    atlas = Image.new('RGBA', (aw, ah), (0, 0, 0, 0))
+    anims = {}
+    yy = pad
+    for s, f in rows:
+        xx = pad
+        lst = []
+        for c in range(4):
+            im, px, py = cells[(s, f, c)]
+            atlas.paste(im, (xx, yy))
+            lst.append([xx, yy, im.width, im.height, round(px, 2), round(py, 2)])
+            xx += im.width + pad
+        anims.setdefault(s, {})[f] = lst
+        yy += max(cells[(s, f, c)][0].height for c in range(4)) + pad
+    atlas_file = 'ep01/friend_cat.webp'
+    atlas.save(os.path.join(OUT, '..', atlas_file), 'WEBP', quality=88, method=6)
+    images.append({'source': 'cat_units/friend_*_sheet.png', 'id': 'friend_cat', 'kind': 'atlas', 'region': None, 'name': '친구냥이', 'file': atlas_file, 'out': [aw, ah], 'bytes': os.path.getsize(os.path.join(OUT, '..', atlas_file))})
+
+    data = {
+        'note': 'MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose\'s height in atlas px (the one scale), ms: each frame\'s time.',
+        'package': 'MANO_EP01',
+        'images': images,
+        'friendCat': {'file': atlas_file, 'idleH': CAT_H, 'ms': DURATIONS, 'faces': FACES, 'animations': anims},
+    }
+    json.dump(data, open(MAP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    total = sum(x['bytes'] for x in images)
+    print(f'{len(images)} pictures, {total / 1e6:.2f} MB; friend cat atlas {aw}×{ah}')
+    for n in notes:
+        print('note:', n)
+    if review:
+        os.makedirs(review, exist_ok=True)
+        # every pose on one baseline (green), the pivot marked, 1:1
+        cw, ch = 150, 160
+        sh = Image.new('RGBA', (cw * 4 * len(SHEETS), ch * 3), (62, 64, 74, 255))
+        from PIL import ImageDraw
+        d = ImageDraw.Draw(sh)
+        for si, s in enumerate(SHEETS):
+            for r, f in enumerate(FACES):
+                for c in range(4):
+                    im, px, py = cells[(s, f, c)]
+                    ox = (si * 4 + c) * cw
+                    oy = r * ch
+                    sh.alpha_composite(im, (int(ox + cw / 2 - px), int(oy + ch - 12 - py)))
+                    d.line([(ox, oy + ch - 12), (ox + cw, oy + ch - 12)], fill=(80, 255, 80, 255))
+                    d.line([(ox + cw / 2, oy + ch - 20), (ox + cw / 2, oy + ch - 4)], fill=(255, 80, 80, 255))
+                    d.text((ox + 4, oy + 4), f'{s} {f} {c}', fill=(255, 255, 0, 255))
+        sh.convert('RGB').save(os.path.join(review, 'friend_cat.png'))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

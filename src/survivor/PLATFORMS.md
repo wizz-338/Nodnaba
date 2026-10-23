@@ -22,6 +22,10 @@ only in its platform-specific part.
 
 ## What is shared (change once, both get it)
 
+- `friends.js` — 친구냥이, the fighting cats (cards, AI, damage), and the
+  rerolls (`reroll` in game.js): the same on both. Their leash
+  (`friendCats.leash`) is in field px, so on the PC (a wider view) they
+  leave far monsters to the ball as on the phone.
 - `game.js`, `weapons.js`, `bosses.js` — the fight: spawns, monsters, bosses
   (the extra special bosses after the boss in chapters 3, 5, 8, 10 …:
   `bosses.js`, drawn by `render-extra.js`), cards, blessings, rewards of a
@@ -37,7 +41,10 @@ only in its platform-specific part.
   `upgrades`, `weapons`, `story.json` (regions, monsters, cutscenes, rewards),
   `motion.json` (the monsters' animation frames, made by
   `scripts/survivor-motion-assets.py`), `extra-motion.json` (the extra
-  special bosses', made by `scripts/survivor-extra-boss-assets.py`).
+  special bosses', made by `scripts/survivor-extra-boss-assets.py`),
+  `ep01-assets.json` (chapter 5's clear package MANO_EP01: its five 16:9
+  cutscenes, rewards, cat card icons, scratches and the friend cat's atlas,
+  made by `scripts/survivor-ep01-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.
@@ -55,7 +62,10 @@ only in its platform-specific part.
 - `survivor.css` — the phone layout is the stylesheet as it is; the PC layout
   is the `.ms--pc` section at its end (16:9 frame, menus laid out at
   1280 × 720 and scaled with `zoom: var(--z)`, cards side by side, cutscene
-  picture with the words beside it).
+  picture with the words beside it; a 16:9 cutscene — chapter 5's clear —
+  fills the screen with the words over its foot: `.ms-cut--wide`). On the
+  phone a 16:9 cutscene is shown whole, never stretched or cut, with dark
+  bands above and below.
 - Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`, which
   covers the whole PC field (`assets/s84/backgrounds/`, made by
   `scripts/survivor-story-assets.py`).
@@ -101,3 +111,6 @@ the same bots and loadouts on both and prints clear rates and times;
 3. A new background or full-screen picture: the phone one, and a 16:9 one for
    PC (or a stand-in from the script).
 4. `npm run test:survivor`, `npm run build`; open both addresses.
+5. A balance change to the ball or the cats: `node scripts/survivor-cats-dps.mjs
+   runs` (and `FIELD=pc …`) compares the ball, cat and unlucky builds on
+   each field; `… bench` measures DPS per card picked.

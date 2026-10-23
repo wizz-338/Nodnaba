@@ -13,6 +13,7 @@
 // overtime (the fight goes on and monsters come faster), never a free clear.
 
 import { BEHAVIORS } from './weapons.js'
+import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
 
 export const FIXED = 1 / 60
@@ -91,6 +92,8 @@ function perma(D, levels = {}) {
 //         tizzzz: true once the writer Tizzzz has joined,
 //         blessings: { phoenix, snow, thunder, final } — the story's battle
 //         blessings owned (story.json → rewards),
+//         rerolls: redraws of the cards a run gets (the save's; from
+//                  balance.rerolls.fromChapter on),
 //         bossBag: { order: [] } kept by the page from run to run, so the
 //                ordinary bosses' types go round all four (see nextBossType),
 //         arena: the platform's field (default: balance.logicalArena, mobile;
@@ -121,8 +124,12 @@ export function createRun(D, opts) {
   // Tizzzz rewrites a card at every level-up from her chapter on
   const withWriter = !!opts.tizzzz && chapter >= B.tizzzz.activeFromChapter
   const pool = [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))]
-  // with the cats, the magnet's place among the cards goes to 냥냥 연금술
-  if (withCats) pool[pool.indexOf(B.upgrades.catSwap.from)] = B.upgrades.catSwap.to
+  // with the cats, the magnet's place among the cards goes to 냥냥 연금술, and
+  // the friend cats' five cards come in (four of them once there is a cat)
+  if (withCats) {
+    pool[pool.indexOf(B.upgrades.catSwap.from)] = B.upgrades.catSwap.to
+    pool.push(...CAT_CARDS)
+  }
   const run = {
     D,
     id: opts.runId || 'run',
@@ -167,6 +174,16 @@ export function createRun(D, opts) {
     // the weapon's own four core cards, then the general ones
     pool,
     cats: [],
+    // the friend cats (friends.js): the line's numbers, the cats on the field,
+    // a scratch's base (the ball's damage at the start of the run, so the
+    // coin stat 공격 피해 and the ball's grade count once, × damageCoef) and
+    // the coin stat 공격 주기 (never the ball's in-run cards)
+    cat: freshCatStats(),
+    friends: [],
+    catBase: weapon.damage * B.friendCats.damageCoef,
+    catPermaInterval: pm.interval,
+    // redraws of the cards left this run
+    rerolls: chapter >= B.rerolls.fromChapter ? Math.max(0, opts.rerolls | 0) : 0,
     nyang: 0, // 냥냥 연금술 level this run (0: the cats leave hearts alone)
     writer: withWriter,
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
@@ -202,13 +219,16 @@ export function createRun(D, opts) {
     coins: 0,
     // what really happened (telemetry: for the result, the tests and the
     // balance runs; the page adds its frame times)
-    stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0 },
+    // by: damage by source (ball, cat, bless): raw (as dealt), eff (what
+    // the monsters really lost) and over (the rest: past the HP left, or
+    // held back by a guard), hits, kills
+    stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0, missed: 0, by: {} },
     acc: 0,
   }
   follow(run)
   if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
-  run.hurt = (e, dmg, x, y, crit) => hurtEnemy(run, e, dmg, x, y, crit)
+  run.hurt = (e, dmg, x, y, crit, by) => hurtEnemy(run, e, dmg, x, y, crit, by)
   // a ball's hit may set off a blessing (lightning never does)
   run.blessHit = (e, dmg, x, y) => blessHit(run, e, dmg, x, y)
   return run
@@ -262,7 +282,7 @@ function blessHit(run, e, dmg, x, y) {
     near.sort((a, q) => a[0] - q[0])
     for (const [, o] of near.slice(0, c.targets)) {
       run.events.push({ type: 'bolt', x0: x, y0: y - 30, x1: o.x, y1: o.y })
-      hurtEnemy(run, o, dmg * c.share, o.x, o.y)
+      hurtEnemy(run, o, dmg * c.share, o.x, o.y, false, 'bless')
     }
   }
 }
@@ -460,6 +480,9 @@ export function aroundPoint(run, m, out = false) {
   return null
 }
 
+// (balance benches place monsters themselves: scripts/survivor-cats-dps.mjs)
+export const spawnAt = (run, type, at) => spawn(run, type, at)
+
 function spawn(run, type = pickType(run), at = null) {
   const B = run.D.balance
   const def = B.enemies[type]
@@ -539,17 +562,28 @@ function spawnSpecial(run, ev) {
     if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
   }
   run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e) })
+  // (telemetry: when the boss came, and the kills before it)
+  if (ev.key === 'boss') (run.stats.bossAt = run.t), (run.stats.preBossKills = run.kills)
 }
 
-function hurtEnemy(run, e, dmg, x, y, crit = false) {
+function hurtEnemy(run, e, dmg, x, y, crit = false, by = 'ball') {
   if (e.state !== 'live') return
+  const raw = dmg
   if (e.guard) dmg = guarded(run, e, dmg)
+  const eff = Math.max(0, Math.min(dmg, e.hp))
   e.hp -= dmg
   e.hitT = FLASH
   run.stats.hits++
-  run.stats.damage += Math.min(dmg, e.hp + dmg)
-  if (dmg > 0) run.events.push({ type: 'hit', x, y, n: dmg, crit })
+  run.stats.damage += eff
+  const S = run.stats.by[by] || (run.stats.by[by] = { raw: 0, eff: 0, over: 0, hits: 0, kills: 0, boss: 0 })
+  S.raw += raw
+  S.eff += eff
+  S.over += raw - eff
+  S.hits++
+  if (e.behavior === 'boss' || e.behavior === 'extra') S.boss += eff
+  if (dmg > 0) run.events.push({ type: 'hit', x, y, n: dmg, crit, by })
   if (e.hp > 0) return
+  S.kills++
   e.t = 0
   run.kills++
   const B = run.D.balance
@@ -564,6 +598,7 @@ function hurtEnemy(run, e, dmg, x, y, crit = false) {
     }
   }
   if (e.behavior === 'boss' || e.behavior === 'extra') {
+    if (e === run.boss) run.stats.bossDownAt = run.t
     // falls (its death plays once) and stops at once: no more attacks, no
     // touch; whatever it had on the ground or in the air goes with it. The
     // boss's fall clears the chapter when that ends (or, where an extra
@@ -1254,6 +1289,12 @@ export function applyPreview(run, id) {
       return { armor: p.armor * E.mul }
     case 'xpGain':
       return { xpMul: p.xpMul * E.mul }
+    case 'catSummon':
+    case 'catSize':
+    case 'catSpeed':
+    case 'catRate':
+    case 'catClaw':
+      return catPreview(run, id)
     case 'nyang': {
       // the next level of the table: how many 퍼센트 하트 and how much each heals
       const L = Math.min(E.levels.length, run.nyang + 1)
@@ -1266,9 +1307,13 @@ export function applyPreview(run, id) {
 
 // Three different options, all with the same chance; an option chosen before
 // stays in the pool and can come back at every later level.
-export function drawChoices(run) {
-  // a card with levels (냥냥 연금술) leaves the pool at its last level
-  const left = run.pool.filter((id) => !maxed(run, id))
+export function drawChoices(run, not = []) {
+  // a card with levels (냥냥 연금술) leaves the pool at its last level; the
+  // cat cards other than 친구냥이 wait for a cat
+  let left = run.pool.filter((id) => !maxed(run, id) && catCardOpen(run, id))
+  // a redraw: other cards than those shown, while there are enough
+  const others = left.filter((id) => !not.includes(id))
+  if (not.length && others.length >= 3) left = others
   const out = []
   while (out.length < 3 && left.length) out.push(left.splice(Math.floor(run.rng() * left.length), 1)[0])
   return out
@@ -1277,9 +1322,9 @@ export function drawChoices(run) {
 const levelsOf = (run, id) => run.D.balance.upgrades.effects[id].levels
 export const maxed = (run, id) => !!levelsOf(run, id) && (run.picks[id] || 0) >= levelsOf(run, id).length
 
-function openChoice(run) {
+function openChoice(run, not) {
   run.state = 'levelup'
-  run.choices = drawChoices(run)
+  run.choices = drawChoices(run, not)
   run.choiceSeq++
   // Tizzzz rewrites one of them, at random among those that can take it
   run.edit = null
@@ -1298,16 +1343,17 @@ function applyChange(run, ch) {
   for (const k of ['pickupR', 'speed', 'coinMul', 'regen', 'armor', 'xpMul']) if (k in ch) p[k] = ch[k]
   if ('maxHp' in ch) (p.maxHp = ch.maxHp), (p.hp = ch.hp)
   if ('nyang' in ch) run.nyang = ch.nyang
+  if (ch.cat) run.cat = ch.cat
 }
 
 // What choosing `id` n times in a row would make (pure: works on a copy).
 // For the cards: n = 1, or Tizzzz's times for the card she rewrote.
 export function previewTimes(run, id, n) {
-  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang }
+  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang, cat: { ...run.cat } }
   for (let i = 0; i < n; i++) applyChange(tmp, applyPreview(tmp, id))
   const w = tmp.weapon
   const p = tmp.player
-  return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang }
+  return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang, cat: tmp.cat }
 }
 
 // Tizzzz's rewrite: the card can take her `times` (a card with levels needs
@@ -1331,6 +1377,7 @@ export function choose(run, id, seq) {
     run.log.push(id)
   }
   if (times > 1) run.stats.edited = (run.stats.edited || 0) + 1
+  syncFriends(run)
   run.pending--
   if (run.pending > 0) openChoice(run)
   else {
@@ -1338,6 +1385,17 @@ export function choose(run, id, seq) {
     run.choices = null
     run.choiceSeq++
   }
+  return true
+}
+
+// A redraw (the rerolls of chapter 5's reward): the cards on show are put
+// back and three others drawn the same way (other than those, while the pool
+// has enough). `seq` must be the one shown with the cards. Returns true once.
+export function reroll(run, seq) {
+  if (run.state !== 'levelup' || seq !== run.choiceSeq || !run.choices || run.rerolls <= 0) return false
+  run.rerolls--
+  run.stats.rerolls = (run.stats.rerolls || 0) + 1
+  openChoice(run, run.choices)
   return true
 }
 
@@ -1511,6 +1569,7 @@ function tick(run, dt, input) {
   updateHazards(run, dt, hurtPlayer)
   if (run.state !== 'play') return
   run.behaviour.update(run, dt)
+  updateFriends(run, dt)
   if (run.balls.length > run.stats.peakBalls) run.stats.peakBalls = run.balls.length
   // finished death animations leave
   if (run.enemies.some(gone)) run.enemies = run.enemies.filter((e) => !gone(e))
@@ -1536,6 +1595,8 @@ export function step(run, dt, input) {
       break
     }
   }
+  // the fight is over: the friend cats leave with it
+  if (run.state === 'over' && run.friends.length) run.friends = []
   return run.state
 }
 
