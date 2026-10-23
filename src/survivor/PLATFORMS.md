@@ -23,8 +23,10 @@ only in its platform-specific part.
 ## What is shared (change once, both get it)
 
 - `game.js`, `weapons.js`, `bosses.js` — the fight: spawns, monsters, bosses
-  (the special bosses' attacks: `bosses.js`), cards, blessings, rewards of a
-  run. The field comes in as `opts.arena`; nothing else in the fight knows
+  (the extra special bosses after the boss in chapters 3, 5, 8, 10 …:
+  `bosses.js`, drawn by `render-extra.js`), cards, blessings, rewards of a
+  run. On the PC the camera holds still for the extra boss's fight, so its
+  attacks over the whole area are all on screen. The field comes in as `opts.arena`; nothing else in the fight knows
   the platform.
 - `progress.js` — the save. **One save for both** (`localStorage`, key
   `nodnaba:survivor:save`): on the same browser the phone and PC versions
@@ -34,7 +36,8 @@ only in its platform-specific part.
 - `data/*.json` — every number and every text: `balance.json`, `stages`,
   `upgrades`, `weapons`, `story.json` (regions, monsters, cutscenes, rewards),
   `motion.json` (the monsters' animation frames, made by
-  `scripts/survivor-motion-assets.py`).
+  `scripts/survivor-motion-assets.py`), `extra-motion.json` (the extra
+  special bosses', made by `scripts/survivor-extra-boss-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.

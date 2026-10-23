@@ -893,48 +893,143 @@
   line-height: 1;
 }
 
-/* a special boss comes: WARNING! in the middle, blinking a few times and
-   fading (about 1.3 s); the fight goes on under it */
-.ms-warning {
+/* the extra special boss comes: a red edge and two striped bands blinking,
+   WARNING! in the middle, then its name and line (about the warning and its
+   entry: 2.3 s; the last boss's a little longer, with an eclipse behind).
+   Centred on any screen; the fight below waits (game.js) */
+.ms-xwarn {
   position: absolute;
-  left: 50%;
-  top: 40%;
-  z-index: 3;
+  inset: 0;
+  z-index: 4;
+  isolation: isolate; /* (its bands and eclipse go under its words) */
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.2em;
+  pointer-events: none;
+  text-align: center;
+  font-size: 16px;
+  box-shadow: inset 0 0 0 6px rgba(255, 40, 60, 0.75), inset 0 0 60px rgba(255, 30, 50, 0.45);
+  animation: ms-xwarn 2.3s linear forwards;
+}
+
+.ms-xwarn.is-final {
+  animation-duration: 2.6s;
+}
+
+@keyframes ms-xwarn {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  14% { box-shadow: inset 0 0 0 6px rgba(255, 40, 60, 0.2), inset 0 0 30px rgba(255, 30, 50, 0.1); }
+  24% { box-shadow: inset 0 0 0 6px rgba(255, 40, 60, 0.8), inset 0 0 60px rgba(255, 30, 50, 0.45); }
+  34% { box-shadow: inset 0 0 0 6px rgba(255, 40, 60, 0.2), inset 0 0 30px rgba(255, 30, 50, 0.1); }
+  44% { box-shadow: inset 0 0 0 6px rgba(255, 40, 60, 0.8), inset 0 0 60px rgba(255, 30, 50, 0.45); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.ms-xwarn__band {
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: repeating-linear-gradient(-45deg, rgba(255, 46, 64, 0.85) 0 14px, rgba(30, 10, 14, 0.85) 14px 28px);
+  animation: ms-xwarn-band 0.6s linear infinite;
+}
+
+.ms-xwarn__band--top {
+  top: calc(50% - 5.6em);
+}
+
+.ms-xwarn__band--bottom {
+  top: calc(50% + 4.8em);
+}
+
+@keyframes ms-xwarn-band {
+  to { background-position: 40px 0; }
+}
+
+.ms-xwarn__word {
   margin: 0;
-  transform: translate(-50%, -50%);
   color: #ff2f3c;
   font-family: var(--font-display);
-  font-size: 46px;
+  font-size: 3em;
+  line-height: 1;
   letter-spacing: 0.06em;
-  white-space: nowrap;
-  text-shadow: 0 0 2px #5a0b12, 0 3px 0 #6b0d16, 0 0 18px rgba(255, 40, 60, 0.55);
-  pointer-events: none;
-  animation: ms-warning 1.3s ease-out forwards;
+  text-shadow: 0 0 2px #5a0b12, 0 3px 0 #6b0d16, 0 0 18px rgba(255, 40, 60, 0.6);
+  animation: ms-xwarn-blink 0.42s steps(2, jump-none) 3;
 }
 
-@keyframes ms-warning {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
-  8% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  20% { opacity: 0.25; }
-  32% { opacity: 1; }
-  44% { opacity: 0.3; }
-  56% { opacity: 1; }
-  78% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04); }
+@keyframes ms-xwarn-blink {
+  50% { opacity: 0.2; }
 }
 
-.ms--pc .ms-warning {
-  font-size: calc(64px * var(--z, 1));
+.ms-xwarn__name,
+.ms-xwarn__line {
+  margin: 0;
+  color: #fff3e6;
+  opacity: 0;
+  text-shadow: 0 0 3px #2a0a10, 0 2px 0 #2a0a10;
+  animation: ms-xwarn-in 0.35s ease-out 0.75s forwards;
+}
+
+.ms-xwarn__name {
+  font-family: var(--font-display);
+  font-size: 1.6em;
+  color: #ffd6a0;
+}
+
+.ms-xwarn__line {
+  font-family: var(--font-body);
+  font-size: 0.95em;
+  animation-delay: 0.95s;
+}
+
+@keyframes ms-xwarn-in {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* the last boss: an eclipse rising behind the words */
+.ms-xwarn__eclipse {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 9em;
+  height: 9em;
+  margin: -4.5em 0 0 -4.5em;
+  border-radius: 50%;
+  background: radial-gradient(circle, #14060f 55%, rgba(20, 6, 15, 0) 57%);
+  box-shadow: 0 0 0 3px rgba(246, 196, 90, 0.9), 0 0 40px 12px rgba(246, 196, 90, 0.55), 0 0 80px 30px rgba(226, 32, 64, 0.35);
+  opacity: 0;
+  animation: ms-xwarn-eclipse 2.6s ease-out forwards;
+}
+
+@keyframes ms-xwarn-eclipse {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 0.9; transform: scale(1); }
+  85% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+.ms--pc .ms-xwarn {
+  font-size: calc(22px * var(--z, 1));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ms-warning {
-    animation: ms-warning-calm 1.3s linear forwards;
+  .ms-xwarn__word,
+  .ms-xwarn__band {
+    animation: none;
   }
-  @keyframes ms-warning-calm {
-    0%, 75% { opacity: 1; }
-    100% { opacity: 0; }
-  }
+}
+
+/* the lobby: the extra special boss under the chapter's boss */
+.ms-epinfo__extra {
+  display: block;
+  color: #b0302e;
+  font-size: 0.8em;
 }
 
 .ms-toast {

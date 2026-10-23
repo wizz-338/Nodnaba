@@ -185,6 +185,7 @@ export function duck(on) {
 
 // leaving the game page: everything fades and stops (and stays where it was)
 export function stopAll() {
+  stopSiren()
   want = null
   apply()
 }
@@ -296,6 +297,52 @@ const SOUNDS = {
 export function sfx(name) {
   const s = SOUNDS[name]
   if (s) voice(name, s[0], s[1])
+}
+
+// the extra special boss's alarm: "삐이— 삐이—", two falling square-wave
+// wails (the last boss's a little lower and longer). It follows the effects'
+// switch and volume, and stopSiren() cuts it off (a run ended or restarted).
+let sirenNodes = []
+export function siren(final = false) {
+  stopSiren()
+  if (!ctx || !sfxOn || prefs.sfx <= 0 || ctx.state !== 'running') return
+  if (import.meta.env && import.meta.env.DEV && typeof window !== 'undefined') (window.__survivorSfx ||= []).push(final ? 'siren-final' : 'siren')
+  try {
+    const t = now()
+    const len = final ? 0.6 : 0.5
+    const [hi, lo] = final ? [820, 560] : [1040, 760]
+    for (let i = 0; i < 2; i++) {
+      const at = t + i * (len + 0.16)
+      const o = ctx.createOscillator()
+      o.type = 'square'
+      o.frequency.setValueAtTime(hi, at)
+      o.frequency.linearRampToValueAtTime(lo, at + len)
+      const f = ctx.createBiquadFilter()
+      f.type = 'lowpass'
+      f.frequency.value = 2200
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0.0001, at)
+      g.gain.exponentialRampToValueAtTime(0.06, at + 0.03)
+      g.gain.setValueAtTime(0.06, at + len - 0.08)
+      g.gain.exponentialRampToValueAtTime(0.0001, at + len)
+      o.connect(f).connect(g).connect(sfxBus)
+      o.start(at)
+      o.stop(at + len + 0.02)
+      sirenNodes.push(o)
+    }
+  } catch {
+    /* no alarm: the warning still shows */
+  }
+}
+export function stopSiren() {
+  for (const o of sirenNodes) {
+    try {
+      o.stop()
+    } catch {
+      /* already over */
+    }
+  }
+  sirenNodes = []
 }
 
 // development only: what is playing, for the browser checks

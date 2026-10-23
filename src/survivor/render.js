@@ -12,6 +12,7 @@
 
 import { FRAMES, ART, animFrame } from './sprites.js'
 import { chargePath } from './game.js'
+import { createExtraFx } from './render-extra.js'
 
 // a damage number short enough to read over the fight: 9876, 12.3K, 456K, 7.8M …
 const UNITS = ['', 'K', 'M', 'B', 'T']
@@ -53,6 +54,12 @@ const critPop = (t) => (t < 0.08 ? 0.75 + (t / 0.08) * 0.5 : t < 0.18 ? 1.25 - (
 const ENEMY_DIE = 0.28
 const BOLT = 0.18 // s a lightning stroke stays
 const MAX_BOLTS = 12
+// how far a monster's entry has gone (0 → 1): 0.35 s for most; the extra
+// special boss's lasts its own `enter` s
+const spawnK = (e) => {
+  const d = e.enter || 0.35
+  return Math.max(0, Math.min(1, (e.t + d - 0.35) / d))
+}
 const MOVE_PACE = 6 // px/s: slower than this a walking monster stands (its feet stop)
 const DANGER = '214, 58, 58' // the colour of a blow to come
 // the special bosses' shots: core and glow
@@ -98,6 +105,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const skins = new Map() // the story's monsters, scaled once per size: { base, white, ice }
   const motions = new Map() // their animation frames, scaled once per size (see motionSet)
   const MOTION = D.motion.characters
+  let xfx = null // the extra special bosses' attacks (render-extra.js)
   const bolts = [] // lightning of the thunder blessing, a moment each
   const E = D.balance.enemies
   const CATS = D.balance.cats
@@ -445,7 +453,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       else if (boss && (e.mode === 'charge' || e.mode === 'rush')) rot = 0.12 * (e.dx >= 0 ? 1 : -1)
     }
     if (e.state === 'down') (rot = 0.45), (alpha = 0.85), (flash = 0)
-    else if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
+    else if (e.state === 'spawn') alpha = 0.25 + 0.6 * spawnK(e)
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     const flip = meta.faces === 'right' && e.face < 0
@@ -472,7 +480,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   // atlas and scaled once per size, each into its own canvas with a clear
   // edge (so a neighbour never bleeds in), with white and pale-blue copies
   // for the hit flash and the frost.
-  const sizeOf = (e) => (D.story.monsters[e.skin] || {}).size || D.story.roleSize[e.type] || 32
+  const sizeOf = (e) => e.size || (D.story.monsters[e.skin] || {}).size || D.story.roleSize[e.type] || 32
   function motionSet(id, atlas, size) {
     const m = MOTION[id]
     const s = size / m.refLong
@@ -518,9 +526,10 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     return fr[fr.length - 1]
   }
 
-  // its attack pose now (0 getting ready, 1 the blow, 2 coming back), or -1
+  // its attack pose now (0 getting ready, 1 the blow, 2 coming back; the
+  // extra special bosses have four: ready, charge, strike, recover), or -1
   function attackPose(e) {
-    if (e.behavior === 'special') return e.stage === 'windup' ? 0 : e.stage === 'strike' ? 1 : e.stage === 'recover' ? 2 : -1
+    if (e.behavior === 'extra') return e.stage === 'ready' ? 0 : e.stage === 'charge' ? 1 : e.stage === 'strike' ? 2 : e.stage === 'recover' ? 3 : -1
     if (e.behavior !== 'boss') return -1
     return e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind' ? 0 : e.mode === 'charge' || e.mode === 'rush' ? 1 : e.mode === 'rest' ? 2 : -1
   }
@@ -534,13 +543,13 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     if (e.under) return
     const set = motionSet(e.skin, atlas, sizeOf(e))
     const A = m.animations
-    const big = e.behavior === 'boss' || e.behavior === 'special'
+    const big = e.behavior === 'boss' || e.behavior === 'extra'
     const walking = m.fly || (e.pace || 0) > MOVE_PACE
     const step = () => (walking ? frameAt(m, 'move', e.life * 1000 + e.id * 37, true) : A.move.frames[0])
     let i
     let alpha = 1
     let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
-    if (e.state === 'spawn') (i = A.move.frames[0]), (alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35))
+    if (e.state === 'spawn') (i = A.move.frames[0]), (alpha = 0.25 + 0.6 * spawnK(e))
     else if (e.state === 'live') {
       const pose = A.attack ? attackPose(e) : -1
       i = pose >= 0 ? A.attack.frames[pose] : step()
@@ -550,8 +559,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         i = frameAt(m, 'death', e.t * 1000, false)
         // the chapter's boss: held a while, then faded as the chapter ends
         // (a mid-boss lies until its own fade, below)
-        if (e === run.boss) {
-          const end = E[e.type].downSeconds
+        if (e === run.boss || e.behavior === 'extra') {
+          const end = e.downSeconds ?? E[e.type].downSeconds
           alpha = Math.max(0, Math.min(1, (end - e.t) / (end / 3)))
         }
       } else (i = A.move.frames[0]), (alpha = 0.85)
@@ -603,7 +612,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       else if (e.hitT > 0) name = 'boss_hit'
       else name = animFrame('boss_run', e.life * 1000)
     } else name = animFrame(look + '_run', e.life * 1000 + e.id * 37)
-    if (e.state === 'spawn') alpha = 0.25 + 0.6 * Math.min(1, e.t / 0.35)
+    if (e.state === 'spawn') alpha = 0.25 + 0.6 * spawnK(e)
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     // frozen (snow blessing): a pale blue cast
@@ -729,8 +738,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       ctx.strokeStyle = `rgba(120, 196, 240, ${0.8 * a})`
       ctx.stroke()
     }
+    const xid = run.extra && run.extra.boss ? run.extra.boss.id : -1
     for (const h of run.hazards) {
-      if (h.kind === 'ray') continue
+      if (h.kind === 'ray' || h.owner === xid) continue
       const c = hazardColor(h)
       if (run.t < h.at) {
         const k = nearing(run, h)
@@ -763,7 +773,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     world()
     ctx.lineWidth = 1.5
     ctx.setLineDash([5, 4])
+    const xid = run.extra && run.extra.boss ? run.extra.boss.id : -1
     for (const h of run.hazards) {
+      if (h.owner === xid) continue
       const c = hazardColor(h)
       if (h.kind === 'ray') {
         // a shot's lane: from the boss out, solid while it is coming, then fading
@@ -795,7 +807,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.font = '13px ' + GAME_FONT
     ctx.lineWidth = 3
     for (const h of run.hazards) {
-      if (!h.order || run.t >= h.at) continue
+      if (!h.order || run.t >= h.at || h.owner === xid) continue
       const y = h.kind === 'line' ? h.y + h.dy * h.len * 0.6 : h.y
       const x = h.kind === 'line' ? h.x + h.dx * h.len * 0.6 : h.x
       ctx.strokeStyle = 'rgba(255, 250, 240, 0.9)'
@@ -960,14 +972,18 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   let warmedMotion = ''
   function warm(run) {
     const R = run.region
-    if (R && warmedMotion !== R.id + kd()) {
+    if (R && warmedMotion !== R.id + run.chapter + kd()) {
       // their frames too (each once, and only when all are in)
       // (at every size they come in: a mid-boss chapter's boss wears the
       // mid-boss's look, its second elite the bone beast's)
+      // (and the chapter's extra special boss, at its own size)
+      const X = D.balance.extraBosses
+      const xid = X.chapters[String(run.chapter)]
       const ids = [...Object.entries(R.skins), ['boss', R.skins.brute], ['brute', R.skins.bone_beast]].filter(([, id]) => MOTION[id])
+      if (xid) ids.push(['boss', xid, X.bosses[xid].size ?? X.size])
       if (ids.every(([, id]) => art.now('motion:' + id))) {
-        for (const [role, id] of ids) motionSet(id, art.now('motion:' + id), sizeOf({ skin: id, type: role }))
-        warmedMotion = R.id + kd()
+        for (const [role, id, size] of ids) motionSet(id, art.now('motion:' + id), sizeOf({ skin: id, type: role, size }))
+        warmedMotion = R.id + run.chapter + kd()
       }
     }
     if (!R || warmed === R.id + kd()) return
@@ -1009,7 +1025,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const e of run.enemies) {
       const w = e.r * 1.15
       if (e.state === 'spawn') {
-        const f = Math.min(1, e.t / 0.35)
+        const f = spawnK(e)
         shadow(e.x, e.y, w * f, e.r * 0.42 * f, 0.3)
       } else if ((e.state === 'live' && !e.under) || e.state === 'down') shadow(e.x, e.y, w, e.r * 0.42)
     }
@@ -1024,6 +1040,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       else if (e.mode === 'rushWind') drawRush(run, e)
     }
     drawHazardsUnder(run)
+    xfx ??= createExtraFx({ ctx, world })
+    xfx.under(run, now, busy)
     for (const o of run.orbs) drawOrb(o, now)
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
@@ -1033,12 +1051,14 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
     drawHazardsOver(run)
+    xfx.over(run, now, dt, busy)
     if (inset) drawArrows(run, now)
     const maxFx = busy ? MAX_FX / 3 : MAX_FX
     const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
 
     // effects from this frame's events
     for (const ev of run.events) {
+      xfx.event(run, ev)
       if (ev.type === 'hit') {
         if (fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
         if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : '#2f2537', crit: ev.crit })
@@ -1131,5 +1151,14 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.globalAlpha = 1
   }
 
-  return { resize, draw, view, mano, reset: () => Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }) }
+  return {
+    resize,
+    draw,
+    view,
+    mano,
+    reset: () => {
+      if (xfx) xfx.reset()
+      Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
+    },
+  }
 }

@@ -6,7 +6,7 @@ import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '.
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
-import { specialOf } from '../src/survivor/bosses.js'
+import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -463,13 +463,13 @@ const still = { x: 0, y: 0 }
   }
   const rounds = [0, 4, 8].map((i) => got.slice(i, i + 4).sort().join(''))
   ok(rounds.every((x) => x === 'ABCD'), `bosses one after another (the page's bag): ${got.join(' ')} — each four all of A B C D`)
-  // a special boss keeps its own attacks (no type)
+  // an extra special boss chapter's own boss is an ordinary boss with a type too
   {
     const r = newRun({ chapter: 3, seed: 2 })
     r.t = 209.99
     r.nextEvent = 2
     step(r, FIXED * 2, still)
-    ok(r.boss.behavior === 'special' && !r.boss.btype, 'chapter 3: the special boss has no type, its own attacks')
+    ok(r.boss.behavior === 'boss' && 'ABCD'.includes(r.boss.btype) && r.boss.skin === regionOf(D, 3).skins.boss, `chapter 3: its own boss comes as usual (${r.boss.skin}, type ${r.boss.btype})`)
   }
   const bossOf = (type, seed = 7) => {
     const r = newRun({ seed })
@@ -528,7 +528,7 @@ const still = { x: 0, y: 0 }
       shots = r.shots.filter((s) => s.owner === b.id)
     }
     const along = shots.every((s) => lanes.some((l) => Math.abs((s.x - l.x) * -l.dy + (s.y - l.y) * l.dx) < 0.5 && (s.x - l.x) * l.dx + (s.y - l.y) * l.dy > 0))
-    ok(lanes.length === 3 && shots.length === 3 && along && warn >= B.specialBosses.minWarn && near(at[0], b.x) && near(at[1], b.y), `C: stands, three lanes shown ${warn.toFixed(2)} s, then three shots exactly along them`)
+    ok(lanes.length === 3 && shots.length === 3 && along && warn >= 0.75 && near(at[0], b.x) && near(at[1], b.y), `C: stands, three lanes shown ${warn.toFixed(2)} s, then three shots exactly along them`)
     for (let i = 0; i < 120 && b.mode !== 'walk'; i++) tick(r)
     ok(b.mode === 'walk', 'C: then it walks again')
   }
@@ -1382,162 +1382,215 @@ const still = { x: 0, y: 0 }
   ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
 }
 
-// ── special bosses (balance.json → specialBosses) and their death ──────────
+// ── the extra special bosses (balance.json → extraBosses) ─────────────────
 {
-  const S = B.specialBosses
-  const WANT = { 3: 'mossgolem', 5: 'flowerguard', 8: 'lanterntree', 10: 'treelord', 13: 'skullbeast', 15: 'skullking', 18: 'sandworm', 20: 'crystalguard', 23: 'frostbear', 25: 'icegolem', 28: 'skygolem', 30: 'thunderspirit', 33: 'voidgolem', 35: 'demonking' }
+  const X = B.extraBosses
+  const WANT = { 3: 'x_snail', 5: 'x_moth', 8: 'x_toad', 10: 'x_spider', 13: 'x_bellkeeper', 15: 'x_organ', 18: 'x_scarab', 20: 'x_sultan', 23: 'x_jelly', 25: 'x_peacock', 28: 'x_ray', 30: 'x_clock', 33: 'x_queen', 35: 'x_eclipse' }
   const got = {}
-  for (let ch = 1; ch <= lastChapter(D); ch++) {
-    const sp = specialOf(D, regionOf(D, ch), ch)
-    if (sp) got[ch] = sp.id + (sp.role === (ch % 5 === 0 ? 'final' : 'mid') ? '' : '?')
-  }
-  ok(JSON.stringify(got) === JSON.stringify(WANT), `special bosses: chapter 3 of each episode its mid-boss, chapter 5 its final boss (14 chapters: ${Object.entries(got).map(([c, id]) => c + ' ' + id).join(', ')})`)
-  ok(!S.bosses.snowguardian && !Object.values(WANT).includes('snowguardian') && D.motion.characters.snowguardian.role === 'npc', '설원의 수호자 is a friendly NPC, never a boss')
+  for (let ch = 1; ch <= lastChapter(D); ch++) if (extraOf(D, ch)) got[ch] = extraOf(D, ch)
+  ok(JSON.stringify(got) === JSON.stringify(WANT), `extra special bosses in chapters ${Object.keys(got).join(', ')} (${Object.values(got).length} of them)`)
 
-  // the boss's part of a chapter, alone with Mano (who cannot die and deals nothing)
-  const bossRun = (ch, seed = 5) => {
-    const run = createRun(D, { chapter: ch, weaponId: 'bouncy_ball', grade: 'D', seed, perma: {} })
+  // a run brought to its chapter boss, which then falls at once
+  const toBoss = (ch, seed = 5, o = {}) => {
+    const run = createRun(D, { chapter: ch, weaponId: 'bouncy_ball', grade: 'D', seed, perma: {}, ...o })
     run.player.hp = run.player.maxHp = 1e12
-    run.weapon.damage = 0
-    run.t = 209.5
+    run.t = 209.99
     run.nextEvent = B.chapter.events.findIndex((e) => e.key === 'boss')
     return run
   }
-  for (const ch of Object.keys(WANT).map(Number)) {
-    const run = bossRun(ch)
-    const seen = new Set()
-    const types = new Set()
-    const bosses = new Set()
-    let early = 0
-    let blows = 0
-    let summonsOver = 0
-    let floorsOver = 0
-    let underLong = 0
-    let underT = 0
-    const caps = Object.fromEntries((S.bosses[WANT[ch]].attacks || S.bosses[WANT[ch]].phases.flatMap((p) => p.attacks)).filter((a) => a.cap).map((a) => [a.type, a.cap]))
-    const hz = new Set()
-    for (let i = 0; i < 60 * 40; i++) {
-      run.enemies = run.enemies.filter((e) => e === run.boss || e.owner === (run.boss && run.boss.id))
-      run.spawnT = -1e9
-      step(run, FIXED, { x: Math.sin(i / 50), y: Math.cos(i / 70) })
+  const tick = (run, n = 1, f) => {
+    for (let i = 0; i < n && run.state !== 'over'; i++) {
       if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      run.fireT = f?.noFire ? 1e9 : run.fireT
+      step(run, FIXED, still)
+      if (f?.each) f.each(run)
       run.events.length = 0
-      for (const e of run.enemies) if (e.key === 'boss') bosses.add(e.id)
-      const b = run.boss
-      if (!b) continue
-      if (b.stage) seen.add(b.stage)
-      if (b.atk) types.add(b.atk.spec.type)
-      for (const h of run.hazards) {
-        if (hz.has(h)) continue
-        hz.add(h)
-        if (!h.harmless) {
-          blows++
-          if (h.at - h.born < S.minWarn - 1e-9) early++
-        }
-      }
-      if (caps.summon && run.enemies.filter((m) => m.owner === b.id && (m.state === 'live' || m.state === 'spawn')).length > caps.summon) summonsOver++
-      if (caps.floor && run.floors.length > caps.floor) floorsOver++
-      underT = b.under ? underT + FIXED : 0
-      if (underT > 1.2) underLong++
     }
-    const want = new Set((S.bosses[WANT[ch]].attacks || S.bosses[WANT[ch]].phases[0].attacks).map((a) => a.type))
-    ok(
-      bosses.size === 1 && run.boss.skin === WANT[ch] && run.boss.behavior === 'special' && early === 0 && [...want].every((t) => types.has(t)) && ['windup', 'strike', 'recover'].every((st) => seen.has(st)) && !summonsOver && !floorsOver && !underLong,
-      `ch${ch} ${WANT[ch]}: one boss, all its attacks (${[...types].join(' ')}), windup → strike → recover, ${blows} blows each warned ≥ ${S.minWarn} s${caps.summon ? `, summons ≤ ${caps.summon}` : ''}${caps.floor ? `, frost ≤ ${caps.floor}` : ''}${early || summonsOver || floorsOver || underLong ? ` (early ${early}, summons over ${summonsOver}, frost over ${floorsOver}, long burrow ${underLong})` : ''}`,
-    )
   }
-  // shots come only along lanes shown at least minWarn before
-  const shotsLate = Object.values(S.bosses).flatMap((x) => x.attacks || x.phases.flatMap((p) => p.attacks)).filter((a) => (a.type === 'radial' || a.type === 'fan') && a.warn < S.minWarn)
-  ok(!shotsLate.length, `every volley's lanes are shown ≥ ${S.minWarn} s before it flies`)
-
-  // the demon king changes its attacks with its HP, with a pause between
-  {
-    const run = bossRun(35)
-    const P = S.bosses.demonking.phases
-    const used = P.map(() => new Set())
-    let phases = 0
-    for (let i = 0; i < 60 * 60; i++) {
-      run.enemies = run.enemies.filter((e) => e === run.boss)
-      run.spawnT = -1e9
-      const b = run.boss
-      if (b && i === 60 * 20) b.hp = b.maxHp * (P[0].above - 0.01)
-      if (b && i === 60 * 40) b.hp = b.maxHp * (P[1].above - 0.01)
-      step(run, FIXED, { x: 0, y: 0 })
-      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
-      phases += run.events.filter((e) => e.type === 'phase').length
-      run.events.length = 0
-      if (run.boss && run.boss.atk) used[run.boss.phase].add(run.boss.atk.spec.type)
-    }
-    ok(phases === 2 && P.every((p, k) => p.attacks.every((a) => used[k].has(a.type))), `the demon king: 3 phases by its HP (${used.map((u) => [...u].join('+')).join(' → ')}), ${phases} phase changes`)
-  }
-
-  // death: on 0 HP no more attacks or touch, its warnings and shots go,
-  // the death plays, the reward and the clear come once, then it is gone
-  for (const ch of [5, 25, 35]) {
-    const run = bossRun(ch)
-    let i = 0
-    for (; i < 60 * 30; i++) {
-      run.enemies = run.enemies.filter((e) => e === run.boss)
-      run.spawnT = -1e9
-      step(run, FIXED, { x: 0, y: 0 })
-      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
-      run.events.length = 0
-      const b = run.boss
-      if (b && b.atk && run.hazards.some((h) => h.owner === b.id) && b.atk.t > 0.3) break
-    }
+  const killBoss = (run) => {
+    for (let i = 0; i < 120 && !(run.boss && run.boss.state === 'live'); i++) tick(run)
     const b = run.boss
     b.hp = 1
     b.guard = false
     ball(run, b.x, b.y, 1, 0, { damage: 50 })
-    let downAt = -1
-    let touch = 0
-    let after = 0
-    for (let k = 0; k < 60 * 5 && run.state !== 'over'; k++) {
-      if (b.state === 'down') {
-        if (downAt < 0) {
-          downAt = run.t
-          after = run.hazards.filter((h) => h.owner === b.id).length + run.shots.filter((s) => s.owner === b.id).length + run.floors.filter((f) => f.owner === b.id).length
-        }
-        run.player.x = b.x
-        run.player.y = b.y
-        run.player.inv = 0
+  }
+
+  // every listed chapter: its own boss first, then, after a pause, the extra
+  // one once; nothing early, nothing twice; the field cleared; Mano safe
+  // during the warning; its attacks over the whole area, every one warned,
+  // a gap always within reach; its fall ends the chapter, once
+  for (const ch of Object.keys(WANT).map(Number)) {
+    const run = toBoss(ch)
+    const ev = []
+    const seenTypes = new Set()
+    let early = 0
+    let noGap = 0
+    let farGap = 0
+    let hurtInIntro = 0
+    let extras = 0
+    let clearedAtCalm = null
+    let spawnGap = Infinity
+    let hitWhileComing = false
+    let span = 0 // how far across the area its blows reached (share of the area's size)
+    const circ = [Infinity, Infinity, -Infinity, -Infinity, 0] // the circles' spread
+    killBoss(run)
+    const seen = new Set()
+    const each = (r) => {
+      for (const e of r.events) {
+        if (e.type === 'extraCalm' || e.type === 'extraWarn' || e.type === 'extraAppear') ev.push(e.type)
+        if (e.type === 'extraCalm') clearedAtCalm = !r.enemies.some((m) => m.state === 'live' || m.state === 'spawn') && !r.hazards.length && !r.shots.length
+        if (e.type === 'hurt' && r.extra && r.extra.phase !== 'fight') hurtInIntro++
       }
+      if (r.extra && r.extra.boss && !seen.has(r.extra.boss)) {
+        seen.add(r.extra.boss)
+        extras++
+        spawnGap = Math.hypot(r.extra.boss.x - r.player.x, r.extra.boss.y - r.player.y)
+      }
+      const xb = r.extra && r.extra.boss
+      if (xb && xb.state === 'spawn' && !hitWhileComing) {
+        // a ball on it while it comes in: no damage
+        const hp = xb.hp
+        r.hurt(xb, 1e30, xb.x, xb.y)
+        hitWhileComing = xb.hp !== hp
+      }
+      if (xb && xb.atk) seenTypes.add(xb.atk.spec.type)
+      for (const h of r.hazards) {
+        if (!xb || h.owner !== xb.id || seen.has(h)) continue
+        seen.add(h)
+        if (h.harmless) continue
+        if (h.at - h.born < X.minWarn - 1e-9) early++
+        const Bx = r.extra.box
+        const size = Math.max(Bx[2] - Bx[0], Bx[3] - Bx[1])
+        if (h.kind === 'wave') span = Math.max(span, (h.speed * (h.until - h.at)) / size)
+        else if (h.kind === 'band') span = Math.max(span, 1)
+        else if (h.kind === 'line') span = Math.max(span, Math.min(1, (2 * h.half + h.len) / size))
+        else if (h.kind === 'cone') span = Math.max(span, Math.min(1, h.range / size))
+        else if (h.kind === 'circle') {
+          circ[0] = Math.min(circ[0], h.x)
+          circ[1] = Math.min(circ[1], h.y)
+          circ[2] = Math.max(circ[2], h.x)
+          circ[3] = Math.max(circ[3], h.y)
+          circ[4] = h.r
+          span = Math.max(span, Math.max((circ[2] - circ[0] + 2 * circ[4]) / (Bx[2] - Bx[0]), (circ[3] - circ[1] + 2 * circ[4]) / (Bx[3] - Bx[1])))
+        }
+        if (h.kind === 'wave' || h.kind === 'band') {
+          if (!h.gaps.length) noGap++
+          // the nearest gap: reachable at base speed before the front comes
+          const p = r.player
+          const t = reachesAt(h, p.x, p.y)
+          const time = (t ?? h.until) - r.t
+          let best = Infinity
+          for (let a = 0; a < 64; a++)
+            for (let d = 0; d <= 125 * time; d += 10) {
+              const x = p.x + Math.cos((a / 64) * Math.PI * 2) * d
+              const y = p.y + Math.sin((a / 64) * Math.PI * 2) * d
+              if (x < Bx[0] || x > Bx[2] || y < Bx[1] || y > Bx[3]) continue
+              const t2 = reachesAt(h, x, y)
+              if (inGap(h, x, y, p.hitR + 2) || t2 === null || t2 > h.until) best = Math.min(best, d)
+            }
+          if (best > 125 * time) farGap++
+        }
+      }
+    }
+    tick(run, 60 * 6, { each, noFire: true })
+    const order = ev.join('>')
+    const notYet = run.state === 'play' && run.extra && run.extra.phase === 'fight'
+    // its fight: Mano cannot die here, the boss cannot be hurt (to see its attacks)
+    tick(run, 60 * 40, { each, noFire: true })
+    const b = run.extra.boss
+    ok(
+      order === 'extraCalm>extraWarn>extraAppear' && notYet && extras === 1 && clearedAtCalm && !hurtInIntro && !hitWhileComing && spawnGap > 100 && b.skin === WANT[ch] && run.awards.filter((a) => a === 'boss').length === 1 && !run.awards.includes('extra'),
+      `ch${ch}: its own boss falls, the chapter goes on: field cleared, quiet, WARNING!, ${WANT[ch]} comes in ${spawnGap.toFixed(0)} px from Mano (not hurt, not hittable while it comes), once; the boss's reward once`,
+    )
+    const want = new Set((X.bosses[WANT[ch]].attacks || X.bosses[WANT[ch]].phases[0].attacks).map((a) => a.type))
+    ok([...want].every((t) => seenTypes.has(t)) && !early && !noGap && !farGap && span >= 0.85, `ch${ch} ${WANT[ch]}: ${[...seenTypes].join(' ')} over ${Math.round(span * 100)}% of the area, every blow warned ≥ ${X.minWarn} s${early ? ` (${early} early)` : ''}, a gap within reach every time${noGap || farGap ? ` (${noGap} without, ${farGap} out of reach)` : ''}`)
+    // now it falls: its attacks go with it, then the clear (once)
+    b.hp = 1
+    run.hurt(b, 5, b.x, b.y)
+    const left = run.hazards.filter((h) => h.owner === b.id).length + run.shots.filter((s) => s.owner === b.id).length
+    let hurtAfter = 0
+    let overs = 0
+    for (let i = 0; i < 60 * 4; i++) {
+      run.player.x = b.x
+      run.player.y = b.y
+      run.player.inv = 0
+      const was = run.state
       const hp = run.player.hp
-      step(run, FIXED, { x: 0, y: 0 })
-      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
-      if (b.state === 'down' && run.player.hp < hp) touch++
-      run.events.length = 0
+      tick(run)
+      if (run.player.hp < hp) hurtAfter++
+      if (was !== 'over' && run.state === 'over') overs++
     }
-    for (let k = 0; k < 120; k++) step(run, FIXED, { x: 0, y: 0 })
-    const boss = run.awards.filter((a) => a === 'boss').length
-    ok(downAt > 0 && after === 0 && touch === 0 && !b.atk && !b.dash && run.state === 'over' && run.result.cleared && boss === 1 && near(run.t - downAt, B.enemies.boss.downSeconds, 0.2), `ch${ch}: the boss falls mid-attack: its warnings and shots go at once, no touch while it falls, ${B.enemies.boss.downSeconds} s for its death, then the clear; the boss reward once (${boss})`)
+    ok(!left && !hurtAfter && run.state === 'over' && run.result.cleared && overs === 1 && run.result.extra === WANT[ch], `ch${ch}: it falls: nothing of its attack stays, no touch while it lies, then the chapter is cleared once`)
   }
 
-  // a fallen mid-boss of an ordinary chapter: lies for its death, fades, is gone
+  // an ordinary chapter: cleared when its boss falls, no warning
   {
-    const run = createRun(D, { chapter: 2, weaponId: 'bouncy_ball', grade: 'D', seed: 3, perma: {} })
-    run.player.hp = run.player.maxHp = 1e12
-    run.t = 144.99
-    run.nextEvent = B.chapter.events.findIndex((e) => e.key === 'elite2')
-    step(run, FIXED, { x: 0, y: 0 })
-    const e = run.enemies.find((m) => m.key === 'elite2')
-    for (let k = 0; k < 60 && e.state !== 'live'; k++) step(run, FIXED, { x: 0, y: 0 })
-    e.hp = 1
-    e.guard = false
-    ball(run, e.x, e.y, 1, 0, { damage: 50 })
-    let down = 0
-    let gone = -1
-    for (let k = 0; k < 60 * 4; k++) {
-      step(run, FIXED, { x: 0, y: 0 })
-      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
-      if (e.state === 'down') down += FIXED
-      if (gone < 0 && !run.enemies.includes(e)) gone = k
+    const run = toBoss(4)
+    killBoss(run)
+    const warned = []
+    tick(run, 60 * 4, { each: (r) => r.events.forEach((e) => e.type.startsWith('extra') && warned.push(e.type)) })
+    ok(run.state === 'over' && run.result.cleared && !warned.length && !run.extra, 'chapter 4: cleared when its boss falls, no extra boss, no warning')
+  }
+  // falling to the extra boss: not cleared; how much of it was left
+  {
+    const run = toBoss(3)
+    killBoss(run)
+    tick(run, 60 * 4)
+    run.player.hp = run.player.maxHp = 10
+    for (let i = 0; i < 60 * 30 && run.state !== 'over' && run.state !== 'dying'; i++) {
+      run.player.x = run.extra.boss.x
+      run.player.y = run.extra.boss.y
+      tick(run)
     }
-    ok(near(down, B.enemies[e.type].downSeconds, 0.05) && gone > 0 && run.awards.filter((a) => a === 'elite2').length === 1, `a fallen mid-boss lies ${down.toFixed(2)} s (its death), then fades and is gone; its reward once`)
+    for (let i = 0; i < 120; i++) tick(run)
+    ok(run.state === 'over' && !run.result.cleared && run.result.bossLeft > 0 && run.result.extra === 'x_snail', `lost to the extra boss: not cleared (${Math.round(run.result.bossLeft * 100)}% of it left)`)
+  }
+  // every run has it, the first or the tenth
+  {
+    let n = 0
+    for (let k = 0; k < 3; k++) {
+      const run = toBoss(5, 40 + k)
+      killBoss(run)
+      tick(run, 60 * 4)
+      if (run.extra && run.extra.boss) n++
+    }
+    ok(n === 3, 'it comes every run of its chapter (not only before the first clear)')
+  }
+  // a strong build ends it quickly: no shield, no cap, no forced show
+  {
+    const run = toBoss(10)
+    killBoss(run)
+    tick(run, 60 * 6)
+    const b = run.extra.boss
+    // every hit counts in full, at any moment (no guard, no cap, no shield
+    // between phases): two big hits end it
+    const hp0 = b.hp
+    run.hurt(b, b.maxHp * 0.55, b.x, b.y)
+    const full = near(hp0 - b.hp, b.maxHp * 0.55, 1e-6 * b.maxHp)
+    run.hurt(b, b.maxHp * 0.55, b.x, b.y)
+    ok(full && b.state === 'down' && !b.guard, 'a strong build ends it as fast as it hits: every hit counts in full (no guard, no cap, no shield)')
+  }
+  // the last one: its phases by HP, the combos only later, nothing made up
+  {
+    const run = toBoss(35)
+    killBoss(run)
+    tick(run, 60 * 6)
+    const b = run.extra.boss
+    const used = [new Set(), new Set(), new Set()]
+    for (let i = 0; i < 60 * 60; i++) {
+      if (i === 60 * 20) b.hp = b.maxHp * 0.6
+      if (i === 60 * 40) b.hp = b.maxHp * 0.2
+      tick(run, 1, { noFire: true })
+      if (b.atk) used[b.phase].add(b.atk.spec.type)
+    }
+    ok(used[0].has('ringwave') && used[0].has('sweep') && !used[0].has('combo') && used[1].has('combo') && used[2].has('combo') && b.core, `the last boss: ${used.map((u) => [...u].join('+')).join(' → ')}; its core lights at the end`)
+    const pX = B.extraBosses.bosses.x_eclipse
+    const others = Object.entries(B.extraBosses.bosses).filter(([id]) => id !== 'x_eclipse')
+    ok((pX.hpMul ?? X.hpMul) > X.hpMul && others.every(([, o]) => !o.phases && o.attacks.length <= 2), `the last boss is the hardest (HP ×${pX.hpMul} against ×${X.hpMul}, three phases); the others have one or two attacks`)
   }
 
-  // the animation data: every monster of the story has its frames, bosses
-  // their attack and death, one scale per character
+  // the animation data: every monster has its frames; the old motion set's
+  // bosses attack and die on 3, the extra bosses on 4 each
   const M = D.motion.characters
   const skins = new Set(D.story.regions.flatMap((r) => Object.values(r.skins)))
   const bad = []
@@ -1546,8 +1599,11 @@ const still = { x: 0, y: 0 }
     if (!m) bad.push(id + ' (none)')
     else if (m.animations.move.frames.length !== 4 || !(m.refLong > 0) || m.durations.length !== m.frames.length) bad.push(id)
   }
-  for (const id of Object.values(WANT)) if (!M[id] || M[id].animations.attack?.frames.length !== 3 || M[id].animations.death?.frames.length !== 3 || M[id].animations.death.loop) bad.push(id + ' (attack/death)')
-  ok(!bad.length && Object.keys(M).length === 35, `motion: 35 characters, every story monster walks on 4 frames, the 14 bosses attack and die on 3 each (death once)${bad.length ? ' — ' + bad.join(', ') : ''}`)
+  for (const id of Object.values(WANT)) {
+    const m = M[id]
+    if (!m || m.role !== 'extra' || m.animations.move.frames.length !== 4 || m.animations.attack.frames.length !== 4 || m.animations.death.frames.length !== 4 || m.animations.death.loop || m.frames.length !== 12) bad.push(id)
+  }
+  ok(!bad.length && Object.keys(M).length === 49, `motion: 35 of the old set and 14 extra bosses (move, attack, death: 4 frames each)${bad.length ? ' — ' + bad.join(', ') : ''}`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
