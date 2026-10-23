@@ -57,6 +57,9 @@ export function fresh(D) {
     tizzzz: freshCats(),
     // the story's battle blessings (story.json → rewards), kept for good
     blessings: freshBlessings(),
+    // redraws of the upgrade cards a run gets (from balance.rerolls.fromChapter
+    // on), opened for good by chapter 5's reward (story.json → rewards.forest)
+    rerolls: 0,
     // the story: which cutscene groups have been seen (ended or skipped) and
     // which region rewards were given — apart, so skipping never loses a
     // reward and a reward never waits on a cutscene. v: 1 once a save from
@@ -67,7 +70,12 @@ export function fresh(D) {
   }
 }
 
-const STORY_V = 1
+// 1: the story came in. 2: chapter 5's first clear brings the cats (and the
+// rerolls) with the S ball; chapter 10's cat event is gone
+const STORY_V = 2
+// the lobby's note for a save that cleared chapter 5 before it brought the
+// cats and the rerolls (story.news)
+export const NEWS_EP01 = 'ep01'
 const freshBlessings = () => ({ phoenix: false, snow: false, thunder: false, final: false })
 
 // For each companion (the cats, the writer Tizzzz): unlocked: it helps from its
@@ -120,12 +128,13 @@ function validate(D, d) {
   if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
   if (isObj(d.tizzzz)) for (const k of Object.keys(out.tizzzz)) out.tizzzz[k] = d.tizzzz[k] === true
   if (isObj(d.blessings)) for (const k of Object.keys(out.blessings)) out.blessings[k] = d.blessings[k] === true
+  out.rerolls = int(d.rerolls) && d.rerolls >= 0 ? Math.min(d.rerolls, 9) : 0
   // a save from before the story keeps v 0 until boot brings it in
   const groups = new Set(D.story.cutscenes.groups.map((g) => g.id))
   const rewards = new Set(Object.keys(D.story.rewards).filter((k) => k !== 'note'))
   const st = isObj(d.story) ? d.story : null
   const only = (list, set) => (Array.isArray(list) ? [...new Set(list.filter((x) => set.has(x)))] : [])
-  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, rewards) }
+  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01])) }
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -291,7 +300,7 @@ export function createProgress(D, storage) {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
         d.activeRun = { runId, chapter }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, blessings: { ...d.blessings } }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, blessings: { ...d.blessings }, rerolls: d.rerolls }
       })
     },
 
@@ -516,27 +525,45 @@ export function grantReward(D, d, rid) {
     out.item = item
   }
   if (R.cats) Object.assign(d.cats, { unlocked: true, eventSeen: true })
+  if (R.rerolls) d.rerolls = Math.max(d.rerolls, R.rerolls)
   if (R.tizzzz) Object.assign(d.tizzzz, { unlocked: true, eventSeen: true })
   if (R.blessing) d.blessings[R.blessing] = true
   if (R.final) d.blessings.final = true
   return out
 }
 
-// A save from before the story (story.v 0), once: the cutscenes of what it
-// has already played count as seen (they can be watched again from 설정),
-// and the region rewards of chapters it already cleared are given now —
-// except what the first version already gave: the S ball of the cats' old
-// chapter-5 story, the cats themselves, Tizzzz and her SS ball of the old
-// chapter-10 story. Nothing it owns is taken back. Returns the rewards given.
+// A save from an older story, once (story.v below STORY_V). Nothing it owns
+// is taken back, nothing is given twice.
+// From before the story (v 0): the cutscenes of what it has already played
+// count as seen (they can be watched again from 설정), and the region rewards
+// of chapters it already cleared are given now, except what the first
+// version already gave: the S ball of the cats' old chapter-5 story (the cats
+// and the rerolls still come), Tizzzz and her SS ball of the old chapter-10
+// story.
+// From v 1 (chapter 5 gave the S ball, chapter 10 the cats): a save that has
+// chapter 5's reward gets what it now also brings, the cats and the rerolls,
+// without a second S ball; chapter 5's new cutscene counts as seen (it plays
+// at a first clear only). A save that already had the cats keeps them.
+// Returns the rewards given.
 export function migrateStory(D, d) {
   if (d.story.v >= STORY_V) return []
   const given = []
+  const F = D.story.rewards.forest
+  // what chapter 5's reward brings beside its ball
+  const rest = () => {
+    Object.assign(d.cats, { unlocked: true, eventSeen: true })
+    d.rerolls = Math.max(d.rerolls, F.rerolls || 0)
+  }
+  if (d.story.v === 1 && d.story.rewards.includes('forest') && !(d.cats.unlocked && d.rerolls >= (F.rerolls || 0))) {
+    rest()
+    d.story.news = [...new Set([...d.story.news, NEWS_EP01])]
+  }
   for (const [rid, R] of Object.entries(D.story.rewards)) {
     if (rid === 'note' || !d.firstCleared.includes(R.chapter) || d.story.rewards.includes(rid)) continue
-    const before =
-      (rid === 'forest' && d.cats.rewardGiven) || (rid === 'deepforest' && d.cats.unlocked) || (rid === 'skulltown' && d.tizzzz.rewardGiven)
+    const before = (rid === 'forest' && d.cats.rewardGiven) || (rid === 'skulltown' && d.tizzzz.rewardGiven)
     if (before) {
       d.story.rewards = [...d.story.rewards, rid]
+      if (rid === 'forest') rest()
       if (rid === 'skulltown') d.tizzzz.unlocked = true
       continue
     }

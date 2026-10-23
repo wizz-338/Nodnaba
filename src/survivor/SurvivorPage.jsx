@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
-import { artUrl, artNow, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS } from './progress.js'
+import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
+import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
+import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01 } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
@@ -58,6 +59,8 @@ const effectTag = (id, n = 1) => {
   if (id === 'regen') return `최대 체력의 +${fmt(e.addMaxHpShare * n * 100)}%/초`
   if (id === 'nyang') return n > 1 ? `고양이 Lv.+${n}` : '고양이'
   if (id === 'critDamage') return `+${fmt(e.add * n)}배`
+  if (id === 'catSummon') return `+${e.add * n}마리`
+  if (id === 'catSize') return `범위 ×${fmt(e.rangeMul ** n, 2)}`
   return `×${fmt(e.mul ** n, 4)}`
 }
 // coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
@@ -102,10 +105,28 @@ function change(run, id, times = 1) {
       return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
     case 'nyang':
       return times > 1 ? nyangJump(run.nyang, run.nyang + times) : nyangText(run.nyang + 1)
+    // the friend cats: what one cat does now → after (catNow: the same
+    // numbers friends.js fights with)
+    case 'catSummon': {
+      const a = catNow(run)
+      const b = catNow({ ...run, cat: n.cat })
+      return `친구냥이 ${run.cat.n}마리 → ${n.cat.n}마리${run.cat.n ? ` · 할퀴기 ${big(a.dmg)} → ${big(b.dmg)}` : ''}`
+    }
+    case 'catSize':
+      return `할퀴기 범위 ${fmt(catNow(run).swipe * 2)} → ${fmt(catNow({ ...run, cat: n.cat }).swipe * 2)} · 몸집 ×${fmt(n.cat.size, 2)}`
+    case 'catSpeed':
+      return `달리기 ${Math.round(catNow(run).speed)} → ${Math.round(catNow({ ...run, cat: n.cat }).speed)}`
+    case 'catRate':
+      return `${fmt(catNow(run).gap, 3)}초마다 → ${fmt(catNow({ ...run, cat: n.cat }).gap, 3)}초마다`
+    case 'catClaw':
+      return `할퀴기 ${big(catNow(run).dmg)} → ${big(catNow({ ...run, cat: n.cat }).dmg)}`
     default:
       return ''
   }
 }
+
+// one friend cat's numbers in a run (or in a run with other cat numbers)
+const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: catSpeed(run), swipe: catSwipe(run), pack: packMul(run) })
 
 // where Mano stands in this run (for the level-up cards): every number a
 // card can change, as it is now, then the cards picked so far
@@ -131,6 +152,10 @@ function RunStats({ run }) {
     ['경험치', `×${fmt(p.xpMul, 2)}`],
   ]
   if (run.nyang > 0) rows.push(['냥냥 연금술', `Lv.${run.nyang}`])
+  if (run.cat.n > 0) {
+    const c = catNow(run)
+    rows.push(['친구냥이', `${run.cat.n}마리`], ['할퀴기 피해', big(c.dmg)], ['할퀴기 간격', `${fmt(c.gap, 3)}초`], ['할퀴기 범위', fmt(c.swipe * 2)], ['고양이 달리기', Math.round(c.speed)])
+  }
   const build = buildSummary(run)
   return (
     <div className="ms-runstats">
@@ -146,7 +171,7 @@ function RunStats({ run }) {
         <ul className="ms-build" aria-label="이번 판에 고른 강화">
           {build.map((b) => (
             <li key={b.id}>
-              <Sprite name={b.icon} size={18} />
+              {OPTIONS[b.id] && OPTIONS[b.id].art ? <Art id={OPTIONS[b.id].art} className="ms-build__art" /> : <Sprite name={b.icon} size={18} />}
               {b.name} ×{b.n}
             </li>
           ))}
@@ -227,7 +252,7 @@ function PickFx({ fx }) {
     <div className="ms-pickfx" style={{ left: fx.x, top: fx.y, width: fx.w, height: fx.h }} aria-hidden="true">
       <div className="ms-card ms-pickfx__card">
         <span className="ms-card__icon">
-          <Sprite name={fx.icon} size={36} />
+          <CardIcon o={fx.o} />
         </span>
         <span className="ms-card__body">
           <span className="ms-card__name">{fx.name}</span>
@@ -276,6 +301,12 @@ function popButton(el) {
 }
 
 // one frame of the art as a DOM box `size` px on its long side
+// an upgrade card's icon: its own picture (the cat cards'), else its sprite
+function CardIcon({ o, size = 36 }) {
+  if (o.art) return <Art id={o.art} className="ms-card__art" />
+  return <Sprite name={o.icon} size={size} />
+}
+
 function Sprite({ name, size, flip, whole, className = '' }) {
   return <span className={`ms-sprite ${className}`} style={spriteStyle(name, size, { whole, flip })} aria-hidden="true" />
 }
@@ -421,8 +452,18 @@ function Game({ exitHref }) {
     setSave(b.data)
     // rewards a save from before the story got for chapters it had cleared
     const news = b.data.story.news
+    // (and a save that cleared chapter 5 before it brought the cats and the
+    // rerolls: they come now, the S ball it already has)
     if (news.length) {
-      setNotice(`이미 깬 장의 이야기 보상을 받았어요: ${news.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`)
+      const told = news.filter((rid) => rid !== NEWS_EP01)
+      setNotice(
+        [
+          news.includes(NEWS_EP01) && `5장 클리어 보상이 바뀌었어요: 단추·호두·모루 합류 · 강화 리롤 ${b.data.rerolls}회 (S급 탱탱볼은 이미 받았어요)`,
+          told.length && `이미 깬 장의 이야기 보상을 받았어요: ${told.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`,
+        ]
+          .filter(Boolean)
+          .join(' / '),
+      )
       P.current.clearNews()
     }
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
@@ -481,7 +522,7 @@ function Game({ exitHref }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, arena: pf.arena, bossBag: BOSS_BAG })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -494,7 +535,10 @@ function Game({ exitHref }) {
     preloadRegion(g.run.region, pf.background)
     // (and the chapter's extra special boss, if it has one)
     if (extraOf(D, ch)) loadArt('motion:' + extraOf(D, ch))
-    const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && !seen.has(c.id))
+    // (and the friend cats' frames and scratches, in a run that can have them)
+    if (g.run.pool.includes('catSummon')) for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power']) loadArt(id)
+    // the episodes' opening cutscenes (play: false) are kept but never played
+    const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && c.play !== false && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
     setScreen('battle')
     refresh()
@@ -911,7 +955,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
                 ))}
               {tz && <Art id="tizzzz_face" className="ms-crew__face" alt={D.tizzzz.name} />}
               <span>
-                {[cats && (catsOn ? '고양이들이 함께해요' : `고양이들은 ${D.balance.cats.activeFromChapter}장부터`), tz && (tzOn ? `${D.tizzzz.name}가 선택지를 고쳐 써 줘요` : `${D.tizzzz.name}는 ${D.balance.tizzzz.activeFromChapter}장부터`)].filter(Boolean).join(' · ')}
+                {[cats && (catsOn ? '고양이들이 함께해요' : `고양이들은 ${D.balance.cats.activeFromChapter}장부터`), save.rerolls > 0 && chapter >= D.balance.rerolls.fromChapter && `리롤 ${save.rerolls}회`, tz && (tzOn ? `${D.tizzzz.name}가 선택지를 고쳐 써 줘요` : `${D.tizzzz.name}는 ${D.balance.tizzzz.activeFromChapter}장부터`)].filter(Boolean).join(' · ')}
               </span>
             </p>
           )}
@@ -1082,7 +1126,7 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
 // greyed with the chapter that brings them
 function Blessings({ save }) {
   const owned = (b) =>
-    b.id === 'cats' ? save.cats.unlocked : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
+    b.id === 'cats' ? save.cats.unlocked : b.id === 'reroll' ? save.rerolls > 0 : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
   return (
     <section className="ms-panel">
       <h3 className="ms-sub">축복과 보물</h3>
@@ -1861,7 +1905,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     const st = stageRef.current.getBoundingClientRect()
                     const n = ed ? T : 1
                     const key = `${run.choiceSeq}:${id}`
-                    g.fx = { key, x: r.left - st.left, y: r.top - st.top, w: r.width, h: r.height, icon: o.icon, name: o.name, tag: effectTag(id, n), text: change(run, id, n) }
+                    g.fx = { key, x: r.left - st.left, y: r.top - st.top, w: r.width, h: r.height, o, name: o.name, tag: effectTag(id, n), text: change(run, id, n) }
                     setTimeout(() => {
                       if (g.fx && g.fx.key === key) (g.fx = null), rerender()
                     }, PICK_FX_MS)
@@ -1873,7 +1917,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   }}
                 >
                   <span className="ms-card__icon">
-                    <Sprite name={o.icon} size={36} />
+                    <CardIcon o={o} />
                   </span>
                   <span className="ms-card__body">
                     <span className="ms-card__name">
@@ -1907,6 +1951,26 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                 </button>
               )
             })}
+            {/* the rerolls (chapter 5's reward): three other cards, while any are left this run */}
+            {(run.rerolls > 0 || run.stats.rerolls > 0) && (
+              <button
+                type="button"
+                className="ms-btn ms-btn--small ms-reroll"
+                disabled={run.rerolls <= 0}
+                onClick={() => {
+                  const g = G.current
+                  if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
+                  if (reroll(run, run.choiceSeq)) {
+                    audio.sfx('pick')
+                    g.cardsAt = performance.now()
+                    rerender()
+                  }
+                }}
+              >
+                <Art id="reward_reroll" className="ms-reroll__art" />
+                {run.rerolls > 0 ? `다시 뽑기 (${run.rerolls}회 남음)` : '다시 뽑기를 다 썼어요'}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1965,6 +2029,25 @@ const CUT_GROUPS = D.story.cutscenes.groups
 
 // clear cutscenes of chapters already cleared that were never seen to the
 // end (the page closed in the middle): played when the game opens
+// a cut's line; {next}: the next region's name (story.json → regions) with
+// its particle, 로 or 으로 (a final consonant other than ㄹ takes 으로)
+function cutText(cut) {
+  if (!cut.text.includes('{next}')) return cut.text
+  const g = CUT_GROUPS.find((x) => x.id === cut.group)
+  const R = D.story.regions
+  const next = R[Math.min(R.length - 1, R.indexOf(regionOf(D, g.chapter)) + 1)].name
+  const code = next.charCodeAt(next.length - 1) - 0xac00
+  const fin = code >= 0 && code < 11172 ? code % 28 : 0
+  return cut.text.replace('{next}', next + (fin && fin !== 8 ? '으로' : '로'))
+}
+
+// what each of chapter 5's reward pictures stands for (under the picture)
+const REWARD_CAPTION = {
+  reward_cats: () => D.cats.companions.map((c) => c.name).join('·'),
+  reward_s_ball: (R) => `${R.ball}급 탱탱볼`,
+  reward_reroll: (R) => `리롤 ${R.rerolls}회`,
+}
+
 const leftoverCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'clear' && save.firstCleared.includes(g.chapter) && !save.story.seen.includes(g.id))
 
 // Cutscenes: the picture whole (never cut; the space left over is dark), a
@@ -2025,6 +2108,7 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
               <span key={id} className="ms-cut__prop">
                 <Art id={id} />
                 {R.cats && D.cats.companions.find((c) => c.image === id) && <small>{D.cats.companions.find((c) => c.image === id).name}</small>}
+                {REWARD_CAPTION[id] && <small>{REWARD_CAPTION[id](R)}</small>}
               </span>
             ))}
           </div>
@@ -2034,7 +2118,8 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
                 {t}
               </p>
             ))}
-            {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 싸워요.</p>}
+            {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요. 강화 선택지에 친구냥이도 나와요.</p>}
+            {R.rerolls && <p className="ms-dim ms-center">{D.balance.rerolls.fromChapter}장부터 한 판에 {R.rerolls}번, 강화 선택지를 새로 뽑을 수 있어요.</p>}
             {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
               확인
@@ -2045,8 +2130,11 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
     )
   }
   const cut = cuts[i]
+  // a wide (16:9) picture fills the screen on the PC, the words over its foot
+  const info = artInfo(cut.image)
+  const wide = !!(info && info.out && info.out[0] > info.out[1])
   return (
-    <div className="ms-modal ms-cut" role="dialog" aria-modal="true" aria-label="이야기">
+    <div className={`ms-modal ms-cut${wide ? ' ms-cut--wide' : ''}`} role="dialog" aria-modal="true" aria-label="이야기">
       <div className="ms-cut__pic" onClick={next}>
         {/* the group's pictures stay in place, only one shown: changing cuts never flashes */}
         {cuts.map((c, k) => (
@@ -2056,7 +2144,7 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
       <div className="ms-cut__box">
         <p className="ms-cut__text">
           <span className="ms-cut__who">{cut.who || D.story.cutscenes.speaker}</span>
-          {cut.text}
+          {cutText(cut)}
         </p>
         <div className="ms-cut__row">
           <span className="ms-cut__count">

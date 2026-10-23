@@ -546,6 +546,38 @@
   background: #fff7e3;
 }
 
+/* a card's own picture (the cat cards'), in the icon box */
+.ms-card__icon > .ms-card__art {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  scale: 1;
+}
+
+.ms-reroll {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ms-reroll__art {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.ms-reroll:disabled .ms-reroll__art {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.ms-build__art {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
 .ms-card__icon {
   flex: none;
   display: grid;
@@ -2204,6 +2236,35 @@
   top: 22px;
   right: 26px;
   font-size: 15px;
+}
+
+/* a wide (16:9) cutscene: the picture is the whole screen (the PC game is
+   16:9 itself) and the words lie over its foot */
+.ms--pc > .ms-modal.ms-cut--wide {
+  padding: 0;
+}
+
+.ms--pc .ms-cut--wide .ms-cut__pic {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+}
+
+.ms--pc .ms-cut--wide .ms-cut__box {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  width: min(760px, 70%);
+  translate: -50% 0;
+  background: rgba(241, 230, 211, 0.94);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ms--pc .ms-cut--wide .ms-cut__text {
+  min-height: 3em;
 }
 
 /* the region's reward: its pictures at the left, the words at the right */

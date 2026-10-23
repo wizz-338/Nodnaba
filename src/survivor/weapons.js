@@ -111,7 +111,10 @@ function updateBalls(run, dt) {
   for (const b of run.balls) {
     b.ttl -= dt
     b.age += dt
-    if (b.ttl <= 0) continue
+    if (b.ttl <= 0) {
+      if (!b.hitAny) run.stats.missed++
+      continue
+    }
     if (b.locks.length) b.locks = b.locks.filter((l) => l.until > run.t)
     const speed = Math.hypot(b.vx, b.vy)
     const steps = Math.max(1, Math.ceil((speed * dt) / SUB))
@@ -157,7 +160,10 @@ function updateBalls(run, dt) {
       if (first && b.gen < w.split.generations) split(run, b, e)
       if (!spend(b)) alive = false
     }
-    if (!alive) continue
+    if (!alive) {
+      if (!b.hitAny) run.stats.missed++
+      continue
+    }
     b.trail.push(b.age, b.x, b.y)
     while (b.trail.length > 3 && b.trail[0] < b.age - TRAIL) b.trail.splice(0, 3)
     out.push(b)

@@ -1,0 +1,752 @@
+{
+ "note": "MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose's height in atlas px (the one scale), ms: each frame's time.",
+ "package": "MANO_EP01",
+ "images": [
+  {
+   "source": "episode_01_cutscenes/ep01_clear_01_reunion.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "be5804e23ac977eee8da62cf7e7b2680e89c45ee406889ce964a7389d30efdbd",
+   "id": "ep01_clear_01",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "마노와 세 고양이의 재회",
+   "file": "ep01/cutscenes/ep01_clear_01.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 259722
+  },
+  {
+   "source": "episode_01_cutscenes/ep01_clear_02_followed.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "326e34627e0176eecaa8e96546468773efd65dcdc5df2a1b5edc59e7e24b3e49",
+   "id": "ep01_clear_02",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "숲속에서 만난 마노와 세 고양이",
+   "file": "ep01/cutscenes/ep01_clear_02.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 241366
+  },
+  {
+   "source": "episode_01_cutscenes/ep01_clear_03_ball.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "0534c8ff02078f7d7566749b0f2ebb4e6c76f886ce3ba458b66b64d7c9e85037",
+   "id": "ep01_clear_03",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "모루가 건넨 빨간 공",
+   "file": "ep01/cutscenes/ep01_clear_03.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 208828
+  },
+  {
+   "source": "episode_01_cutscenes/ep01_clear_04_received.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "dbb12b5e6552641394630f8034c694168cbfd89bfc6e30a241d01e69d0224159",
+   "id": "ep01_clear_04",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "마노와 세 고양이의 빨간 공 축제",
+   "file": "ep01/cutscenes/ep01_clear_04.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 245920
+  },
+  {
+   "source": "episode_01_cutscenes/ep01_clear_05_departure.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "05584a40c088b56a785a7174774d2293ce8ef8ced67e6ebc83cf181c88c3b708",
+   "id": "ep01_clear_05",
+   "kind": "cutscene",
+   "region": "forest",
+   "name": "마노와 세 고양이의 숲길 모험",
+   "file": "ep01/cutscenes/ep01_clear_05.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 279566
+  },
+  {
+   "source": "rewards/reward_cats.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "2e9b26466ce9b4f25182201312108d76399e48d7e64a2895c7a5b56f28e6107c",
+   "id": "reward_cats",
+   "kind": "reward",
+   "region": null,
+   "name": "행복한 고양이 삼총사",
+   "body": [
+    260,
+    359,
+    994,
+    984
+   ],
+   "file": "ep01/rewards/reward_cats.webp",
+   "out": [
+    256,
+    218
+   ],
+   "bytes": 12894
+  },
+  {
+   "source": "rewards/reward_s_ball.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "6e735d3abf1ee77f578839c0dcc6e1fbf1bdf17dd804c075d2ac146c1a220853",
+   "id": "reward_s_ball",
+   "kind": "reward",
+   "region": null,
+   "name": "금빛 월계관의 붉은 바운싱 볼",
+   "body": [
+    316,
+    393,
+    912,
+    900
+   ],
+   "file": "ep01/rewards/reward_s_ball.webp",
+   "out": [
+    256,
+    218
+   ],
+   "bytes": 7310
+  },
+  {
+   "source": "rewards/reward_reroll.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "c66362fd2ae6249348ba14ebe4f51962ac84d00f1a893ffcc9c332267ebd376b",
+   "id": "reward_reroll",
+   "kind": "reward",
+   "region": null,
+   "name": "청록 리롤 화살표와 세 장의 카드",
+   "body": [
+    309,
+    314,
+    959,
+    948
+   ],
+   "file": "ep01/rewards/reward_reroll.webp",
+   "out": [
+    256,
+    250
+   ],
+   "bytes": 10856
+  },
+  {
+   "source": "cat_skills/skill_cat_summon.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "838f141fab741d8324ef43c3b2eec1f8023229fe97402fa7158d5ab8a4536306",
+   "id": "skill_cat_summon",
+   "kind": "icon",
+   "region": null,
+   "name": "세 마리 고양이 소환",
+   "body": [
+    164,
+    327,
+    1072,
+    1082
+   ],
+   "file": "ep01/skills/skill_cat_summon.webp",
+   "out": [
+    128,
+    106
+   ],
+   "bytes": 6238
+  },
+  {
+   "source": "cat_skills/skill_cat_size.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "ec920a3f2b51836a2b04954706291b7be4d434098a24903aebf8a7a7a78ceab9",
+   "id": "skill_cat_size",
+   "kind": "icon",
+   "region": null,
+   "name": "통통 고양이 몸집 키우기",
+   "body": [
+    204,
+    342,
+    1094,
+    1016
+   ],
+   "file": "ep01/skills/skill_cat_size.webp",
+   "out": [
+    128,
+    97
+   ],
+   "bytes": 5974
+  },
+  {
+   "source": "cat_skills/skill_cat_speed.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "c19d5c372853dc280cc7ee059793448acbba6da97438353a40f3521c0df13ba4",
+   "id": "skill_cat_speed",
+   "kind": "icon",
+   "region": null,
+   "name": "질주하는 크림빛 아기 고양이",
+   "body": [
+    194,
+    325,
+    1040,
+    929
+   ],
+   "file": "ep01/skills/skill_cat_speed.webp",
+   "out": [
+    128,
+    91
+   ],
+   "bytes": 4884
+  },
+  {
+   "source": "cat_skills/skill_cat_attack_rate.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "afb416abf55b61a77227213f412827092b2e3e34cf5a9c308ec70b5d65fa38f1",
+   "id": "skill_cat_attack_rate",
+   "kind": "icon",
+   "region": null,
+   "name": "고양이 발톱 두 번 할퀴기",
+   "body": [
+    176,
+    183,
+    1078,
+    1097
+   ],
+   "file": "ep01/skills/skill_cat_attack_rate.webp",
+   "out": [
+    126,
+    128
+   ],
+   "bytes": 8906
+  },
+  {
+   "source": "cat_skills/skill_cat_damage.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "920f4ed85fbc6c3da4d140b2b2e43560c72bbc6f8e63ff893d408bc65c6728d6",
+   "id": "skill_cat_damage",
+   "kind": "icon",
+   "region": null,
+   "name": "크림 고양이 발톱 강타",
+   "body": [
+    227,
+    249,
+    1111,
+    1067
+   ],
+   "file": "ep01/skills/skill_cat_damage.webp",
+   "out": [
+    128,
+    118
+   ],
+   "bytes": 8034
+  },
+  {
+   "source": "effects/fx_cat_slash.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "d44c7892b52e04296e70f6c09245a9930723a5ea140056d5e3339f9361d513a0",
+   "id": "fx_cat_slash",
+   "kind": "fx",
+   "region": null,
+   "name": "할퀴기",
+   "body": [
+    171,
+    148,
+    1134,
+    1081
+   ],
+   "file": "ep01/fx/fx_cat_slash.webp",
+   "out": [
+    192,
+    186
+   ],
+   "bytes": 13194
+  },
+  {
+   "source": "effects/fx_cat_slash_power.png",
+   "width": 1254,
+   "height": 1254,
+   "sha256": "3c3f381fd3770a6a43d510cba4e81646f5b19b0dbc3d1688d181844457fa6cba",
+   "id": "fx_cat_slash_power",
+   "kind": "fx",
+   "region": null,
+   "name": "강한 할퀴기",
+   "body": [
+    58,
+    103,
+    1210,
+    1181
+   ],
+   "file": "ep01/fx/fx_cat_slash_power.webp",
+   "out": [
+    192,
+    180
+   ],
+   "bytes": 13036
+  },
+  {
+   "source": "cat_units/friend_*_sheet.png",
+   "id": "friend_cat",
+   "kind": "atlas",
+   "region": null,
+   "name": "친구냥이",
+   "file": "ep01/friend_cat.webp",
+   "out": [
+    436,
+    1104
+   ],
+   "bytes": 249180
+  }
+ ],
+ "friendCat": {
+  "file": "ep01/friend_cat.webp",
+  "idleH": 100,
+  "ms": {
+   "idle": 170,
+   "move": 75,
+   "attack": 70,
+   "recover": 80
+  },
+  "faces": [
+   "se",
+   "e",
+   "ne"
+  ],
+  "animations": {
+   "idle": {
+    "se": [
+     [
+      2,
+      2,
+      98,
+      100,
+      50.61,
+      100.0
+     ],
+     [
+      102,
+      2,
+      93,
+      102,
+      48.48,
+      102.42
+     ],
+     [
+      197,
+      2,
+      95,
+      99,
+      48.79,
+      98.79
+     ],
+     [
+      294,
+      2,
+      93,
+      103,
+      48.18,
+      103.03
+     ]
+    ],
+    "e": [
+     [
+      2,
+      107,
+      103,
+      96,
+      51.52,
+      96.36
+     ],
+     [
+      107,
+      107,
+      100,
+      97,
+      51.82,
+      97.27
+     ],
+     [
+      209,
+      107,
+      101,
+      97,
+      52.12,
+      96.97
+     ],
+     [
+      312,
+      107,
+      101,
+      97,
+      51.82,
+      97.27
+     ]
+    ],
+    "ne": [
+     [
+      2,
+      206,
+      103,
+      100,
+      49.39,
+      100.0
+     ],
+     [
+      107,
+      206,
+      103,
+      101,
+      49.09,
+      100.91
+     ],
+     [
+      212,
+      206,
+      102,
+      100,
+      49.39,
+      100.3
+     ],
+     [
+      316,
+      206,
+      99,
+      101,
+      48.48,
+      100.91
+     ]
+    ]
+   },
+   "move": {
+    "se": [
+     [
+      2,
+      309,
+      105,
+      90,
+      62.42,
+      90.0
+     ],
+     [
+      109,
+      309,
+      103,
+      89,
+      54.55,
+      89.09
+     ],
+     [
+      214,
+      309,
+      104,
+      78,
+      52.42,
+      77.88
+     ],
+     [
+      320,
+      309,
+      105,
+      87,
+      56.06,
+      87.27
+     ]
+    ],
+    "e": [
+     [
+      2,
+      401,
+      106,
+      78,
+      57.88,
+      77.88
+     ],
+     [
+      110,
+      401,
+      109,
+      79,
+      60.61,
+      79.09
+     ],
+     [
+      221,
+      401,
+      105,
+      74,
+      57.88,
+      74.24
+     ],
+     [
+      328,
+      401,
+      104,
+      72,
+      60.0,
+      72.12
+     ]
+    ],
+    "ne": [
+     [
+      2,
+      482,
+      107,
+      80,
+      57.88,
+      79.7
+     ],
+     [
+      111,
+      482,
+      102,
+      81,
+      56.36,
+      81.21
+     ],
+     [
+      215,
+      482,
+      101,
+      76,
+      54.85,
+      76.36
+     ],
+     [
+      318,
+      482,
+      102,
+      85,
+      50.3,
+      84.55
+     ]
+    ]
+   },
+   "attack": {
+    "se": [
+     [
+      2,
+      569,
+      104,
+      90,
+      60.91,
+      89.7
+     ],
+     [
+      108,
+      569,
+      108,
+      92,
+      60.0,
+      91.82
+     ],
+     [
+      218,
+      569,
+      113,
+      89,
+      56.97,
+      88.79
+     ],
+     [
+      333,
+      569,
+      89,
+      91,
+      50.3,
+      91.21
+     ]
+    ],
+    "e": [
+     [
+      2,
+      663,
+      115,
+      87,
+      65.45,
+      86.67
+     ],
+     [
+      119,
+      663,
+      103,
+      86,
+      49.09,
+      85.76
+     ],
+     [
+      224,
+      663,
+      115,
+      82,
+      50.3,
+      82.12
+     ],
+     [
+      341,
+      663,
+      93,
+      83,
+      51.21,
+      82.73
+     ]
+    ],
+    "ne": [
+     [
+      2,
+      752,
+      105,
+      83,
+      56.06,
+      82.73
+     ],
+     [
+      109,
+      752,
+      102,
+      85,
+      45.76,
+      85.45
+     ],
+     [
+      213,
+      752,
+      108,
+      85,
+      46.06,
+      85.15
+     ],
+     [
+      323,
+      752,
+      100,
+      84,
+      51.82,
+      83.64
+     ]
+    ]
+   },
+   "recover": {
+    "se": [
+     [
+      2,
+      839,
+      109,
+      89,
+      54.85,
+      88.79
+     ],
+     [
+      113,
+      839,
+      93,
+      87,
+      54.24,
+      87.27
+     ],
+     [
+      208,
+      839,
+      100,
+      85,
+      58.48,
+      85.45
+     ],
+     [
+      310,
+      839,
+      96,
+      88,
+      56.06,
+      87.58
+     ]
+    ],
+    "e": [
+     [
+      2,
+      930,
+      118,
+      82,
+      59.39,
+      81.52
+     ],
+     [
+      122,
+      930,
+      103,
+      80,
+      57.88,
+      80.3
+     ],
+     [
+      227,
+      930,
+      103,
+      79,
+      53.64,
+      79.39
+     ],
+     [
+      332,
+      930,
+      101,
+      82,
+      53.64,
+      81.82
+     ]
+    ],
+    "ne": [
+     [
+      2,
+      1014,
+      113,
+      88,
+      49.09,
+      88.48
+     ],
+     [
+      117,
+      1014,
+      98,
+      87,
+      47.88,
+      87.27
+     ],
+     [
+      217,
+      1014,
+      100,
+      86,
+      50.3,
+      86.06
+     ],
+     [
+      319,
+      1014,
+      97,
+      87,
+      50.0,
+      87.27
+     ]
+    ]
+   }
+  }
+ }
+}

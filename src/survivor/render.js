@@ -44,6 +44,8 @@ const HEART_H = 12
 const PERCENT = ['ww..w', 'ww.w.', '..w..', '.w.ww', 'w..ww']
 const MAX_FX = 80
 const MAX_NUMBERS = 40
+const MAX_SLASH = 24 // friend cats' scratches on screen at once (a busy screen: a third)
+const SLASH = 0.2 // s a scratch shows
 const CRIT_COLOR = '#e5303a'
 // the game's round font (survivor.css loads it; until it is in, the system's)
 const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif"
@@ -110,6 +112,11 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const E = D.balance.enemies
   const CATS = D.balance.cats
   let pheart = null // the 퍼센트 하트 bitmap, made once
+  // the friend cats (friends.js): their atlas scaled once per size, scratches
+  const FC = D.friendCat
+  const FCB = D.balance.friendCats
+  const fcScaled = new Map()
+  const slashes = []
 
   function makeHeart() {
     // inside the heart curve (x² + y² − 1)³ − x²y³ ≤ 0, on a 13 × 12 grid
@@ -147,6 +154,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     small.clear()
     skins.clear()
     motions.clear()
+    fcScaled.clear()
   }
   const kd = () => view.k * view.dpr
   const world = () => ctx.setTransform(kd(), 0, 0, kd(), -cam.x * kd(), -cam.y * kd())
@@ -956,6 +964,72 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     put(name, c.x, c.y - lift, CATS.scale)
   }
 
+  // ── the friend cats ──
+  // Their atlas (ep01-assets.json → friendCat), scaled once per size (in
+  // steps, so 뚱냥이's growth makes only a few copies); a frame is a rect of it
+  // with its pivot on the cat's feet. Facing west: the east frames mirrored.
+  // Scratching: the attack poses through the scratch, then the paw coming
+  // back; running: the legs follow the distance run; else idle.
+  function friendAtlas(q) {
+    let c = fcScaled.get(q)
+    if (c) return c
+    const atlas = art.now('friend_cat')
+    if (!atlas) return null
+    c = document.createElement('canvas')
+    c.width = Math.ceil(atlas.width * q)
+    c.height = Math.ceil(atlas.height * q)
+    const g = c.getContext('2d')
+    g.imageSmoothingEnabled = true
+    g.imageSmoothingQuality = 'high'
+    g.drawImage(atlas, 0, 0, c.width, c.height)
+    if (fcScaled.size > 8) fcScaled.clear()
+    fcScaled.set(q, c)
+    return c
+  }
+
+  function drawFriend(c, now) {
+    const s = (FCB.drawH / FC.idleH) * c.size // logical px per atlas px
+    const K = kd()
+    const q = Math.min(1, Math.ceil(s * K * 20) / 20)
+    const atlas = friendAtlas(q)
+    if (!atlas) return
+    let anim = 'idle'
+    let i
+    if (c.mode === 'attack') (anim = 'attack'), (i = Math.min(3, Math.floor((4 * c.atk) / Math.max(0.01, c.atkDur))))
+    else if (c.rec > 0 && !c.moving) (anim = 'recover'), (i = Math.min(3, Math.floor(4 * (1 - c.rec / FCB.recoverSeconds))))
+    else if (c.moving) (anim = 'move'), (i = Math.floor(c.step / (9 * c.size)) % 4)
+    else i = Math.floor(now / FC.ms.idle + c.id * 1.7) % 4
+    const f = FC.animations[anim][c.dir][i]
+    const dw = f[2] * s * K
+    const dh = f[3] * s * K
+    const flip = c.face < 0
+    const ox = (c.x - cam.x) * K
+    const oy = (c.y - cam.y) * K
+    ctx.imageSmoothingEnabled = true
+    if (flip) ctx.setTransform(-1, 0, 0, 1, ox, oy)
+    else ctx.setTransform(1, 0, 0, 1, ox, oy)
+    ctx.drawImage(atlas, f[0] * q, f[1] * q, f[2] * q, f[3] * q, -f[4] * s * K, -f[5] * s * K, dw, dh)
+  }
+
+  // a scratch: the claw marks across where it landed, turned the way the
+  // cat struck, fading fast; golden once 발톱 갈기 has grown the claws a lot
+  function drawSlash(sl) {
+    const pic = art.now(sl.power ? 'fx_cat_slash_power' : 'fx_cat_slash')
+    if (!pic) return
+    const K = kd()
+    const k = sl.t / SLASH
+    const size = sl.r * 1.9 * (0.85 + 0.3 * k)
+    const w = size * K
+    const h = (size * pic.height) / pic.width * K
+    ctx.globalAlpha = Math.max(0, 1 - k * k)
+    ctx.setTransform(1, 0, 0, 1, (sl.x - cam.x) * K, (sl.y - cam.y) * K)
+    ctx.rotate(sl.a)
+    if (sl.face < 0) ctx.scale(1, -1) // struck to the west: the marks mirrored, not upside down
+    ctx.imageSmoothingEnabled = true
+    ctx.drawImage(pic, -w / 2, -h / 2, w, h)
+    ctx.globalAlpha = 1
+  }
+
   // put() for a frame under a world transform already set (used for squash)
   function putWorld(name, x, y, s) {
     const f = FRAMES[name]
@@ -1022,6 +1096,10 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const p = run.player
     shadow(p.x, p.y, 13, 4.5)
     for (const c of run.cats) shadow(c.x, c.y, 10 - (c.hop > 0 ? 2 : 0), 3.2)
+    // (the friend cats: only those on screen are drawn at all)
+    const [vx0, vy0, vx1, vy1] = run.view
+    const seen = run.friends.filter((c) => c.x > vx0 - 40 && c.x < vx1 + 40 && c.y > vy0 - 20 && c.y < vy1 + 60)
+    for (const c of seen) shadow(c.x, c.y, 8 * c.size, 2.6 * c.size)
     for (const e of run.enemies) {
       const w = e.r * 1.15
       if (e.state === 'spawn') {
@@ -1047,8 +1125,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const e of run.enemies) list.push([e.y, 0, e])
     list.push([p.y + 0.01, 1, p])
     for (const c of run.cats) list.push([c.y, 2, c])
+    for (const c of seen) list.push([c.y, 3, c])
     list.sort((a, b) => a[0] - b[0])
-    for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : drawEnemy(run, o))
+    for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
     drawHazardsOver(run)
     xfx.over(run, now, dt, busy)
@@ -1060,7 +1139,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const ev of run.events) {
       xfx.event(run, ev)
       if (ev.type === 'hit') {
-        if (fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
+        // (a cat's scratch has its own claw marks, not the ball's impact)
+        if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
         if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : '#2f2537', crit: ev.crit })
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
@@ -1079,6 +1159,13 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         }
       } else if (ev.type === 'hurt') {
         if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: '#d9524a' })
+      } else if (ev.type === 'catSlash') {
+        // many cats on one monster: one set of claw marks there at a time
+        const twin = slashes.some((o) => o.t < SLASH * 0.6 && Math.abs(o.x - ev.x) < ev.r * 0.6 && Math.abs(o.y - ev.y) < ev.r * 0.6)
+        if (!twin && slashes.length < (busy ? MAX_SLASH / 3 : MAX_SLASH)) slashes.push({ ...ev, t: 0 })
+      } else if (ev.type === 'catSummon') {
+        fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.8 })
+        numbers.push({ x: ev.x, y: ev.y - 26, text: '냥!', t: 0, color: '#c93c86' })
       } else if (ev.type === 'catEat') {
         numbers.push({ x: ev.x, y: ev.y - 30, text: '냠!', t: 0, color: '#c93c86' })
       } else if (ev.type === 'catSpit') {
@@ -1090,6 +1177,12 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       }
     }
     run.events.length = 0
+    for (let i = slashes.length - 1; i >= 0; i--) {
+      const sl = slashes[i]
+      sl.t += dt
+      if (sl.t >= SLASH) slashes.splice(i, 1)
+      else drawSlash(sl)
+    }
     for (let i = bolts.length - 1; i >= 0; i--) {
       const b = bolts[i]
       b.t += dt
