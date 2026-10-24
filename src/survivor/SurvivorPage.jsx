@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
-import { isClassCard, classOf, classDps, firepower, recipes } from './zyo.js'
+import { isClassCard, classOf, classDps, firepower, recipes, bonusOf } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03 } from './progress.js'
 import { createRenderer, short } from './render.js'
@@ -139,7 +139,7 @@ const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: ca
 function classText(run, k) {
   const R = D.balance.zyo.recipes[k]
   const now = firepower(run)
-  return `탱탱볼·냥이 공격 → ${D.zyo.forms[R.form]} · 초당 피해 ${big(now)} → ${big(now * D.balance.zyo.bonus)}`
+  return `탱탱볼·냥이 공격 → ${D.zyo.forms[R.form]} · 초당 피해 ${big(now)} → ${big(now * bonusOf(D, k))}`
 }
 
 // a run that has the friend cats among its cards

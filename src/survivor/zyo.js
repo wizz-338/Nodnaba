@@ -50,17 +50,23 @@ export function recipes(run) {
 
 // zyo_'s cards for this level-up beside the three drawn (`shown`): the class
 // cards of the recipes complete, else one card of the recipe furthest along
-// (one this run can pick now: `open`), else none. Never after the change.
+// (by the fewer picks of its two, then by all of them; one this run can pick
+// now: `open`), else none. Never after the change.
 export function zyoCards(run, shown, open) {
   if (!run.zyo || run.cls) return []
   const Z = run.D.balance.zyo
   const R = recipes(run).filter((r) => r.mats.every((m) => run.pool.includes(m)))
   const ready = R.filter((r) => r.ready)
   if (ready.length) return ready.map((r) => CLASS_CARDS[r.k])
+  // the recipe the player is going for: both its cards picked counts first
+  // (the fewer of the two), then all its picks — one card picked often for
+  // its own sake (a ball's count) does not make its recipe the one
   let best = null
   for (const r of R) {
-    const sum = r.picks.reduce((a, n) => a + Math.min(Z.need, n), 0)
-    if (sum > 0 && (!best || sum > best.sum)) best = { r, sum }
+    const got = r.picks.map((n) => Math.min(Z.need, n))
+    const sum = got[0] + got[1]
+    const score = Math.min(got[0], got[1]) * 100 + sum
+    if (sum > 0 && (!best || score > best.score)) best = { r, score }
   }
   if (!best) return []
   const left = best.r.mats.filter((m, i) => best.r.picks[i] < Z.need && open(m) && !shown.includes(m))
@@ -84,12 +90,15 @@ function hitOf(run, unit) {
   const U = Z[unit]
   const rate = Math.min(C.rate, Z.rateCap)
   const gap = U.hitGap / rate
-  const dmg = (C.base * Z.bonus * U.share * C.dmg * (C.rate / rate) * U.hitGap) / U.count
+  const dmg = (C.base * C.bonus * U.share * C.dmg * (C.rate / rate) * U.hitGap) / U.count
   return { dmg, gap }
 }
 // what the class does a second on one target with all of it there (the
 // cards and the run stats show it)
-export const classDps = (run, cls = run.cls) => cls.base * run.D.balance.zyo.bonus * cls.dmg * cls.rate
+export const classDps = (run, cls = run.cls) => cls.base * cls.bonus * cls.dmg * cls.rate
+// a recipe's own bonus (its cards add less firepower: ×0.7 gaps against ×2
+// counts and claws, so it is evened out here) times the class's bonus
+export const bonusOf = (D, k) => D.balance.zyo.bonus * (D.balance.zyo.recipes[k].bonus || 1)
 
 // ── the change ──────────────────────────────────────────────────────────────
 
@@ -101,6 +110,7 @@ export function startClass(run, k) {
     k,
     form: R.form,
     base: firepower(run),
+    bonus: bonusOf(run.D, k),
     dmg: 1, // the 전투력 card: damage
     rate: 1, // and how often
     at: run.t,

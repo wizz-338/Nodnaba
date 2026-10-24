@@ -2270,7 +2270,7 @@ const still = { x: 0, y: 0 }
   const bigb = spawnAt(rb, 'boss', { x: rb.player.x - 90, y: rb.player.y })
   for (let i = 0; i < 30; i++) step(rb, FIXED, still)
   // (a boss the blast alone would fell twice over, behind a spent guard)
-  bigb.hp = bigb.maxHp = (rb.cls.base * B.zyo.bonus * B.zyo.revive.seconds) / 2
+  bigb.hp = bigb.maxHp = (rb.cls.base * rb.cls.bonus * B.zyo.revive.seconds) / 2
   Object.assign(bigb, { guard: true, guardLeft: 0, guardT: rb.t })
   const p = rb.player
   p.hp = 1
@@ -2282,7 +2282,9 @@ const still = { x: 0, y: 0 }
     step(rb, FIXED, still)
     if (rb.cls.revives === 0) bossLost = (before - bigb.hp) / bigb.maxHp
   }
-  const blew = rb.cls.revives === 0 && rb.state === 'play' && p.hp === p.maxHp && p.inv > 1.5 && near1.state !== 'live'
+  // (what the blast fells may bring a level-up: she is up either way)
+  const blew = rb.cls.revives === 0 && (rb.state === 'play' || rb.state === 'levelup') && p.hp === p.maxHp && p.inv > 1.5 && near1.state !== 'live'
+  while (rb.state === 'levelup') choose(rb, rb.choices[0], rb.choiceSeq)
   ok(blew && bossLost > 0 && bossLost <= B.zyo.revive.bossCap + 1e-9, `최후의 반격: she gets up with full HP and ${B.zyo.revive.inv} s safe; the blast fells what is near and takes ${(bossLost * 100).toFixed(0)}% of a guarded boss (at most ${B.zyo.revive.bossCap * 100}%)`)
   p.inv = 0
   p.hp = 1

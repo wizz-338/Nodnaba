@@ -15,7 +15,8 @@
 //   mixed    the ball's and the cats' cards in turn
 //   zyoA … zyoD  go for zyo_'s recipe (balance.json → zyo.recipes): its two
 //            cards first (one 친구냥이 first for the cats' recipes), then a
-//            person's order; they redraw for them
+//            person's order; they redraw for them and take only their own
+//            class card
 // Every policy takes a class card (zyo_'s class change) when it is offered,
 // and 전투력 comes first after it.
 import { createRun, step, choose, reroll, chargePath, FIXED } from '../src/survivor/game.js'
@@ -146,7 +147,8 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
 
 export function pick(run, policy) {
   const c = run.choices
-  const cls = c.find((id) => /^cls[A-D]$/.test(id))
+  // (a recipe hunter takes its own class card; any other policy the first one)
+  const cls = c.find((id) => /^cls[A-D]$/.test(id) && (!policy.startsWith('zyo') || id === 'cls' + policy.slice(3)))
   if (cls) return cls
   let want = POLICIES[policy] || []
   // a recipe hunter: one 친구냥이 is enough before the cats' cards; past ten a card is done
@@ -171,7 +173,8 @@ export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapt
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
     if (run.state === 'levelup') {
-      const line = LINE[policy]
+      // (a cats' recipe needs a cat before its cards come: 친구냥이 first)
+      const line = policy.startsWith('zyo') && ZYO[policy.slice(3)][0].startsWith('cat') && run.cat.n === 0 ? ['catSummon'] : LINE[policy]
       while (line && !run.cls && run.rerolls > 0 && !run.choices.some((id) => line.includes(id))) reroll(run, run.choiceSeq)
       choose(run, pick(run, policy), run.choiceSeq)
     }
