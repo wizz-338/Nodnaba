@@ -1,0 +1,86 @@
+{
+ "note": "MANO SURVIVOR chapter 10 clear package (MANO_CH10_CUTSCENES, built by scripts/survivor-ep02-assets.py). images: the same form as story-assets.json (merged into it by data.js).",
+ "package": "MANO_CH10_CUTSCENES",
+ "images": [
+  {
+   "source": "ep02_clear_01_tizzzz_arrives.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "bcd08fdf3581429f9874e4a7d467fc73cd72ef3eeab714bb1247965f72c69ce0",
+   "id": "ep02_clear_01",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "Tizzzz 등장",
+   "file": "ep02/cutscenes/ep02_clear_01.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 225722
+  },
+  {
+   "source": "ep02_clear_02_headpat.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "2a1052f572b92a407e0d6372276c1fffaf9f7060c48ece11c5c891112bc25ca4",
+   "id": "ep02_clear_02",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "쓰다듬기",
+   "file": "ep02/cutscenes/ep02_clear_02.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 221442
+  },
+  {
+   "source": "ep02_clear_03_rewrite.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "5ebf4f2c50389dcb1242b4093be0ee7c4b5490d32bf755e01601c843dfa7ad3e",
+   "id": "ep02_clear_03",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "선택지 수정",
+   "file": "ep02/cutscenes/ep02_clear_03.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 225610
+  },
+  {
+   "source": "ep02_clear_04_ss_ball.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "2b79845fcb70aa3d605be908d5d1de5da3de213e8246c288fa3c6c3d3379bdd4",
+   "id": "ep02_clear_04",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "SS급 탱탱볼",
+   "file": "ep02/cutscenes/ep02_clear_04.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 221426
+  },
+  {
+   "source": "ep02_clear_05_departure.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "59f60ac8635d138af41409bc5970f76b9f0e72c1643ceece171fc20bdd8aa7a0",
+   "id": "ep02_clear_05",
+   "kind": "cutscene",
+   "region": "deepforest",
+   "name": "다음 모험",
+   "file": "ep02/cutscenes/ep02_clear_05.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 237876
+  }
+ ]
+}

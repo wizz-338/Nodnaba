@@ -2238,6 +2238,42 @@
   font-size: 15px;
 }
 
+/* a cut's system line across the top (작가 Tizzzz가 나타났다!): fades in
+   and stays while the cut is on */
+.ms-cut__banner {
+  position: absolute;
+  z-index: 2;
+  top: calc(64px + env(safe-area-inset-top));
+  left: 50%;
+  translate: -50% 0;
+  margin: 0;
+  max-width: calc(100% - 32px);
+  padding: 6px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff3f8;
+  color: #c93c86;
+  font-family: var(--font-display);
+  font-size: 15px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  animation: ms-banner-in 0.35s ease-out both;
+}
+
+@keyframes ms-banner-in {
+  from {
+    opacity: 0;
+    translate: -50% -8px;
+  }
+}
+
+.ms-reward__art {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
 /* a wide (16:9) cutscene: the picture is the whole screen (the PC game is
    16:9 itself) and the words lie over its foot */
 .ms--pc > .ms-modal.ms-cut--wide {
@@ -2265,6 +2301,36 @@
 
 .ms--pc .ms-cut--wide .ms-cut__text {
   min-height: 3em;
+}
+
+/* split: the picture above, whole, and the words below it (never over it) */
+.ms--pc > .ms-modal.ms-cut--wide.ms-cut--split {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 0 16px;
+}
+
+.ms--pc .ms-cut--wide.ms-cut--split .ms-cut__pic {
+  position: relative;
+  flex: 1;
+  inset: auto;
+  height: auto;
+  min-height: 0;
+}
+
+.ms--pc .ms-cut--wide.ms-cut--split .ms-cut__box {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  translate: none;
+  flex: none;
+}
+
+.ms--pc .ms-cut__banner {
+  top: 26px;
+  font-size: 22px;
+  padding: 8px 24px;
 }
 
 /* the region's reward: its pictures at the left, the words at the right */

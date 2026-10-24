@@ -641,10 +641,10 @@
     }
   },
   "tizzzz": {
-    "note": "The writer Tizzzz joins for good with the reward of chapter 15 (story.json → rewards.skulltown, which also grows the red ball to SS). From activeFromChapter on, at every level-up she rewrites one of the three cards at random: that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone.",
-    "activeFromChapter": 16,
+    "note": "The writer Tizzzz joins for good with the reward of chapter 10's first clear (story.json → rewards.deepforest, which also gives an SS red ball and 2 more rerolls). From activeFromChapter on, at every level-up she rewrites one of the cards shown at random (however many are shown; one card, never two): that card does its own effect `times` times over (×2 → ×4, ×1.5 → ×2.25, +8%p → +16%p…), exactly as if it had been chosen that many times, and only if it is chosen. A redraw (reroll) draws new cards and she rewrites one of those afresh. A card that cannot take it (a card with levels too close to its last) is never picked; if none can, the cards are left alone. penSeconds: the pen's pass over the card (the card works from the first moment).",
+    "activeFromChapter": 11,
     "times": 2,
-    "penSeconds": 1.2
+    "penSeconds": 0.5
   },
   "blessings": {
     "note": "Battle blessings from the story (story.json → rewards). Temporary balance values. chance: per ball hit; perSecond: at most this many of that blessing in one second however many balls fly (a token bucket, so a screen of balls cannot set it off hundreds of times); seconds: how long it lasts on a monster, a new one only renews it (never stacks). The boss is never frozen: the snow blessing slows it instead. Lightning hits are never a ball hit, so they can never set off more lightning (no chains of chains). final (마왕의 탱탱볼) multiplies every chance.",
