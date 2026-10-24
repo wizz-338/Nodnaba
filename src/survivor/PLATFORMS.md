@@ -81,10 +81,13 @@ only in its platform-specific part.
 The PC screen shows much more of the world than the phone's (1152 × 648
 logical against 360 × 640), so everything looks smaller on a large monitor,
 and its field (1620 × 810) is larger still: the camera follows Mano over it
-(`follow` in game.js; `run.view` is the part on screen). As on the phone,
-monsters and balls keep to what is on screen (the view): monsters come in
-at its edges and stay in it, balls bounce off it. Mano walks the whole field.
-On the phone the view is the field and never moves, so nothing there changed.
+(`follow` in game.js; `run.view` is the part on screen). Monsters come in
+on screen and then live in the field, not the view (`monsterBox` in
+game.js): the ones Mano walks away from stay where they are, out of sight,
+and come after her at their own pace (an elite or a boss off screen gets an
+arrow at the edge). Balls keep to the view and bounce off it, so only what
+is on screen is hit. Mano walks the whole field. On the phone the view is
+the field and never moves, so nothing there changed.
 
 Because the PC view is about 3.4× the phone field's area, the PC field has a
 `spawnBox` (600 × 304, the phone field's area): monsters come in on that box
@@ -96,8 +99,8 @@ the same bots and loadouts on both and prints clear rates and times;
 ## PC only, besides the layout
 
 - The thief comes from any side of Mano, a little past the view's edge, and
-  may roam out of sight but never out of the field (`aroundPoint`, `e.roam`
-  in game.js); an arrow at the play area's edge points at an elite out of
+  may roam out of sight but never out of the field (`aroundPoint` in
+  game.js); an arrow at the play area's edge points at an elite out of
   sight (`drawArrows` in render.js). The phone keeps its entry at the top;
   the mid-boss and the boss keep theirs on both (moving them changed how
   hard the PC chapters were).

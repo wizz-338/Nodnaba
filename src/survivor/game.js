@@ -300,9 +300,10 @@ function refillBlessings(run, dt) {
 
 // A field larger than its screen (the PC game's: arena.view is the size of
 // the screen's play area): the view is that much of the field around Mano,
-// kept inside the field — the camera. Mano walks the whole field; monsters,
-// their spawns and the balls keep to the view, as on the phone, where the
-// view is the field.
+// kept inside the field — the camera. Mano and the monsters walk the whole
+// field (a monster she leaves behind stays where it is, off screen); spawns
+// and the balls keep to the view, as on the phone, where the view is the
+// field.
 function follow(run) {
   const A = run.arena
   // the extra special boss's fight: the camera holds still on its area
@@ -506,7 +507,7 @@ function spawn(run, type = pickType(run), at = null) {
     damage: def.damage * run.factor.damage * late.damage,
     damageMul: run.factor.damage * late.damage, // for the boss's charge and slam
     skin: skinOf(run.D, run.region, type), // the region's monster it looks like (null: its own pixel art)
-    xp: def.xp,
+    xp: def.xp * (special ? 1 : phase.xpMultiplier ?? 1), // (the early phases bring more, each worth less)
     state: 'spawn', // spawn | live | die | down | gone
     t: 0,
     hitT: 0,
@@ -548,7 +549,6 @@ function spawnSpecial(run, ev) {
   const p = run.player
   const pt = (run.arena.view && def.behavior === 'flee' && aroundPoint(run, def.radius, true)) || { x: p.x < (x0 + x1) / 2 ? x1 - def.radius - 20 : x0 + def.radius + 20, y: y0 + def.radius + 6 }
   const e = spawn(run, ev.enemy, pt)
-  if (run.arena.view && def.behavior === 'flee') e.roam = true // it may leave the view (never the field)
   e.key = ev.key
   run.elites[ev.key] = e
   // an ordinary boss: its one way of fighting, the next from the bag
@@ -780,10 +780,10 @@ const MOVES = {
 }
 
 // the charge path while it winds up: exactly where the charge will go (a band
-// as wide as its body), cut short by the walls like the charge itself
+// as wide as its body), cut short by the field's walls like the charge itself
 export function chargePath(run, e) {
   const def = run.D.balance.enemies[e.type]
-  const [x0, y0, x1, y1] = run.view
+  const [x0, y0, x1, y1] = monsterBox(run)
   let len = def.chargeSpeed * def.chargeSeconds
   if (e.dx > 0) len = Math.min(len, (x1 - e.r - e.x) / e.dx)
   if (e.dx < 0) len = Math.min(len, (x0 + e.r - e.x) / e.dx)
@@ -793,9 +793,13 @@ export function chargePath(run, e) {
   return { x: e.x, y: e.y, dx: e.dx, dy: e.dy, len, half: e.r }
 }
 
+// where monsters may be: the whole field (on the phone that is the view); the
+// extra special boss's fight, its area
+const monsterBox = (run) => (run.extra && run.extra.box) || run.arena.bounds
+
 function moveEnemies(run, dt) {
   const p = run.player
-  const [x0, y0, x1, y1] = run.view
+  const box = monsterBox(run)
   const rush = mobSpeed(run) // the boss has lived long: the ordinary ones run faster
   for (const e of run.enemies) {
     e.t += dt
@@ -855,8 +859,9 @@ function moveEnemies(run, dt) {
       e.x += Math.max(-lim, Math.min(lim, px))
       e.y += Math.max(-lim, Math.min(lim, py))
     }
-    // monsters keep to the view; a roamer (the PC game's thief) to the field
-    const [lx0, ly0, lx1, ly1] = e.roam ? run.arena.bounds : run.view
+    // monsters keep to the field, not the view: on the PC one the camera
+    // follows Mano and those she leaves behind stay put, out of sight
+    const [lx0, ly0, lx1, ly1] = box
     const cx = Math.max(lx0 + e.r, Math.min(lx1 - e.r, e.x))
     const cy = Math.max(ly0 + e.r, Math.min(ly1 - e.r, e.y))
     // a straight runner that meets a wall ends its line there

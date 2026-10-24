@@ -843,8 +843,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     }
   }
 
-  // the PC game: an elite out of sight (the thief roams the whole field) has
-  // an arrow at the edge of the play area pointing at it, while it is out
+  // the PC game: an elite or a boss out of sight (monsters live in the whole
+  // field) has an arrow at the edge of the play area pointing at it
   function drawArrows(run, now) {
     const [x0, y0, x1, y1] = run.view
     const cx = (x0 + x1) / 2

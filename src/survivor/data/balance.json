@@ -12,7 +12,7 @@
     "note": "the mobile game's field (360 × 640 screen, portrait): balls bounce and Mano stops at bounds; the PC game has its own (logicalArenaPc)"
   },
   "logicalArenaPc": {
-    "note": "the PC game's field: larger than its screen (1152 × 648 logical, ui.json → pc), about 1.45× its play area each way; the camera follows Mano over it. view: the screen's play area (1152 × 648 minus ui.json → pc.inset): monsters come in at its edges and stay in it, and the balls bounce off it, as on the phone, where the view is the whole field. Mano walks the whole field. spawnBox: monsters come in on the edge of this box around Mano (inside the view) — the phone field's area, so they come as near and as thick as on the phone though the PC screen holds about 3.4× as much; see scripts/survivor-platform-parity.mjs.",
+    "note": "the PC game's field: larger than its screen (1152 × 648 logical, ui.json → pc), about 1.45× its play area each way; the camera follows Mano over it. view: the screen's play area (1152 × 648 minus ui.json → pc.inset): monsters come in inside it and then keep to the whole field (those Mano walks away from stay behind, out of sight); the balls bounce off the view, as on the phone, where the view is the whole field. Mano walks the whole field. spawnBox: monsters come in on the edge of this box around Mano (inside the view) — the phone field's area, so they come as near and as thick as on the phone though the PC screen holds about 3.4× as much; see scripts/survivor-platform-parity.mjs.",
     "width": 1620,
     "height": 810,
     "bounds": [
@@ -155,24 +155,26 @@
     "phases": [
       {
         "from": 0,
-        "spawnInterval": 1.2,
-        "hpMultiplier": 0.6,
+        "spawnInterval": 1.6,
+        "hpMultiplier": 0.4,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 1
         },
-        "pack": 1
+        "pack": 2,
+        "xpMultiplier": 0.85
       },
       {
         "from": 35,
-        "spawnInterval": 1.05,
-        "hpMultiplier": 1.0,
+        "spawnInterval": 1.2,
+        "hpMultiplier": 0.75,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 0.7,
           "spider": 0.3
         },
-        "pack": 2
+        "pack": 3,
+        "xpMultiplier": 0.9
       },
       {
         "from": 70,
@@ -271,7 +273,7 @@
         "max": 2.4
       }
     },
-    "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply"
+    "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply. The first 70 s bring 1.5× then 1.3× the monsters they used to (the opening was too empty), each with less HP (about the same HP a second as before, so a single-target build such as the friend cats keeps up) and worth a little less experience (xpMultiplier, ordinary monsters only; 1 when missing, so Mano levels about as fast as before). More than that (2.4× / 1.6×) piled up faster than a new player's one ball kills and ended chapter 1 for a player standing still in under 30 s. Bots: clear rates about as before on chapters 1-8 (phone and PC, good and casual players) and 10/15 (ball and cat builds)"
   },
   "chapters": [
     {
