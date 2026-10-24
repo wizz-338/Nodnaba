@@ -33,9 +33,18 @@ before cutting. Where it lay across the body the fur is painted back in from
 the fur around it (inpainting, colour from opaque fur only); where it stuck
 out past the body (the knot's tails) it becomes see-through. The body's
 outline there is found by closing the rest of the body (a 71 px disc).
-The thick outline that matches the game's other characters is drawn by the
-game at the size the cat is shown (render.js), so frames keep room for it
-(PAD).
+Then every frame is redrawn as pixel art in the collector cats' style
+(assets/cats/cats.png: flat cel colours, a thick near-black outline, dark
+dot eyes), at their pixel size (CAT_H: an idle pose is as many pixels tall
+as a collector cat drawn at cats.scale would be at friendCats.drawH):
+  - shrunk by area to that size (one scale for every frame);
+  - each pixel takes the nearest colour of a small cream palette (PALETTE,
+    by Lab distance); pink only where the picture was light pink (ears,
+    nose, paw pads);
+  - the painting's dark lines stay as ink; the amber eyes (and the darkest
+    parts of the upper half) become bold dark dots;
+  - a 2 px ink outline: the silhouette's edge pixel and one pixel outside.
+The game draws them as it draws the collector cats (render.js).
 """
 import hashlib
 import json
@@ -75,8 +84,11 @@ SHEETS = ['idle', 'move', 'attack', 'recover']
 FACES = ['se', 'e', 'ne']
 ALPHA = 24
 DEBRIS = 400
-CAT_H = 100  # an idle pose's height in atlas px (the one scale)
-PAD = 14  # atlas px between frames (the outline drawn round them needs room)
+CAT_H = 67  # an idle pose's height in pixels (24 field px ÷ the collectors' 0.36)
+PAD = 2  # atlas px between frames
+INK = np.array([19, 2, 13])  # the collector cats' outline
+# cream fur: highlight, base, shade, tan, tan shade; pink, light pink
+PALETTE = np.array([[252, 241, 228], [248, 229, 210], [233, 203, 182], [238, 196, 150], [216, 160, 112], [246, 128, 125], [250, 182, 176]], np.float32)
 DURATIONS = {'idle': 170, 'move': 75, 'attack': 70, 'recover': 80}
 
 
@@ -176,6 +188,51 @@ def frames_of(path):
     return out, dust
 
 
+def lab(c):
+    return cv2.cvtColor(np.clip(c, 0, 255).astype(np.uint8).reshape(-1, 1, 3), cv2.COLOR_RGB2LAB).reshape(-1, 3).astype(np.float32)
+
+
+PALETTE_LAB = lab(PALETTE)
+CROSS = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], np.uint8)
+
+
+def pixel_art(img, k):
+    """one painted frame as pixel art in the collector cats' style (see the top)"""
+    h, w = img.shape[:2]
+    a = img[..., 3].astype(np.float32) / 255
+    hh, ss, vv = hsv(img)
+    op = img[..., 3] > ALPHA
+    upper = (np.arange(h) < h * 0.55)[:, None]
+    eye = op & upper & ((((hh > 12) & (hh < 45)) & (ss > 0.6) & (vv < 0.82)) | (vv < 0.3))
+    ink = op & (vv < 0.55) & (ss > 0.3)
+    pink = op & ((hh > 330) | (hh < 14)) & (ss > 0.18) & (ss < 0.62) & (vv > 0.72)
+    W, H = max(1, round(w * k)), max(1, round(h * k))
+
+    def down(x):
+        return cv2.resize(x.astype(np.float32), (W, H), interpolation=cv2.INTER_AREA)
+
+    A = down(a)
+    rgb = down(img[..., :3].astype(np.float32) * a[..., None]) / np.maximum(A[..., None], 1e-4)
+    m = A > 0.5
+    d = ((lab(rgb.reshape(-1, 3))[:, None, :] - PALETTE_LAB[None]) ** 2).sum(-1)
+    d[down(pink).reshape(-1) < 0.3, 5:7] = 1e9
+    col = PALETTE[d.argmin(1)].reshape(H, W, 3)
+    col[down(ink) > 0.34] = INK
+    dots = cv2.dilate((down(eye) > 0.3).astype(np.uint8), CROSS).astype(bool) & m
+    col[dots] = INK
+    # the outline, 2 px: the edge of the shape and a pixel round it
+    p = 2
+    M = np.zeros((H + 2 * p, W + 2 * p), bool)
+    M[p:-p, p:-p] = m
+    ring = cv2.dilate(M.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~M
+    edge = M & ~cv2.erode(M.astype(np.uint8), CROSS).astype(bool)
+    out = np.zeros((H + 2 * p, W + 2 * p, 4), np.uint8)
+    out[p:-p, p:-p, :3] = col.astype(np.uint8)
+    out[ring | edge, :3] = INK
+    out[M | ring, 3] = 255
+    return out
+
+
 def pivot(img):
     """across: the middle of the lower 35% (the legs); down: the feet"""
     a = img[:, :, 3] > ALPHA
@@ -228,9 +285,9 @@ def main(src, review=None):
         for r, face in enumerate(FACES):
             for c, img in enumerate(shapes[s][r]):
                 px, py = pivot(img)
-                im = Image.fromarray(img, 'RGBA')
-                im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
-                cells[(s, face, c)] = (im, px * k, py * k)
+                pa = pixel_art(img, k)
+                # (the pixel frame has 2 px of outline round the shape)
+                cells[(s, face, c)] = (Image.fromarray(pa, 'RGBA'), px * k + 2, py * k + 2)
     # the atlas: one strip per (sheet, face)
     pad = PAD
     rows = [(s, f) for s in SHEETS for f in FACES]
@@ -250,14 +307,14 @@ def main(src, review=None):
         anims.setdefault(s, {})[f] = lst
         yy += max(cells[(s, f, c)][0].height for c in range(4)) + pad
     atlas_file = 'ep01/friend_cat.webp'
-    atlas.save(os.path.join(OUT, '..', atlas_file), 'WEBP', quality=88, method=6)
+    atlas.save(os.path.join(OUT, '..', atlas_file), 'WEBP', lossless=True, method=6)
     images.append({'source': 'cat_units/friend_*_sheet.png', 'id': 'friend_cat', 'kind': 'atlas', 'region': None, 'name': '친구냥이', 'file': atlas_file, 'out': [aw, ah], 'bytes': os.path.getsize(os.path.join(OUT, '..', atlas_file))})
 
     data = {
-        'note': 'MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file; no scarf, see the script), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose\'s height in atlas px (the one scale), pad: atlas px free round every frame (for the outline the game draws), ms: each frame\'s time.',
+        'note': 'MANO SURVIVOR chapter 5 clear package (MANO_EP01, built by scripts/survivor-ep01-assets.py). images: the same form as story-assets.json (merged into it by data.js). friendCat: the friend cat atlas (file; pixel art in the collector cats\' style, no scarf, see the script), frames [x, y, w, h, pivotX, pivotY] in atlas px per animation and facing (se, e, ne; the west-facing ones are these mirrored), idleH: an idle pose\'s height in atlas px (the one scale; drawn at friendCats.drawH), ms: each frame\'s time.',
         'package': 'MANO_EP01',
         'images': images,
-        'friendCat': {'file': atlas_file, 'idleH': CAT_H, 'pad': PAD, 'ms': DURATIONS, 'faces': FACES, 'animations': anims},
+        'friendCat': {'file': atlas_file, 'idleH': CAT_H, 'pixel': True, 'ms': DURATIONS, 'faces': FACES, 'animations': anims},
     }
     json.dump(data, open(MAP, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     total = sum(x['bytes'] for x in images)
@@ -267,7 +324,7 @@ def main(src, review=None):
     if review:
         os.makedirs(review, exist_ok=True)
         # every pose on one baseline (green), the pivot marked, 1:1
-        cw, ch = 150, 160
+        cw, ch = 100, 100
         sh = Image.new('RGBA', (cw * 4 * len(SHEETS), ch * 3), (62, 64, 74, 255))
         from PIL import ImageDraw
         d = ImageDraw.Draw(sh)
