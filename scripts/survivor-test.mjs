@@ -792,7 +792,7 @@ const still = { x: 0, y: 0 }
   mem.setItem('nodnaba:colony:save', 'COLONY')
   const P = createProgress(D, mem)
   const b0 = P.boot()
-  ok(b0.supplied.length === 0 && b0.data.story.v === 3 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
+  ok(b0.supplied.length === 0 && b0.data.story.v === 4 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
   const clear = (ch) => {
     const r = P.startRun(ch)
     return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
@@ -1184,8 +1184,9 @@ const still = { x: 0, y: 0 }
   const A = D.storyAssets.images
   // (the soft lobby copies, Tizzzz's face and the PC game's wide grounds are
   // made from these originals, not originals of their own)
-  // (MANO_EP01's and MANO_CH10_CUTSCENES' pictures, ep01/ep02-assets.json, are merged in: they are apart)
-  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/'))
+  // (MANO_EP01's, MANO_CH10_CUTSCENES' and MANO_CH15_CUTSCENES' pictures,
+  // ep01/ep02/ep03-assets.json, are merged in: they are apart)
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/') && !x.file.startsWith('ep03/'))
   const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
   ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
   ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
@@ -1195,9 +1196,9 @@ const still = { x: 0, y: 0 }
   const S = D.story
   const used = S.cutscenes.groups.flatMap((g) => g.cuts.map((c) => c.image))
   const kept = ['cs_01_3', 'cs_02_3', 'cs_02_4', 'cs_03_3']
-  ok(used.length === 35 && new Set(used).size === 35 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's and chapter 10's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
+  ok(used.length === 40 && new Set(used).size === 40 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's, 10's and 15's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
   const per = S.regions.map((r) => S.cutscenes.groups.filter((g) => regionOf(D, g.chapter).id === r.id).reduce((n, g) => n + g.cuts.length, 0))
-  ok(per.join() === '9,7,2,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
+  ok(per.join() === '9,7,7,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
   ok(S.cutscenes.groups.every((g) => g.when !== 'time' || (g.at > 0 && g.at < 210)) && S.cutscenes.groups.every((g) => ['enter', 'time', 'boss', 'clear'].includes(g.when)), 'every cutscene has its moment: before the fight, a time in it, the boss, or the clear')
   const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
   ok(rr === '1-5,6-10,11-15,16-20,21-25,26-30,31-35' && S.regions.every((r) => ids.has(r.background) && A.find((x) => x.id === r.background).region === r.id), `7 regions of 5 chapters (${rr}), each with its own background`)
@@ -1750,11 +1751,11 @@ const still = { x: 0, y: 0 }
   ok(g && g.chapter === 10 && g.when === 'clear' && g.reward === 'deepforest' && g.cuts.map((c) => c.image).join() === 'ep02_clear_01,ep02_clear_02,ep02_clear_03,ep02_clear_04,ep02_clear_05', "chapter 10's clear: the five Tizzzz cuts in order, then chapter 10's reward")
   ok(g.cuts.map((c) => c.text).join('|') === '어!! Tizzzz!!|으헤헤헤...|어? 뭐야?|우와! 고마워!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '작가 Tizzzz가 나타났다!' && g.cuts[2].layout === 'split' && g.cuts.filter((c) => c.banner || c.layout).length === 2, "Mano's lines; the first cut's banner; the third keeps its card clear of the words")
   ok(S.regions[2].from === 11 && S.regions[2].name === '해골마을', `the last line names the region of chapters 11–15 from the data (${S.regions[2].name})`)
-  ok(!S.cutscenes.groups.some((x) => x.chapter === 15 && x.when === 'clear') && !S.cutscenes.groups.some((x) => x.id === 'skulltown_3') && S.cutscenes.groups.find((x) => x.id === 'skulltown_1').play === false, "chapter 15: no Tizzzz cutscene, no clear cutscene at all; chapter 11's and 16's openings stay off")
+  ok(S.cutscenes.groups.filter((x) => x.chapter === 15 && x.when === 'clear').map((x) => x.id).join() === 'ep03_clear' && !S.cutscenes.groups.some((x) => x.id === 'skulltown_3') && S.cutscenes.groups.find((x) => x.id === 'skulltown_1').play === false && S.cutscenes.groups.find((x) => x.id === 'desert_1').play === false, "chapter 15: no Tizzzz cutscene; its clear is zyo_'s (below); chapter 11's and 16's openings stay off")
   const R10 = S.rewards.deepforest
   const R15 = S.rewards.skulltown
   ok(R10.chapter === 10 && R10.tizzzz && R10.ball === 'SS' && R10.rerolls === 4 && !R10.cats, "chapter 10's reward: Tizzzz, one SS ball, rerolls to 4")
-  ok(R15.chapter === 15 && R15.rerolls === 6 && !R15.tizzzz && !R15.ball && !R15.blessing, "chapter 15's: only its 2 more rerolls (6), nothing new")
+  ok(R15.chapter === 15 && R15.rerolls === 6 && R15.zyo && !R15.tizzzz && !R15.ball && !R15.blessing, "chapter 15's: zyo_ and 2 more rerolls (6), no Tizzzz, no new ball")
   ok(B.tizzzz.activeFromChapter === 11 && B.tizzzz.penSeconds <= 0.5, `Tizzzz rewrites from chapter ${B.tizzzz.activeFromChapter}; her pen takes ${B.tizzzz.penSeconds} s`)
   // a new save through chapter 16
   const mem = new Mem()
@@ -1774,8 +1775,8 @@ const still = { x: 0, y: 0 }
   ok(s11.tizzzz && s11.rerolls === 4 && newRun({ chapter: 11, tizzzz: s11.tizzzz, rerolls: s11.rerolls }).writer && newRun({ chapter: 11, rerolls: s11.rerolls }).rerolls === 4 && !newRun({ chapter: 10, tizzzz: true }).writer, 'from chapter 11: she rewrites, 4 rerolls every run (chapter 10 itself: not yet)')
   for (let ch = 11; ch <= 14; ch++) clear(ch)
   const c15 = clear(15)
-  ok(c15.story && c15.story.reward === 'skulltown' && !c15.story.item && SS() === 1 && P.get().rerolls === 6 && P.get().unlockedChapter === 16, 'first clear of 15: rerolls to 6, nothing else; chapter 16 opens')
-  ok(P.startRun(16).rerolls === 6, 'a run from then on: 6 rerolls')
+  ok(c15.story && c15.story.reward === 'skulltown' && !c15.story.item && SS() === 1 && P.get().rerolls === 6 && P.get().zyo.unlocked && P.get().unlockedChapter === 16, 'first clear of 15: zyo_, rerolls to 6, no new ball; chapter 16 opens')
+  ok(P.startRun(16).rerolls === 6 && P.startRun(16).zyo, 'a run from then on: 6 rerolls, zyo_ along')
 }
 // her rewrite: one card of those shown (however many), its own effect twice,
 // only when chosen; a redraw rewrites one of the new ones afresh
@@ -2125,6 +2126,276 @@ const still = { x: 0, y: 0 }
   w.choiceSeq++
   reroll(w, w.choiceSeq)
   ok(!w.edit || (w.edit.seq === w.choiceSeq && w.choices.includes(w.edit.id)), "Tizzzz rewrites one of the new cards (never one put back)")
+}
+
+
+// ── zyo_ (chapter 15's first clear): the class change (zyo.js) ──────────────
+{
+  const S = D.story
+  const g = S.cutscenes.groups.find((x) => x.id === 'ep03_clear')
+  ok(g && g.chapter === 15 && g.when === 'clear' && g.reward === 'skulltown' && g.cuts.map((c) => c.image).join() === 'ep03_clear_01,ep03_clear_02,ep03_clear_03,ep03_clear_04,ep03_clear_05', "chapter 15's clear: the five zyo_ cuts in order, then chapter 15's reward")
+  ok(g.cuts.map((c) => c.text).join('|') === '어!! zyo_!!|어? 그거 내 건데?|어어어??|우와!! 엄청 커!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '아티스트 zyo_가 나타났다!' && g.cuts[2].layout === 'split', "Mano's lines; the banner keeps the underscore; the card cut keeps its cards clear of the words")
+  ok(S.regions[3].from === 16 && S.cutscenes.groups.find((x) => x.id === 'desert_1').play === false, `the last line names chapter 16–20's region (${S.regions[3].name}); chapter 16's opening stays off`)
+  const R15 = S.rewards.skulltown
+  ok(R15.lines.join('|') === 'zyo_ 전직 해금!|리롤 +2 (총 6회)' && R15.images.includes('reward_zyo') && D.storyAssets.images.some((x) => x.id === 'reward_zyo') && D.storyAssets.images.some((x) => x.id === 'zyo_face'), 'the reward popup: zyo_ 전직 해금! and 리롤 +2 (총 6회), with its pictures')
+  const Z = B.zyo
+  ok(Z.activeFromChapter === 16 && Z.need === 10 && Object.values(Z.recipes).map((r) => r.mats.join('+')).join() === 'size+count,interval+ballSpeed,catSize+catRate,catSpeed+catClaw', 'four recipes, two cards ×10 each, from chapter 16')
+  ok(Object.values(Z.recipes).every((r) => r.mats.every((m) => !B.upgrades.effects[m].levels)), 'every recipe card has no last level: ten picks are always possible')
+}
+// the recipe: zyo_'s card, then the class card; nothing before her chapter or without her
+{
+  const give = (run, id, n) => {
+    for (let i = 0; i < n; i++) {
+      run.state = 'levelup'
+      run.pending = 1
+      run.choices = [id]
+      choose(run, id, run.choiceSeq)
+    }
+    run.state = 'play'
+  }
+  const levelUp = (run) => {
+    run.orbs.push({ kind: 'xp', x: run.player.x, y: run.player.y, v: run.need * 1.01, pull: true })
+    for (let i = 0; i < 10 && run.state !== 'levelup'; i++) step(run, FIXED, still)
+  }
+  const fresh = (o = {}) => {
+    const run = newRun({ chapter: 16, grade: 'SS', cats: true, zyo: true, seed: 21, ...o })
+    run.player.hp = run.player.maxHp = 1e12
+    return run
+  }
+  ok(!newRun({ chapter: 15, zyo: true }).zyo && !newRun({ chapter: 16 }).zyo && newRun({ chapter: 16, zyo: true }).zyo, 'zyo_ is in a run from chapter 16, and only with her')
+  for (const [k, R] of Object.entries(B.zyo.recipes)) {
+    const run = fresh({ seed: 30 + k.charCodeAt(0) })
+    if (R.form === 'ninja') give(run, 'catSummon', 2)
+    give(run, R.mats[0], 10)
+    give(run, R.mats[1], 9)
+    let before = 0
+    for (let i = 0; i < 6; i++) {
+      levelUp(run)
+      if (run.choices.some((id) => /^cls/.test(id))) before++
+      choose(run, run.choices.find((id) => !R.mats.includes(id)) || run.choices[0], run.choiceSeq)
+    }
+    // (zyo_'s card: the one left, beside three drawn ones)
+    levelUp(run)
+    const zy = run.zyoPick && run.zyoPick.ids[0]
+    const extra = run.choices.length === 4 && zy === R.mats[1] && run.choices.indexOf(zy) === 3
+    if (run.choices.includes(R.mats[1])) choose(run, R.mats[1], run.choiceSeq)
+    else give(run, R.mats[1], 1)
+    while (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+    levelUp(run)
+    const offered = run.choices.includes('cls' + k)
+    let others = 0
+    for (const o of Object.keys(B.zyo.recipes)) if (o !== k && run.choices.includes('cls' + o)) others++
+    choose(run, 'cls' + k, run.choiceSeq)
+    while (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+    const changed = run.cls && run.cls.k === k && run.balls.length === 0 && run.friends.length === 0
+    let later = 0
+    for (let i = 0; i < 8; i++) {
+      levelUp(run)
+      if (run.choices.some((id) => /^cls/.test(id) || Object.values(B.zyo.recipes).some((r) => r.mats.includes(id)))) later++
+      choose(run, run.choices[0], run.choiceSeq)
+    }
+    ok(before === 0 && extra && offered && others === 0 && changed && later === 0 && run.pool.join() === [...B.zyo.keep, 'power'].join(), `${k} (${R.mats.join(' + ')}): no class card at 10 + 9; zyo_'s card is the one missing, a fourth card; at 10 + 10 the class card comes; taken, the ball and the cats stop and no recipe or class card ever comes again`)
+  }
+  // the class is never by itself: complete, it waits for the player
+  const r = fresh({ seed: 50 })
+  give(r, 'size', 10)
+  give(r, 'count', 10)
+  for (let i = 0; i < 60 * 3; i++) step(r, FIXED, still)
+  ok(!r.cls, 'a complete recipe changes nothing until its card is chosen')
+  // once a run: a second class card is refused
+  levelUp(r)
+  choose(r, 'clsA', r.choiceSeq)
+  r.state = 'levelup'
+  r.pending = 1
+  r.choices = ['clsB']
+  choose(r, 'clsB', r.choiceSeq)
+  ok(r.cls.k === 'A' && !r.picks.clsB === false && r.cls.revives === 0, 'once a run: a second class card does nothing (it stays 거대 탱탱볼 · 회전 방어막)')
+  // Tizzzz: a rewritten recipe card counts as two picks; she never rewrites a class card
+  const t = fresh({ tizzzz: true, seed: 51 })
+  t.state = 'levelup'
+  t.pending = 1
+  t.choices = ['size', 'count', 'damage']
+  t.choiceSeq++
+  t.edit = { id: 'size', seq: t.choiceSeq }
+  choose(t, 'size', t.choiceSeq)
+  ok(t.picks.size === 2 && !canEdit(t, 'clsA') && canEdit(t, 'size'), 'a card Tizzzz rewrote counts as two steps of its recipe; a class card is never rewritten')
+  // the collectors stay; the fighting cats never come back
+  const c = fresh({ seed: 52 })
+  give(c, 'catSummon', 3)
+  give(c, 'catSize', 10)
+  give(c, 'catRate', 10)
+  levelUp(c)
+  choose(c, 'clsC', c.choiceSeq)
+  while (c.state === 'levelup') choose(c, c.choices[0], c.choiceSeq)
+  for (let i = 0; i < 60 * 3; i++) step(c, FIXED, still)
+  ok(c.friends.length === 0 && c.cats.length === 3 && c.cls.units.length === B.zyo.ninja.count, `after it: ${B.zyo.ninja.count} ninja cats, no fighting cat; 단추·호두·모루 still pick things up`)
+}
+// the attacks and the specials
+{
+  const make = (k, o = {}) => {
+    const run = newRun({ chapter: 16, grade: 'SS', cats: true, zyo: true, seed: 61, ...o })
+    run.player.hp = run.player.maxHp = 1000
+    run.spawnT = -1e9
+    run.nextEvent = 1e9
+    if (B.zyo.recipes[k].form === 'ninja') {
+      run.cat.n = 3
+      run.picks.catSummon = 3
+    }
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = ['cls' + k]
+    choose(run, 'cls' + k, run.choiceSeq)
+    for (let i = 0; i < 60 * (B.zyo.fxSeconds + 0.1); i++) step(run, FIXED, still)
+    return run
+  }
+  const fx = make('A')
+  ok(fx.cls.units.length === B.zyo.ball.count && fx.cls.shield.length === B.zyo.shield.count, `거대 탱탱볼: ${B.zyo.ball.count} giant balls and (회전 방어막) ${B.zyo.shield.count} more round Mano, however big the build`)
+  // the shield turns round her and pushes monsters out of its ring
+  const a0 = fx.cls.shield[0].a
+  const e = spawnAt(fx, 'imp', { x: fx.player.x + 20, y: fx.player.y })
+  e.hp = e.maxHp = 1e30
+  for (let i = 0; i < 60; i++) step(fx, FIXED, still)
+  const d = Math.hypot(e.x - fx.player.x, e.y - fx.player.y)
+  ok(fx.cls.shield[0].a > a0 + 2 && d >= B.zyo.shield.orbit && fx.stats.by.shield && fx.stats.by.shield.hits > 0, `the shield turns and hits; a monster next to her is pushed out to ${d.toFixed(0)} px (its ring: ${B.zyo.shield.orbit + B.zyo.shield.radius})`)
+  // the giant balls chase and hit, on a boss too
+  const gb = make('B')
+  const boss = spawnAt(gb, 'boss', { x: gb.player.x + 150, y: gb.player.y - 30 })
+  boss.hp = boss.maxHp = 1e30
+  for (let i = 0; i < 60 * 3; i++) step(gb, FIXED, still)
+  ok(gb.stats.by.giant && gb.stats.by.giant.boss > 0, 'the giant balls go for the boss on screen and hit it')
+  // 최후의 반격: once, the blast, full HP, a moment safe; the next fall is the end
+  const rb = make('B')
+  const near1 = spawnAt(rb, 'imp', { x: rb.player.x + 60, y: rb.player.y })
+  near1.hp = near1.maxHp = rb.cls.base // (one the blast fells)
+  const bigb = spawnAt(rb, 'boss', { x: rb.player.x - 90, y: rb.player.y })
+  for (let i = 0; i < 30; i++) step(rb, FIXED, still)
+  // (a boss the blast alone would fell twice over, behind a spent guard)
+  bigb.hp = bigb.maxHp = (rb.cls.base * B.zyo.bonus * B.zyo.revive.seconds) / 2
+  Object.assign(bigb, { guard: true, guardLeft: 0, guardT: rb.t })
+  const p = rb.player
+  p.hp = 1
+  p.inv = 0
+  spawnAt(rb, 'imp', { x: p.x, y: p.y })
+  let bossLost = 0
+  for (let i = 0; i < 60 && rb.state === 'play' && rb.cls.revives > 0; i++) {
+    const before = bigb.hp
+    step(rb, FIXED, still)
+    if (rb.cls.revives === 0) bossLost = (before - bigb.hp) / bigb.maxHp
+  }
+  const blew = rb.cls.revives === 0 && rb.state === 'play' && p.hp === p.maxHp && p.inv > 1.5 && near1.state !== 'live'
+  ok(blew && bossLost > 0 && bossLost <= B.zyo.revive.bossCap + 1e-9, `최후의 반격: she gets up with full HP and ${B.zyo.revive.inv} s safe; the blast fells what is near and takes ${(bossLost * 100).toFixed(0)}% of a guarded boss (at most ${B.zyo.revive.bossCap * 100}%)`)
+  p.inv = 0
+  p.hp = 1
+  for (let i = 0; i < 60 * 3 && rb.state === 'play'; i++) (p.inv = 0), step(rb, FIXED, still)
+  ok(rb.state !== 'play', 'once a run: the next fall is the end')
+  // 닌자냥이: dash to a monster and slash; 흡혈 heals by the HP taken, never past full, no overkill
+  const nc = make('C')
+  nc.player.hp = 500
+  const m = spawnAt(nc, 'imp', { x: nc.player.x + 140, y: nc.player.y })
+  m.hp = m.maxHp = 1e30
+  for (let i = 0; i < 60 * 3; i++) step(nc, FIXED, still)
+  const healed = nc.cls.healed
+  ok(nc.stats.by.ninja && nc.stats.by.ninja.hits > 0 && healed === 0, 'the ninja cats dash to a monster and slash it; a monster that loses no share of its HP heals nothing')
+  const m2 = spawnAt(nc, 'boss', { x: nc.player.x + 120, y: nc.player.y })
+  for (let i = 0; i < 20; i++) step(nc, FIXED, still)
+  m2.hp = m2.maxHp = nc.cls.base * 400
+  const hp0 = nc.player.hp
+  let over = false
+  for (let i = 0; i < 60 * 4; i++) {
+    nc.player.inv = 1 // (nothing hurts her here: only the healing counts)
+    step(nc, FIXED, still)
+    if (nc.player.hp > nc.player.maxHp) over = true
+  }
+  const gain = nc.player.hp - hp0
+  ok(gain > 0 && !over && gain <= B.zyo.lifesteal.perSecond * nc.player.maxHp * 4.2 + 1e-6, `흡혈: slashing a boss heals ${gain.toFixed(0)} in 4 s (never past full, at most ${B.zyo.lifesteal.perSecond * 100}% of her HP a second)`)
+  // 쌍둥이 워프홀: two holes far apart; in one, out of the other, never back at once
+  const wd = make('D')
+  const [h0, h1] = wd.cls.warps
+  const [bx0, by0, bx1, by1] = wd.arena.bounds
+  const far = Math.hypot(h1.x - h0.x, h1.y - h0.y)
+  wd.player.x = h0.x + 40
+  wd.player.y = h0.y
+  let warps = 0
+  for (let i = 0; i < 60; i++) step(wd, FIXED, { x: -1, y: 0 })
+  warps = wd.stats.warps || 0
+  const at1 = Math.abs(wd.player.y - h1.y) < 1 && wd.player.x < h1.x + 1
+  for (let i = 0; i < 30; i++) step(wd, FIXED, still)
+  ok(far > Math.min(bx1 - bx0, by1 - by0) * 0.5 && warps === 1 && at1 && (wd.stats.warps || 0) === 1, `warp holes ${far.toFixed(0)} px apart; walking into one she comes out of the other and stays (no bouncing back)`)
+  for (let i = 0; i < 120 && (wd.stats.warps || 0) < 2; i++) step(wd, FIXED, { x: 1, y: 0 })
+  ok((wd.stats.warps || 0) === 2 && Math.hypot(wd.player.x - h0.x, wd.player.y - h0.y) < 3, 'out of it and back in: she goes back the other way')
+  const mon = spawnAt(wd, 'imp', { x: h0.x, y: h0.y })
+  for (let i = 0; i < 60; i++) step(wd, FIXED, still)
+  ok(Math.hypot(mon.x - h1.x, mon.y - h1.y) > 100, 'monsters never use the holes')
+  // 전투력: damage and rate, rewritten by Tizzzz twice over; the units stay as many
+  const pw = make('A', { tizzzz: true })
+  const n0 = pw.cls.units.length
+  const E = B.upgrades.effects.power
+  pw.state = 'levelup'
+  pw.pending = 1
+  pw.choices = ['power', 'crit']
+  pw.choiceSeq++
+  pw.edit = { id: 'power', seq: pw.choiceSeq }
+  choose(pw, 'power', pw.choiceSeq)
+  ok(near(pw.cls.dmg, E.damageMul ** 2) && near(pw.cls.rate, E.rateMul ** 2) && pw.cls.units.length === n0, `전투력 (Tizzzz: twice): damage ×${E.damageMul}², rate ×${E.rateMul}²; still ${n0} giant balls`)
+}
+// saves: chapter 15 cleared before zyo_ came (story v3), and older
+{
+  const save = (cleared, v, extra = {}) => {
+    const mem = new Mem()
+    const P = createProgress(D, mem)
+    P.boot()
+    for (let ch = 1; ch <= cleared; ch++) {
+      const r = P.startRun(ch)
+      P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+    }
+    const d = P.get()
+    d.story.v = v
+    d.zyo = { unlocked: false }
+    Object.assign(d, extra)
+    mem.setItem(KEY, JSON.stringify(d))
+    return createProgress(D, mem).boot().data
+  }
+  const a = save(15, 3)
+  ok(a.zyo.unlocked && a.rerolls === 6 && a.story.news.includes('ep03') && a.story.seen.includes('ep03_clear') && a.inventory.filter((it) => it.grade === 'SS').length === 1, 'a save that cleared 15 before zyo_: she comes now (news once), 6 rerolls, her cutscene counted as seen, no second SS ball')
+  const b = save(12, 3)
+  ok(!b.zyo.unlocked && !b.story.news.includes('ep03') && !b.story.seen.includes('ep03_clear'), 'one that has not cleared 15: no zyo_ yet, her cutscene still to come')
+  const c = save(15, 2)
+  ok(c.zyo.unlocked && c.tizzzz.unlocked && c.rerolls === 6, 'an older one (Tizzzz once at 15): Tizzzz stays (chapter 10), zyo_ comes')
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  for (let ch = 1; ch <= 14; ch++) {
+    const r = P.startRun(ch)
+    P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  }
+  const r15 = P.startRun(15)
+  const f = P.finishRun(r15.runId, 15, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  const r15b = P.startRun(15)
+  const f2 = P.finishRun(r15b.runId, 15, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  ok(f.story && f.story.reward === 'skulltown' && P.get().zyo.unlocked && !f2.story && P.get().rerolls === 6, 'first clear of 15: zyo_ for good; again: nothing more')
+}
+// the class keeps the screen clear: a few units, cheap steps
+{
+  const run = newRun({ chapter: 18, grade: 'SS', cats: true, zyo: true, seed: 71 })
+  run.player.hp = run.player.maxHp = 1e15
+  run.nextEvent = 1e9
+  run.t = 150
+  for (let i = 0; i < 10; i++) {
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = ['count']
+    choose(run, 'count', run.choiceSeq)
+  }
+  run.state = 'levelup'
+  run.pending = 1
+  run.choices = ['clsA']
+  choose(run, 'clsA', run.choiceSeq)
+  for (let i = 0; i < 140; i++) spawnAt(run, i % 2 ? 'imp' : 'slime', { x: 30 + ((i * 37) % 300), y: 120 + ((i * 53) % 480) })
+  for (let i = 0; i < 120; i++) step(run, FIXED, still)
+  const t0 = performance.now()
+  for (let i = 0; i < 600; i++) step(run, FIXED, still)
+  const ms = (performance.now() - t0) / 600
+  ok(run.cls.units.length + run.cls.shield.length <= 5 && run.balls.length === 0 && ms < 2, `after the change (1024 balls a volley before): ${run.cls.units.length + run.cls.shield.length} giant balls, ${ms.toFixed(3)} ms a step with 140 monsters`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────

@@ -55,6 +55,8 @@ export function fresh(D) {
     // the cat companions and the writer Tizzzz: kept for good once earned
     cats: freshCats(),
     tizzzz: freshCats(),
+    // the artist zyo_ (chapter 15's reward): her class change, for good
+    zyo: { unlocked: false },
     // the story's battle blessings (story.json → rewards), kept for good
     blessings: freshBlessings(),
     // redraws of the upgrade cards a run gets (from balance.rerolls.fromChapter
@@ -74,11 +76,15 @@ export function fresh(D) {
 // rerolls) with the S ball; chapter 10's cat event is gone
 // 3: Tizzzz (with the SS ball and 2 more rerolls) comes with chapter 10's
 // first clear; chapter 15 keeps only its 2 more rerolls
-const STORY_V = 3
+// 4: chapter 15's first clear brings zyo_ (the class change) beside its 2
+// more rerolls
+const STORY_V = 4
 // the lobby's notes (story.news) for a save that cleared chapter 5 before it
 // brought the cats and the rerolls, and one that had Tizzzz from chapter 15
 export const NEWS_EP01 = 'ep01'
 export const NEWS_EP02 = 'ep02'
+// …and one that cleared chapter 15 before it brought zyo_
+export const NEWS_EP03 = 'ep03'
 const freshBlessings = () => ({ phoenix: false, snow: false, thunder: false, final: false })
 
 // For each companion (the cats, the writer Tizzzz): unlocked: it helps from its
@@ -130,6 +136,7 @@ function validate(D, d) {
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
   if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
   if (isObj(d.tizzzz)) for (const k of Object.keys(out.tizzzz)) out.tizzzz[k] = d.tizzzz[k] === true
+  out.zyo = { unlocked: isObj(d.zyo) && d.zyo.unlocked === true }
   if (isObj(d.blessings)) for (const k of Object.keys(out.blessings)) out.blessings[k] = d.blessings[k] === true
   out.rerolls = int(d.rerolls) && d.rerolls >= 0 ? Math.min(d.rerolls, 9) : 0
   // a save from before the story keeps v 0 until boot brings it in
@@ -137,7 +144,7 @@ function validate(D, d) {
   const rewards = new Set(Object.keys(D.story.rewards).filter((k) => k !== 'note'))
   const st = isObj(d.story) ? d.story : null
   const only = (list, set) => (Array.isArray(list) ? [...new Set(list.filter((x) => set.has(x)))] : [])
-  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02])) }
+  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02, NEWS_EP03])) }
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -303,7 +310,7 @@ export function createProgress(D, storage) {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
         d.activeRun = { runId, chapter }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, blessings: { ...d.blessings }, rerolls: d.rerolls }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, zyo: d.zyo.unlocked, blessings: { ...d.blessings }, rerolls: d.rerolls }
       })
     },
 
@@ -530,6 +537,7 @@ export function grantReward(D, d, rid) {
   if (R.cats) Object.assign(d.cats, { unlocked: true, eventSeen: true })
   if (R.rerolls) d.rerolls = Math.max(d.rerolls, R.rerolls)
   if (R.tizzzz) Object.assign(d.tizzzz, { unlocked: true, eventSeen: true })
+  if (R.zyo) d.zyo.unlocked = true
   if (R.blessing) d.blessings[R.blessing] = true
   if (R.final) d.blessings.final = true
   return out
@@ -554,6 +562,9 @@ export function grantReward(D, d, rid) {
 // reward counts as given (Tizzzz kept, no second SS ball, its rerolls come)
 // and chapter 15's rerolls come too. A save that cleared chapter 10 but not
 // 15 gets chapter 10's whole reward now.
+// From v 1 to 3 (chapter 15 gave only rerolls, or Tizzzz before that): a
+// save that has chapter 15's reward gets zyo_ now (its rerolls it has).
+// Tizzzz never comes back to chapter 15: she is chapter 10's.
 // The new clear cutscenes of chapters already cleared count as seen (they
 // play at a first clear only).
 // Returns the rewards given.
@@ -583,6 +594,11 @@ export function migrateStory(D, d) {
     writer()
     d.rerolls = Math.max(d.rerolls, R.skulltown.rerolls || 0)
     news(NEWS_EP02)
+  }
+  if (v >= 1 && v <= 3 && d.story.rewards.includes('skulltown') && !d.zyo.unlocked) {
+    d.zyo.unlocked = true
+    d.rerolls = Math.max(d.rerolls, R.skulltown.rerolls || 0)
+    news(NEWS_EP03)
   }
   for (const [rid, Rw] of Object.entries(R)) {
     if (rid === 'note' || !d.firstCleared.includes(Rw.chapter) || d.story.rewards.includes(rid)) continue

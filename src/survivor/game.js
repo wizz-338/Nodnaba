@@ -15,6 +15,7 @@
 import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
+import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, powerPreview } from './zyo.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -123,6 +124,8 @@ export function createRun(D, opts) {
   const withCats = !!opts.cats && chapter >= B.cats.activeFromChapter
   // Tizzzz rewrites a card at every level-up from her chapter on
   const withWriter = !!opts.tizzzz && chapter >= B.tizzzz.activeFromChapter
+  // zyo_'s class change from her chapter on (zyo.js)
+  const withZyo = !!opts.zyo && chapter >= B.zyo.activeFromChapter
   const pool = [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))]
   // with the cats, the magnet's place among the cards goes to 냥냥 연금술, and
   // the friend cats' five cards come in (four of them once there is a cat)
@@ -186,6 +189,9 @@ export function createRun(D, opts) {
     rerolls: chapter >= B.rerolls.fromChapter ? Math.max(0, opts.rerolls | 0) : 0,
     nyang: 0, // 냥냥 연금술 level this run (0: the cats leave hearts alone)
     writer: withWriter,
+    zyo: withZyo,
+    cls: null, // the class this run changed into (zyo.js), once
+    zyoPick: null, // { ids, seq }: zyo_'s cards among those on show
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
     region: regionOf(D, chapter), // where the chapter is: its monsters' looks and mix
     bless: blessingsFor(D, opts.blessings),
@@ -228,7 +234,13 @@ export function createRun(D, opts) {
   follow(run)
   if (withCats) run.cats = makeCats(run)
   run.grid = makeGrid(run)
-  run.hurt = (e, dmg, x, y, crit, by) => hurtEnemy(run, e, dmg, x, y, crit, by)
+  // (returns the HP it really took: never past what the monster had)
+  run.hurt = (e, dmg, x, y, crit, by) => {
+    if (e.state !== 'live') return 0
+    const hp = e.hp
+    hurtEnemy(run, e, dmg, x, y, crit, by)
+    return Math.max(0, Math.min(hp, hp - e.hp))
+  }
   // a ball's hit may set off a blessing (lightning never does)
   run.blessHit = (e, dmg, x, y) => blessHit(run, e, dmg, x, y)
   return run
@@ -569,7 +581,8 @@ function spawnSpecial(run, ev) {
 function hurtEnemy(run, e, dmg, x, y, crit = false, by = 'ball') {
   if (e.state !== 'live') return
   const raw = dmg
-  if (e.guard) dmg = guarded(run, e, dmg)
+  // (the 최후의 반격 blast breaks through the guard: it has its own cap)
+  if (e.guard && by !== 'blast') dmg = guarded(run, e, dmg)
   const eff = Math.max(0, Math.min(dmg, e.hp))
   e.hp -= dmg
   e.hitT = FLASH
@@ -926,6 +939,8 @@ function hurtPlayer(run, dmg, from = 'touch') {
   p.hitT = HIT_ANIM
   run.stats.hurt += n
   run.events.push({ type: 'hurt', x: p.x, y: p.y, n, from })
+  // 최후의 반격 (zyo.js): once a run she gets up instead
+  if (p.hp <= 0 && revive(run)) return
   if (p.hp <= 0) {
     run.state = 'dying'
     run.dieT = DOWN_TIME
@@ -1300,6 +1315,8 @@ export function applyPreview(run, id) {
     case 'catRate':
     case 'catClaw':
       return catPreview(run, id)
+    case 'power':
+      return run.cls ? powerPreview(run) : {}
     case 'nyang': {
       // the next level of the table: how many 퍼센트 하트 and how much each heals
       const L = Math.min(E.levels.length, run.nyang + 1)
@@ -1324,13 +1341,17 @@ export function drawChoices(run, not = []) {
   return out
 }
 
-const levelsOf = (run, id) => run.D.balance.upgrades.effects[id].levels
+const levelsOf = (run, id) => (run.D.balance.upgrades.effects[id] || {}).levels
 export const maxed = (run, id) => !!levelsOf(run, id) && (run.picks[id] || 0) >= levelsOf(run, id).length
 
 function openChoice(run, not) {
   run.state = 'levelup'
   run.choices = drawChoices(run, not)
   run.choiceSeq++
+  // zyo_'s card beside them (zyo.js): a recipe's card, or its class card
+  const z = zyoCards(run, run.choices, (id) => catCardOpen(run, id))
+  run.zyoPick = z.length ? { ids: z, seq: run.choiceSeq } : null
+  run.choices.push(...z)
   // Tizzzz rewrites one of them, at random among those that can take it
   run.edit = null
   if (run.writer) {
@@ -1349,21 +1370,23 @@ function applyChange(run, ch) {
   if ('maxHp' in ch) (p.maxHp = ch.maxHp), (p.hp = ch.hp)
   if ('nyang' in ch) run.nyang = ch.nyang
   if (ch.cat) run.cat = ch.cat
+  if (ch.cls) Object.assign(run.cls, { dmg: ch.cls.dmg, rate: ch.cls.rate })
 }
 
 // What choosing `id` n times in a row would make (pure: works on a copy).
 // For the cards: n = 1, or Tizzzz's times for the card she rewrote.
 export function previewTimes(run, id, n) {
-  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang, cat: { ...run.cat } }
+  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang, cat: { ...run.cat }, cls: run.cls && { ...run.cls } }
   for (let i = 0; i < n; i++) applyChange(tmp, applyPreview(tmp, id))
   const w = tmp.weapon
   const p = tmp.player
-  return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang, cat: tmp.cat }
+  return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang, cat: tmp.cat, cls: tmp.cls }
 }
 
 // Tizzzz's rewrite: the card can take her `times` (a card with levels needs
 // that many levels left)
 export function canEdit(run, id) {
+  if (isClassCard(id)) return false
   const L = levelsOf(run, id)
   return !L || (run.picks[id] || 0) + run.D.balance.tizzzz.times <= L.length
 }
@@ -1376,7 +1399,12 @@ export function choose(run, id, seq) {
   // a card Tizzzz rewrote does its own effect `times` times over, exactly as
   // if it had been chosen that many times (the same multiplying, nothing else)
   const times = isEdited(run, id, seq) ? run.D.balance.tizzzz.times : 1
-  for (let i = 0; i < times; i++) {
+  if (isClassCard(id)) {
+    // zyo_'s class change: once a run, the other recipes gone with it
+    if (!run.cls) startClass(run, classOf(id))
+    run.picks[id] = 1
+    run.log.push(id)
+  } else for (let i = 0; i < times; i++) {
     applyChange(run, applyPreview(run, id))
     run.picks[id] = (run.picks[id] || 0) + 1
     run.log.push(id)
@@ -1577,8 +1605,12 @@ function tick(run, dt, input) {
   moveEnemies(run, dt)
   updateHazards(run, dt, hurtPlayer)
   if (run.state !== 'play') return
-  run.behaviour.update(run, dt)
-  updateFriends(run, dt)
+  // after zyo_'s class change its attack is the only one (zyo.js)
+  if (run.cls) updateClass(run, dt)
+  else {
+    run.behaviour.update(run, dt)
+    updateFriends(run, dt)
+  }
   if (run.balls.length > run.stats.peakBalls) run.stats.peakBalls = run.balls.length
   // finished death animations leave
   if (run.enemies.some(gone)) run.enemies = run.enemies.filter((e) => !gone(e))

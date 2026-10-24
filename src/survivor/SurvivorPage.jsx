@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
+import { isClassCard, classOf, classDps, firepower, recipes } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02 } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03 } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
@@ -54,7 +55,9 @@ const pctOf = (v) => `${fmt(v * 100, 1)}%`
 // same numbers the game applies), then what it is now → what it becomes
 // (n: how many times it applies — Tizzzz's rewritten card does it more than once)
 const effectTag = (id, n = 1) => {
+  if (isClassCard(id)) return D.zyo.classBadge
   const e = EFFECTS[id]
+  if (id === 'power') return `화력 ×${fmt((e.damageMul * e.rateMul) ** n, 2)}`
   if (id === 'crit' || id === 'split') return `+${fmt(e.add * n * 100)}%p`
   if (id === 'regen') return `최대 체력의 +${fmt(e.addMaxHpShare * n * 100)}%/초`
   if (id === 'nyang') return n > 1 ? `고양이 Lv.+${n}` : '고양이'
@@ -67,6 +70,7 @@ const effectTag = (id, n = 1) => {
 const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
 const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
 function change(run, id, times = 1) {
+  if (isClassCard(id)) return classText(run, classOf(id))
   const w = run.weapon
   const p = run.player
   const n = previewTimes(run, id, times)
@@ -105,6 +109,8 @@ function change(run, id, times = 1) {
       return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
     case 'nyang':
       return times > 1 ? nyangJump(run.nyang, run.nyang + times) : nyangText(run.nyang + 1)
+    case 'power':
+      return run.cls ? `초당 피해 ${big(classDps(run))} → ${big(classDps(run, n.cls))} (공격 ×${fmt(n.cls.dmg / run.cls.dmg, 2)}, 빈도 ×${fmt(n.cls.rate / run.cls.rate, 2)})` : ''
     // the friend cats: what one cat does now → after (catNow: the same
     // numbers friends.js fights with)
     case 'catSummon': {
@@ -128,6 +134,14 @@ function change(run, id, times = 1) {
 // one friend cat's numbers in a run (or in a run with other cat numbers)
 const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: catSpeed(run), swipe: catSwipe(run), pack: packMul(run) })
 
+// a class card: what goes, what comes (the class's one-target damage a
+// second against what the ball and the cats deal now, counted the same way)
+function classText(run, k) {
+  const R = D.balance.zyo.recipes[k]
+  const now = firepower(run)
+  return `탱탱볼·냥이 공격 → ${D.zyo.forms[R.form]} · 초당 피해 ${big(now)} → ${big(now * D.balance.zyo.bonus)}`
+}
+
 // a run that has the friend cats among its cards
 const hasCats = (run) => run.pool.includes('catSummon')
 // the red ball's own cards: the cats never get them
@@ -135,6 +149,16 @@ const BALL_ONLY = new Set(['count', 'interval', 'damage', 'bounce', 'ballSpeed',
 // a line under a card in a run with the cats: what it does (or not) for
 // them, as friends.js counts it
 function cardHint(run, id) {
+  if (run.cls && (id === 'crit' || id === 'critDamage')) return '전직 공격에도 같이 적용돼요'
+  if (run.cls && id === 'power') return `${D.zyo.forms[run.cls.form]} 공격이 더 세고 더 자주 때려요 (개수는 그대로)`
+  if (isClassCard(id)) return `${D.zyo.classes[classOf(id)].text} · 한 판에 한 번`
+  const zr = run.zyo && !run.cls && recipes(run).find((r) => r.mats.includes(id))
+  if (zr) {
+    const i = zr.mats.indexOf(id)
+    const other = zr.mats[1 - i]
+    const need = D.balance.zyo.need
+    return `${D.zyo.name} 전직 재료 ${Math.min(need, zr.picks[i])}/${need} · ${OPTIONS[other].name} ${Math.min(need, zr.picks[1 - i])}/${need} → ${D.zyo.forms[zr.form]}`
+  }
   if (!hasCats(run)) return null
   if (id === 'crit' || id === 'critDamage') return '친구냥이 할퀴기에도 같이 적용돼요'
   if (BALL_ONLY.has(id)) return '탱탱볼에만 적용돼요 (친구냥이는 그대로)'
@@ -173,7 +197,13 @@ function RunStats({ run }) {
     ['경험치', `×${fmt(p.xpMul, 2)}`],
   ]
   if (run.nyang > 0) rows.push(['냥냥 연금술', `Lv.${run.nyang}`])
-  if (run.cat.n > 0) {
+  if (run.cls) {
+    const C = run.cls
+    rows.push(['전직', `${D.zyo.forms[C.form]} · ${D.zyo.classes[C.k].special}`], ['전직 초당 피해', big(classDps(run))], ['전투력', `공격 ×${fmt(C.dmg, 2)} · 빈도 ×${fmt(C.rate, 2)}`])
+    if (C.k === 'B') rows.push(['최후의 반격', `${C.revives}회 남음`])
+    if (C.k === 'C') rows.push(['흡혈로 회복', big(C.healed)])
+  } else if (run.zyo) for (const r of recipes(run)) if (r.mats.every((m) => run.pool.includes(m))) rows.push([`전직 ${D.zyo.classes[r.k].special}`, r.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(D.balance.zyo.need, r.picks[i])}`).join(' · ')])
+  if (run.cat.n > 0 && !run.cls) {
     const c = catNow(run)
     rows.push(['친구냥이', `${run.cat.n}마리`], ['할퀴기 피해', big(c.dmg)], ['할퀴기 간격', `${fmt(c.gap, 3)}초`], ['할퀴기 범위', fmt(c.swipe * 2)], ['고양이 달리기', Math.round(c.speed)])
   }
@@ -188,7 +218,7 @@ function RunStats({ run }) {
           </div>
         ))}
       </dl>
-      {run.cat.n > 0 && (
+      {run.cat.n > 0 && !run.cls && (
         <ul className="ms-runstats__note" aria-label="친구냥이 능력치">
           {CAT_RULES.map((t) => (
             <li key={t}>{t}</li>
@@ -483,11 +513,12 @@ function Game({ exitHref }) {
     // (and a save that cleared chapter 5 before it brought the cats and the
     // rerolls: they come now, the S ball it already has)
     if (news.length) {
-      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02)
+      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02 && rid !== NEWS_EP03)
       setNotice(
         [
           news.includes(NEWS_EP01) && `5장 클리어 보상이 바뀌었어요: 단추·호두·모루 합류 · 강화 리롤 ${b.data.rerolls}회 (S급 탱탱볼은 이미 받았어요)`,
           news.includes(NEWS_EP02) && `Tizzzz는 이제 10장 클리어 보상이에요: ${D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요 · 강화 리롤 ${b.data.rerolls}회 (SS급 탱탱볼은 이미 받았어요)`,
+          news.includes(NEWS_EP03) && `15장 클리어 보상에 ${D.zyo.name}가 합류했어요: ${D.balance.zyo.activeFromChapter}장부터 한 판에 한 번 전직할 수 있어요 · 강화 리롤 ${b.data.rerolls}회`,
           told.length && `이미 깬 장의 이야기 보상을 받았어요: ${told.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`,
         ]
           .filter(Boolean)
@@ -551,7 +582,7 @@ function Game({ exitHref }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -890,6 +921,8 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
   const catsOn = chapter >= D.balance.cats.activeFromChapter
   const tz = save.tizzzz.unlocked
   const tzOn = chapter >= D.balance.tizzzz.activeFromChapter
+  const zy = save.zyo.unlocked
+  const zyOn = chapter >= D.balance.zyo.activeFromChapter
   return (
     <>
       <section
@@ -974,7 +1007,7 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           </p>
           <h2 className="ms-epinfo__name">{region.name}</h2>
           <p className="ms-epinfo__blurb">{region.blurb}</p>
-          {(cats || tz) && (
+          {(cats || tz || zy) && (
             <p className="ms-epinfo__crew">
               {cats &&
                 D.cats.companions.map((c) => (
@@ -983,8 +1016,9 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
                   </span>
                 ))}
               {tz && <Art id="tizzzz_face" className="ms-crew__face" alt={D.tizzzz.name} />}
+              {zy && <Art id="zyo_face" className="ms-crew__face" alt={D.zyo.name} />}
               <span>
-                {[cats && (catsOn ? '고양이들이 함께해요' : `고양이들은 ${D.balance.cats.activeFromChapter}장부터`), save.rerolls > 0 && chapter >= D.balance.rerolls.fromChapter && `리롤 ${save.rerolls}회`, tz && (tzOn ? `${D.tizzzz.name}가 선택지를 고쳐 써 줘요` : `${D.tizzzz.name}는 ${D.balance.tizzzz.activeFromChapter}장부터`)].filter(Boolean).join(' · ')}
+                {[cats && (catsOn ? '고양이들이 함께해요' : `고양이들은 ${D.balance.cats.activeFromChapter}장부터`), save.rerolls > 0 && chapter >= D.balance.rerolls.fromChapter && `리롤 ${save.rerolls}회`, tz && (tzOn ? `${D.tizzzz.name}가 선택지를 고쳐 써 줘요` : `${D.tizzzz.name}는 ${D.balance.tizzzz.activeFromChapter}장부터`), zy && (zyOn ? `${D.zyo.name}와 전직할 수 있어요` : `${D.zyo.name}의 전직은 ${D.balance.zyo.activeFromChapter}장부터`)].filter(Boolean).join(' · ')}
               </span>
             </p>
           )}
@@ -1155,7 +1189,7 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
 // greyed with the chapter that brings them
 function Blessings({ save }) {
   const owned = (b) =>
-    b.id === 'cats' ? save.cats.unlocked : b.id === 'reroll' ? save.rerolls > 0 : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
+    b.id === 'cats' ? save.cats.unlocked : b.id === 'reroll' ? save.rerolls > 0 : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'zyo' ? save.zyo.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
   return (
     <section className="ms-panel">
       <h3 className="ms-sub">축복과 보물</h3>
@@ -1691,6 +1725,11 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
           setWarning({ key: run.t, name: ev.name, line: ev.line, final: ev.final })
           audio.siren(ev.final)
         } else if (ev.type === 'extraAppear') audio.duck(false)
+        // zyo_'s class change (its notes are drawn by render-zyo.js)
+        else if (ev.type === 'classChange') audio.sfx('transform')
+        else if (ev.type === 'classReady') say(`${D.zyo.forms[ev.form]} · ${D.zyo.classes[ev.k].special} 전직 완료!`)
+        else if (ev.type === 'warp') audio.sfx('warp')
+        else if (ev.type === 'revive') audio.sfx('revive'), say(`${D.zyo.classes.B.special}! 체력을 모두 채우고 일어났어요`)
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
         else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
         else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
@@ -1903,7 +1942,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
 
       {run.state === 'levelup' && run.choices && !modal && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="강화 선택">
-          <div className="ms-level">
+          <div className={`ms-level${run.choices.length > 3 ? ' ms-level--four' : ''}`}>
             <h2 className="ms-h">이번 판의 행운은?</h2>
             <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
             <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
@@ -1916,13 +1955,14 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
               // struck out and the stronger one pops in (CSS only, ~1.2 s; the
               // card can be chosen at once, it is stronger from the start)
               const ed = isEdited(run, id, run.choiceSeq)
+              const zy = !!run.zyoPick && run.zyoPick.seq === run.choiceSeq && run.zyoPick.ids.includes(id)
               const T = D.balance.tizzzz.times
               return (
                 <button
                   key={id + run.choiceSeq}
                   type="button"
                   data-sfx="none"
-                  className={`ms-card${ed ? ' is-edited' : ''}`}
+                  className={`ms-card${ed ? ' is-edited' : ''}${zy ? ' is-zyo' : ''}${isClassCard(id) ? ' is-class' : ''}`}
                   style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
                   onClick={(e) => {
                     const g = G.current
@@ -1965,6 +2005,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     )}
                     {cardHint(run, id) && <span className="ms-card__hint">{cardHint(run, id)}</span>}
                   </span>
+                  {zy && <em className="ms-card__badge ms-card__badge--zyo">{isClassCard(id) ? D.zyo.classBadge : D.zyo.badge}</em>}
                   {ed && (
                     <>
                       <em className="ms-card__badge">
@@ -2077,6 +2118,7 @@ const REWARD_CAPTION = {
   reward_s_ball: (R) => `${R.ball}급 탱탱볼`,
   ball_ss: (R) => `${R.ball}급 탱탱볼`,
   blessing_tizzzz: () => `${D.tizzzz.name} 선택지 수정`,
+  reward_zyo: () => `${D.zyo.name} 전직`,
   reward_reroll: (R) => (R.rerolls > 2 ? `리롤 +2 (누적 ${R.rerolls}회)` : `리롤 ${R.rerolls}회`),
 }
 
@@ -2153,6 +2195,7 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
             {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요. 강화 선택지에 친구냥이도 나와요.</p>}
             {R.rerolls && <p className="ms-dim ms-center">{D.balance.rerolls.fromChapter}장부터 한 판에 {R.rerolls}번, 강화 선택지를 새로 뽑을 수 있어요.</p>}
             {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
+            {R.zyo && <p className="ms-dim ms-center">{D.balance.zyo.activeFromChapter}장부터 같은 계열 강화 두 가지를 {D.balance.zyo.need}단계씩 모으면 한 판에 한 번 전직할 수 있어요.</p>}
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
               확인
             </button>

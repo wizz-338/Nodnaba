@@ -13,6 +13,7 @@
 import { FRAMES, ART, animFrame } from './sprites.js'
 import { chargePath } from './game.js'
 import { createExtraFx } from './render-extra.js'
+import { createZyoFx } from './render-zyo.js'
 
 // a damage number short enough to read over the fight: 9876, 12.3K, 456K, 7.8M …
 const UNITS = ['', 'K', 'M', 'B', 'T']
@@ -108,6 +109,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const motions = new Map() // their animation frames, scaled once per size (see motionSet)
   const MOTION = D.motion.characters
   let xfx = null // the extra special bosses' attacks (render-extra.js)
+  let zfx = null // zyo_'s class change (render-zyo.js)
   const bolts = [] // lightning of the thunder blessing, a moment each
   const E = D.balance.enemies
   const CATS = D.balance.cats
@@ -1112,6 +1114,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     // ball shadows and trails go, and fewer numbers and sparks are drawn
     const busy = run.balls.length > D.balance.performance.trailsUpTo
     if (!busy) for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
+    zfx ??= createZyoFx({ ctx, world, put, shadow, drawFriend, lift: BALL_LIFT, font: '16px ' + GAME_FONT })
+    zfx.shadows(run)
     drawShadows()
     for (const e of run.enemies) {
       if (e.behavior !== 'boss' || e.state !== 'live') continue
@@ -1121,6 +1125,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     drawHazardsUnder(run)
     xfx ??= createExtraFx({ ctx, world })
     xfx.under(run, now, busy)
+    zfx.under(run, now)
     for (const o of run.orbs) drawOrb(o, now)
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
@@ -1130,6 +1135,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     list.sort((a, b) => a[0] - b[0])
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : drawEnemy(run, o))
     for (const b of run.balls) drawBall(b, !busy)
+    zfx.over(run, now, dt)
     drawHazardsOver(run)
     xfx.over(run, now, dt, busy)
     if (inset) drawArrows(run, now)
@@ -1139,6 +1145,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     // effects from this frame's events
     for (const ev of run.events) {
       xfx.event(run, ev)
+      zfx.event(run, ev)
       if (ev.type === 'hit') {
         // (a cat's scratch has its own claw marks, not the ball's impact)
         if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
@@ -1252,6 +1259,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     mano,
     reset: () => {
       if (xfx) xfx.reset()
+      if (zfx) zfx.reset()
       Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
     },
   }

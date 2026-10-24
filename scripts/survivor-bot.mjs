@@ -13,6 +13,11 @@
 //            cards that have none of their line
 //   unlucky  the first card shown and never a redraw (see survivor-cats-dps.mjs)
 //   mixed    the ball's and the cats' cards in turn
+//   zyoA … zyoD  go for zyo_'s recipe (balance.json → zyo.recipes): its two
+//            cards first (one 친구냥이 first for the cats' recipes), then a
+//            person's order; they redraw for them
+// Every policy takes a class card (zyo_'s class change) when it is offered,
+// and 전투력 comes first after it.
 import { createRun, step, choose, reroll, chargePath, FIXED } from '../src/survivor/game.js'
 import { touches, inGap, reachesAt } from '../src/survivor/bosses.js'
 
@@ -22,7 +27,7 @@ export const POLICIES = {
   // how a person played chapter 28 (a screenshot of the picks at the boss):
   // damage first and most, then count, then crit / HP / hood / coins / XP,
   // then the rest; pickup, split and move only when nothing else is there
-  human: ['damage', 'count', 'crit', 'maxHp', 'armor', 'luck', 'xpGain', 'interval', 'regen', 'bounce', 'nyang', 'critDamage', 'ballSpeed', 'size'],
+  human: ['power', 'damage', 'count', 'crit', 'maxHp', 'armor', 'luck', 'xpGain', 'interval', 'regen', 'bounce', 'nyang', 'critDamage', 'ballSpeed', 'size'],
   natural: [],
   ballFocus: ['count', 'damage', 'interval', 'bounce', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'split', 'size', 'ballSpeed', 'move', 'nyang'],
   catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'move', 'nyang'],
@@ -30,8 +35,10 @@ export const POLICIES = {
   // both lines taken turn about (survivor-cats-dps.mjs: does mixing blow up?)
   mixed: ['catSummon', 'count', 'catClaw', 'damage', 'interval', 'catRate', 'bounce', 'catSize', 'catSpeed', 'crit', 'critDamage', 'maxHp', 'armor', 'regen'],
 }
+const ZYO = { A: ['size', 'count'], B: ['interval', 'ballSpeed'], C: ['catSize', 'catRate'], D: ['catSpeed', 'catClaw'] }
+for (const [k, m] of Object.entries(ZYO)) POLICIES['zyo' + k] = [...(k >= 'C' ? ['catSummon'] : []), ...m, ...POLICIES.human]
 // the line a policy redraws for
-const LINE = { ballFocus: ['count', 'damage', 'interval', 'bounce'], catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed'] }
+const LINE = { ballFocus: ['count', 'damage', 'interval', 'bounce'], catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed'], ...Object.fromEntries(Object.entries(ZYO).map(([k, m]) => ['zyo' + k, m])) }
 
 export const SKILLS = {
   good: { every: 0, look: 0.45, warnSeen: 0, noise: 0 },
@@ -139,7 +146,11 @@ export function botInput(run, skill = SKILLS.good, mem = {}) {
 
 export function pick(run, policy) {
   const c = run.choices
-  const want = POLICIES[policy] || []
+  const cls = c.find((id) => /^cls[A-D]$/.test(id))
+  if (cls) return cls
+  let want = POLICIES[policy] || []
+  // a recipe hunter: one 친구냥이 is enough before the cats' cards; past ten a card is done
+  if (policy.startsWith('zyo')) want = want.filter((id) => !(id === 'catSummon' && run.cat.n > 0) && !(ZYO[policy.slice(3)].includes(id) && (run.picks[id] || 0) >= run.D.balance.zyo.need))
   const edited = run.edit && run.edit.seq === run.choiceSeq && c.includes(run.edit.id) ? run.edit.id : null
   // a person weighs Tizzzz's card: worth a couple of places in their order,
   // not more (an edited HP card does not beat plain damage)
@@ -154,14 +165,14 @@ export function pick(run, policy) {
 }
 
 // one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, rerolls, arena, maxTime }
-export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, blessings = {}, rerolls = 0, arena, maxTime = 600 } = {}) {
-  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, blessings, rerolls, arena })
+export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, zyo = false, blessings = {}, rerolls = 0, arena, maxTime = 600 } = {}) {
+  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, zyo, blessings, rerolls, arena })
   const mem = {}
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
     if (run.state === 'levelup') {
       const line = LINE[policy]
-      while (line && run.rerolls > 0 && !run.choices.some((id) => line.includes(id))) reroll(run, run.choiceSeq)
+      while (line && !run.cls && run.rerolls > 0 && !run.choices.some((id) => line.includes(id))) reroll(run, run.choiceSeq)
       choose(run, pick(run, policy), run.choiceSeq)
     }
     step(run, FIXED, botInput(run, S, mem))
