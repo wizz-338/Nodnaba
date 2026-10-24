@@ -773,14 +773,15 @@ const still = { x: 0, y: 0 }
 // ── the story (story.json): region rewards, cutscenes seen, old saves ──────
 // a new save: each region's reward comes once with the first clear of its
 // last chapter, in that same write; the cats (with the S ball and the
-// rerolls) at 5, Tizzzz at 15; chapter 10's clear brings nothing for now
+// rerolls) at 5, Tizzzz (with the SS ball and 2 more rerolls) at 10; 15 only
+// 2 more rerolls
 {
   const S = D.story
   const mem = new Mem()
   mem.setItem('nodnaba:colony:save', 'COLONY')
   const P = createProgress(D, mem)
   const b0 = P.boot()
-  ok(b0.supplied.length === 0 && b0.data.story.v === 2 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
+  ok(b0.supplied.length === 0 && b0.data.story.v === 3 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
   const clear = (ch) => {
     const r = P.startRun(ch)
     return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
@@ -791,16 +792,17 @@ const still = { x: 0, y: 0 }
     if (r.story) got[ch] = r.story
   }
   const chapters = Object.keys(got).map(Number)
-  ok(chapters.join() === '5,15,20,25,30,35', `rewards come at the clears of ${chapters.join(', ')}, nowhere else (chapter 10's is left empty)`)
-  ok(got[5].reward === 'forest' && P.get().cats.unlocked && P.get().rerolls === 2 && got[5].item.grade === 'S', "5: the three cats, one S ball and 2 rerolls a run, in one reward")
+  ok(chapters.join() === '5,10,15,20,25,30,35', `rewards come at the clears of ${chapters.join(', ')}, nowhere else`)
+  ok(got[5].reward === 'forest' && got[5].item.grade === 'S' && got[10].reward === 'deepforest' && got[10].item.grade === 'SS' && got[15].reward === 'skulltown' && !got[15].item, '5: the cats, an S ball and rerolls; 10: Tizzzz, an SS ball and rerolls; 15: only rerolls (no ball, no one new)')
+  ok(P.get().cats.unlocked && P.get().tizzzz.unlocked && P.get().rerolls === 6, `rerolls: 2 at 5, 4 at 10, 6 at 15 (${P.get().rerolls})`)
   const d = P.get()
   const balls = (g, tag) => d.inventory.filter((it) => it.grade === g && (tag ? it.tag === tag : !it.tag)).length
-  ok(got[5].item.grade === 'S' && got[15].item.grade === 'SS' && got[35].item.grade === 'EX' && got[35].item.tag === 'demon', '5: the red ball grows to S; 15: to SS; 35: 마왕의 탱탱볼 (EX)')
-  ok(d.cats.unlocked && d.tizzzz.unlocked && d.blessings.phoenix && d.blessings.snow && d.blessings.thunder && d.blessings.final, '5: the cats; 15: Tizzzz; 20, 25, 30: the phoenix gem, the snow and thunder blessings; 35: the last strengthening')
+  ok(got[35].item.grade === 'EX' && got[35].item.tag === 'demon' && balls('SS') === 1, '5: the red ball grows to S; 10: to SS (one); 35: 마왕의 탱탱볼 (EX)')
+  ok(d.cats.unlocked && d.tizzzz.unlocked && d.blessings.phoenix && d.blessings.snow && d.blessings.thunder && d.blessings.final, '5: the cats; 10: Tizzzz; 20, 25, 30: the phoenix gem, the snow and thunder blessings; 35: the last strengthening')
   ok(d.equippedInstanceId === got[35].item.id, '마왕의 탱탱볼 is equipped (it beats the SS)')
-  ok(d.story.rewards.length === 6 && d.story.seen.length === 0, 'the rewards are recorded apart from the cutscenes (none seen here: skipping or closing never costs a reward)')
+  ok(d.story.rewards.length === 7 && d.story.seen.length === 0, 'the rewards are recorded apart from the cutscenes (none seen here: skipping or closing never costs a reward)')
   const before = JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')])
-  for (const ch of [5, 10, 15, 35]) ok(!clear(ch).story, `clearing chapter ${ch} again gives nothing more`)
+  for (const ch of [5, 10, 15, 35]) ok(!clear(ch).story && P.get().rerolls === 6, `clearing chapter ${ch} again gives nothing more`)
   ok(JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')]) === before, 'still one S, one SS, one 마왕의 탱탱볼 from the story')
   P.markSeen('ep01_clear')
   P.markSeen('ep01_clear')
@@ -810,7 +812,7 @@ const still = { x: 0, y: 0 }
   const s35 = again.startRun(35)
   ok(s35.cats && s35.tizzzz && s35.blessings.phoenix && s35.blessings.snow && s35.blessings.thunder && s35.blessings.final, 'a run started now brings the cats, Tizzzz and every blessing')
   const bk = parseBackup(D, again.exportText()).data
-  ok(bk.blessings.snow && bk.story.rewards.length === 6 && bk.rerolls === 2 && bk.inventory.some((it) => it.tag === 'demon'), 'a backup keeps the story, the blessings and 마왕의 탱탱볼')
+  ok(bk.blessings.snow && bk.story.rewards.length === 7 && bk.rerolls === 6 && bk.inventory.some((it) => it.tag === 'demon'), 'a backup keeps the story, the blessings and 마왕의 탱탱볼')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "the other games' saves are untouched")
   ok(!canFuse(D, again.get(), again.get().inventory.filter((it) => it.grade === 'EX').slice(0, 3).map((it) => it.id)).ok, '마왕의 탱탱볼 never goes into a fusion')
 }
@@ -834,17 +836,17 @@ const still = { x: 0, y: 0 }
   const P2 = createProgress(D, mem)
   const b = P2.boot()
   const n = b.data
-  ok(b.supplied.join() === 'desert,snow' && n.story.news.join() === 'desert,snow', `it is given what chapters 20 and 25 now bring (${b.supplied.join(', ')}), and told so once`)
+  ok(b.supplied.join() === 'skulltown,desert,snow' && n.story.news.join() === 'skulltown,desert,snow', `it is given what chapters 15, 20 and 25 now bring (${b.supplied.join(', ')}), and told so once`)
   ok(n.blessings.phoenix && n.blessings.snow && !n.blessings.thunder && !n.blessings.final, 'the phoenix gem and the snow blessing; not yet thunder (chapter 30)')
   ok(n.inventory.length === d.inventory.length && n.equippedInstanceId === 'w91', 'no ball given again (its S and SS came from the old stories); its equipped SS stays')
-  ok(n.cats.unlocked && n.tizzzz.unlocked && n.rerolls === 2, 'the cats and Tizzzz stay; chapter 5 now also brings the rerolls')
-  ok(['prologue', 'ep01_clear', 'skulltown_3', 'desert_4', 'snow_3', 'sky_1', 'sky_2', 'sky_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('castle_1'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it')
+  ok(n.cats.unlocked && n.tizzzz.unlocked && n.rerolls === 6 && n.story.rewards.includes('deepforest'), 'the cats and Tizzzz stay (its old Tizzzz event counts as chapter 10\'s reward); the rerolls of 5, 10 and 15 come')
+  ok(['prologue', 'ep01_clear', 'ep02_clear', 'desert_4', 'snow_3', 'sky_1', 'sky_2', 'sky_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('castle_1'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it')
   P2.clearNews()
   const third = createProgress(D, mem).boot()
   ok(third.supplied.length === 0 && third.data.story.news.length === 0 && third.data.inventory.length === n.inventory.length, 'the next visit gives and tells nothing more')
 }
 // an even older save (from before the cats), past chapter 12: the S ball and
-// the cats are made up; Tizzzz waits for chapter 15
+// the cats (chapter 5), Tizzzz and the SS ball (chapter 10) are made up
 {
   const mem = new Mem()
   const P = createProgress(D, mem)
@@ -857,8 +859,8 @@ const still = { x: 0, y: 0 }
   delete d.story
   mem.setItem(KEY, JSON.stringify(d))
   const b = createProgress(D, mem).boot()
-  ok(b.supplied.join() === 'forest' && b.data.inventory.filter((it) => it.grade === 'S').length === 1 && b.data.cats.unlocked && b.data.rerolls === 2 && !b.data.tizzzz.unlocked, 'it gets the S ball, the cats and the rerolls once (chapter 5); Tizzzz comes with chapter 15')
-  ok(b.data.story.seen.includes('skulltown_1') && !b.data.story.seen.includes('skulltown_2') && !b.data.story.seen.includes('skulltown_3') && b.data.story.seen.includes('ep01_clear'), 'what it played (to chapter 12) counts as seen; chapter 15\'s cutscenes still play')
+  ok(b.supplied.join() === 'forest,deepforest' && b.data.inventory.filter((it) => it.grade === 'S').length === 1 && b.data.inventory.filter((it) => it.grade === 'SS').length === 1 && b.data.cats.unlocked && b.data.tizzzz.unlocked && b.data.rerolls === 4, 'it gets the S ball, the cats (5), Tizzzz, the SS ball (10) and 4 rerolls, once')
+  ok(b.data.story.seen.includes('skulltown_1') && !b.data.story.seen.includes('skulltown_2') && b.data.story.seen.includes('ep01_clear') && b.data.story.seen.includes('ep02_clear'), 'what it played (to chapter 12) counts as seen; chapter 15\'s cutscenes still play')
 }
 // in battle: from their chapter on, with the cats; the magnet makes room for 냥냥 연금술
 {
@@ -1171,8 +1173,8 @@ const still = { x: 0, y: 0 }
   const A = D.storyAssets.images
   // (the soft lobby copies, Tizzzz's face and the PC game's wide grounds are
   // made from these originals, not originals of their own)
-  // (MANO_EP01's pictures, ep01-assets.json, are merged in: they are apart)
-  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/'))
+  // (MANO_EP01's and MANO_CH10_CUTSCENES' pictures, ep01/ep02-assets.json, are merged in: they are apart)
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/'))
   const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
   ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
   ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
@@ -1181,10 +1183,10 @@ const still = { x: 0, y: 0 }
   const ids = new Set(A.map((x) => x.id))
   const S = D.story
   const used = S.cutscenes.groups.flatMap((g) => g.cuts.map((c) => c.image))
-  const kept = ['cs_01_3', 'cs_02_3', 'cs_02_4']
-  ok(used.length === 31 && new Set(used).size === 31 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 26 of the package's 29 and chapter 5's five new ones; the old chapter 5 and chapter 10 cat pictures are kept, unused")
+  const kept = ['cs_01_3', 'cs_02_3', 'cs_02_4', 'cs_03_3']
+  ok(used.length === 35 && new Set(used).size === 35 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's and chapter 10's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
   const per = S.regions.map((r) => S.cutscenes.groups.filter((g) => regionOf(D, g.chapter).id === r.id).reduce((n, g) => n + g.cuts.length, 0))
-  ok(per.join() === '9,2,3,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
+  ok(per.join() === '9,7,2,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
   ok(S.cutscenes.groups.every((g) => g.when !== 'time' || (g.at > 0 && g.at < 210)) && S.cutscenes.groups.every((g) => ['enter', 'time', 'boss', 'clear'].includes(g.when)), 'every cutscene has its moment: before the fight, a time in it, the boss, or the clear')
   const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
   ok(rr === '1-5,6-10,11-15,16-20,21-25,26-30,31-35' && S.regions.every((r) => ids.has(r.background) && A.find((x) => x.id === r.background).region === r.id), `7 regions of 5 chapters (${rr}), each with its own background`)
@@ -1621,7 +1623,7 @@ const still = { x: 0, y: 0 }
   ok(g && g.chapter === 5 && g.when === 'clear' && g.reward === 'forest' && g.cuts.map((c) => c.image).join() === 'ep01_clear_01,ep01_clear_02,ep01_clear_03,ep01_clear_04,ep01_clear_05', "chapter 5's clear: the five new cuts in order, then chapter 5's reward")
   ok(lines.join('|') === '어? 단추? 호두? 모루?|나 따라온 거야??|어어? 탱탱볼??|탱탱볼!!!|좋아! 이번엔 {next} 가볼까!' && S.regions[1].from === 6 && S.regions[1].name === '깊은 숲', `Mano's five lines; the last names the region of chapters 6–10 from the data (${S.regions[1].name})`)
   ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep01_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7), 'the five pictures are wide (16:9), whole')
-  ok(!S.cutscenes.groups.some((x) => x.chapter === 10) && !S.rewards.deepforest && !S.cutscenes.groups.some((x) => x.id === 'deepforest_3'), "chapter 10: no cat event, no reward, nothing in its place")
+  ok(!S.cutscenes.groups.some((x) => x.id === 'deepforest_3') && !S.rewards.deepforest.cats && S.cutscenes.groups.filter((x) => x.chapter === 10).map((x) => x.id).join() === 'ep02_clear', "chapter 10: the old cat event is gone (its clear is now Tizzzz's)")
   const off = S.cutscenes.groups.filter((x) => x.play === false).map((x) => x.chapter)
   ok(off.join() === '6,11,16,21,26,31' && S.cutscenes.groups.filter((x) => x.play === false).every((x) => x.when === 'enter' && x.cuts.length > 0), `the episodes' opening cutscenes are kept but never played (chapters ${off.join(', ')})`)
   const R = S.rewards.forest
@@ -1645,9 +1647,9 @@ const still = { x: 0, y: 0 }
   ok(!again.story && P.get().inventory.filter((it) => it.grade === 'S').length === 1 && P.get().rerolls === 2, 'clearing 5 again: nothing more (no second S ball)')
   for (let ch = 6; ch <= 10; ch++) clear(ch)
   const d10 = P.get()
-  ok(d10.unlockedChapter === 11 && d10.firstCleared.includes(10) && d10.story.rewards.join() === 'forest', 'clearing 10: chapter 11 opens, no story reward')
+  ok(d10.unlockedChapter === 11 && d10.firstCleared.includes(10) && d10.story.rewards.join() === 'forest,deepforest', "clearing 10: chapter 11 opens, chapter 10's reward (Tizzzz's) comes")
   const r11 = P.startRun(11)
-  ok(r11.cats && r11.rerolls === 2, 'a run from then on starts with the cats and 2 rerolls')
+  ok(r11.cats && r11.rerolls === 4, 'a run from then on starts with the cats and 4 rerolls')
 }
 // saves from the version before (story v 1: chapter 5 gave the S ball, chapter 10 the cats)
 {
@@ -1669,7 +1671,7 @@ const still = { x: 0, y: 0 }
   const a = v1(7).b.data
   ok(a.cats.unlocked && a.rerolls === 2 && a.inventory.filter((it) => it.grade === 'S').length === 1 && a.story.news.includes('ep01') && a.story.seen.includes('ep01_clear'), 'cleared 5, not 10 (no cats yet): the cats and the rerolls now, no second S ball, told once, the new cutscene not forced on it')
   const b = v1(12, { cats: { unlocked: true, eventSeen: true, rewardGiven: false }, story: { rewards: ['forest', 'deepforest'], seen: ['prologue', 'forest_3', 'deepforest_3'] } }).b.data
-  ok(b.cats.unlocked && b.rerolls === 2 && b.inventory.filter((it) => it.grade === 'S').length === 1 && b.story.rewards.join() === 'forest' && !b.story.seen.includes('deepforest_3'), 'cleared 10 (had the cats from the old event): keeps them, gets the rerolls, no second S ball; the old chapter-10 marks are dropped')
+  ok(b.cats.unlocked && b.rerolls === 4 && b.inventory.filter((it) => it.grade === 'S').length === 1 && b.story.rewards.join() === 'forest,deepforest' && !b.story.seen.includes('deepforest_3') && b.tizzzz.unlocked && b.inventory.filter((it) => it.grade === 'SS').length === 1, "cleared 10 (had the cats from the old event): keeps them, no second S ball, the old chapter-10 marks are dropped; chapter 10's new reward (Tizzzz, SS ball, rerolls to 4) comes")
   const c = v1(3).b.data
   ok(!c.cats.unlocked && c.rerolls === 0 && !c.story.news.length, 'not yet at 5: nothing changes (chapter 5 brings it all)')
   const { mem } = v1(8)
@@ -1690,6 +1692,129 @@ const still = { x: 0, y: 0 }
   mem2.setItem(KEY, JSON.stringify(d))
   const o = createProgress(D, mem2).boot().data
   ok(o.cats.unlocked && o.rerolls === 2 && o.inventory.filter((it) => it.grade === 'S').length === 1 && o.story.rewards.includes('forest'), 'a first-version save (its S ball from the old cat event): the rerolls, no second S ball')
+}
+
+// ── chapter 10's first clear (MANO_CH10_CUTSCENES): Tizzzz moves from 15 to 10 ──
+{
+  const S = D.story
+  const g = S.cutscenes.groups.find((x) => x.id === 'ep02_clear')
+  ok(g && g.chapter === 10 && g.when === 'clear' && g.reward === 'deepforest' && g.cuts.map((c) => c.image).join() === 'ep02_clear_01,ep02_clear_02,ep02_clear_03,ep02_clear_04,ep02_clear_05', "chapter 10's clear: the five Tizzzz cuts in order, then chapter 10's reward")
+  ok(g.cuts.map((c) => c.text).join('|') === '어!! Tizzzz!!|으헤헤헤...|어? 뭐야?|우와! 고마워!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '작가 Tizzzz가 나타났다!' && g.cuts[2].layout === 'split' && g.cuts.filter((c) => c.banner || c.layout).length === 2, "Mano's lines; the first cut's banner; the third keeps its card clear of the words")
+  ok(S.regions[2].from === 11 && S.regions[2].name === '해골마을', `the last line names the region of chapters 11–15 from the data (${S.regions[2].name})`)
+  ok(!S.cutscenes.groups.some((x) => x.chapter === 15 && x.when === 'clear') && !S.cutscenes.groups.some((x) => x.id === 'skulltown_3') && S.cutscenes.groups.find((x) => x.id === 'skulltown_1').play === false, "chapter 15: no Tizzzz cutscene, no clear cutscene at all; chapter 11's and 16's openings stay off")
+  const R10 = S.rewards.deepforest
+  const R15 = S.rewards.skulltown
+  ok(R10.chapter === 10 && R10.tizzzz && R10.ball === 'SS' && R10.rerolls === 4 && !R10.cats, "chapter 10's reward: Tizzzz, one SS ball, rerolls to 4")
+  ok(R15.chapter === 15 && R15.rerolls === 6 && !R15.tizzzz && !R15.ball && !R15.blessing, "chapter 15's: only its 2 more rerolls (6), nothing new")
+  ok(B.tizzzz.activeFromChapter === 11 && B.tizzzz.penSeconds <= 0.5, `Tizzzz rewrites from chapter ${B.tizzzz.activeFromChapter}; her pen takes ${B.tizzzz.penSeconds} s`)
+  // a new save through chapter 16
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const clear = (ch) => {
+    const r = P.startRun(ch)
+    return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+  }
+  for (let ch = 1; ch <= 9; ch++) clear(ch)
+  ok(!P.get().tizzzz.unlocked && P.get().rerolls === 2 && !P.startRun(9).tizzzz, 'before chapter 10: no Tizzzz, 2 rerolls')
+  const SS = () => P.get().inventory.filter((it) => it.grade === 'SS').length
+  const c10 = clear(10)
+  ok(c10.story && c10.story.reward === 'deepforest' && c10.story.item.grade === 'SS' && SS() === 1 && P.get().tizzzz.unlocked && P.get().rerolls === 4, 'first clear of 10: Tizzzz, exactly one SS ball, rerolls to 4 — in the same write as the clear')
+  ok(!clear(10).story && SS() === 1 && P.get().rerolls === 4, 'clearing 10 again: nothing more')
+  const s11 = P.startRun(11)
+  ok(s11.tizzzz && s11.rerolls === 4 && newRun({ chapter: 11, tizzzz: s11.tizzzz, rerolls: s11.rerolls }).writer && newRun({ chapter: 11, rerolls: s11.rerolls }).rerolls === 4 && !newRun({ chapter: 10, tizzzz: true }).writer, 'from chapter 11: she rewrites, 4 rerolls every run (chapter 10 itself: not yet)')
+  for (let ch = 11; ch <= 14; ch++) clear(ch)
+  const c15 = clear(15)
+  ok(c15.story && c15.story.reward === 'skulltown' && !c15.story.item && SS() === 1 && P.get().rerolls === 6 && P.get().unlockedChapter === 16, 'first clear of 15: rerolls to 6, nothing else; chapter 16 opens')
+  ok(P.startRun(16).rerolls === 6, 'a run from then on: 6 rerolls')
+}
+// her rewrite: one card of those shown (however many), its own effect twice,
+// only when chosen; a redraw rewrites one of the new ones afresh
+{
+  const run = newRun({ chapter: 11, tizzzz: true, rerolls: 4, seed: 41 })
+  let one = 0
+  let ok2 = 0
+  for (let i = 0; i < 200; i++) {
+    run.state = 'play'
+    run.pending = 1
+    run.xp = 0
+    run.state = 'levelup'
+    run.choices = drawChoices(run)
+    run.choiceSeq++
+    run.edit = null
+    // (as openChoice: one of them, at random)
+    const ok3 = run.choices.filter((id) => canEdit(run, id))
+    if (ok3.length) run.edit = { id: ok3[Math.floor(run.rng() * ok3.length)], seq: run.choiceSeq }
+    if (run.edit && run.choices.includes(run.edit.id)) one++
+    reroll(run, run.choiceSeq)
+    if (run.edit && run.edit.seq === run.choiceSeq && run.choices.includes(run.edit.id)) ok2++
+    run.rerolls = 4
+  }
+  ok(one === 200 && ok2 === 200, 'one card rewritten among those shown; after a redraw one of the new cards (never one put back), one only')
+  const r = newRun({ chapter: 11, tizzzz: true, seed: 3 })
+  r.state = 'levelup'
+  r.pending = 1
+  r.choices = ['damage', 'count', 'interval']
+  r.choiceSeq++
+  r.edit = { id: 'damage', seq: r.choiceSeq }
+  const d0 = r.weapon.damage
+  const c0 = r.weapon.count
+  choose(r, 'count', r.choiceSeq)
+  ok(r.weapon.damage === d0 && r.weapon.count === c0 * 2, 'a rewritten card not chosen does nothing (the plain card picked: ×2 once)')
+  r.state = 'levelup'
+  r.pending = 1
+  r.choices = ['damage', 'count', 'crit']
+  r.choiceSeq++
+  r.edit = { id: 'crit', seq: r.choiceSeq }
+  const k0 = r.weapon.critChance
+  choose(r, 'crit', r.choiceSeq)
+  ok(near(r.weapon.critChance, k0 + 2 * B.upgrades.effects.crit.add, 1e-9) && r.picks.crit === 2, `the rewritten card chosen: its effect twice (치명타 +${B.upgrades.effects.crit.add * 100}%p → +${2 * B.upgrades.effects.crit.add * 100}%p), counted as two picks`)
+}
+// saves from before this change (Tizzzz at chapter 15 with the SS ball)
+{
+  const v2 = (cleared, extra = {}) => {
+    const mem = new Mem()
+    const P = createProgress(D, mem)
+    P.boot()
+    const d = P.get()
+    d.firstCleared = Array.from({ length: cleared }, (_, i) => i + 1)
+    d.unlockedChapter = cleared + 1
+    d.story = { v: 2, seen: ['prologue', 'forest_1', 'ep01_clear'], rewards: [], news: [] }
+    if (cleared >= 5) (d.story.rewards.push('forest'), d.inventory.push({ id: 'w50', weaponId: 'bouncy_ball', grade: 'S' }), (d.cats = { unlocked: true, eventSeen: true, rewardGiven: false }), (d.rerolls = 2))
+    if (cleared >= 15) (d.story.rewards.push('skulltown'), d.story.seen.push('skulltown_3'), d.inventory.push({ id: 'w51', weaponId: 'bouncy_ball', grade: 'SS' }), (d.tizzzz = { unlocked: true, eventSeen: true, rewardGiven: false }))
+    const { story, ...rest } = extra
+    Object.assign(d, rest)
+    if (story) Object.assign(d.story, story)
+    mem.setItem(KEY, JSON.stringify(d))
+    return { mem, b: createProgress(D, mem).boot() }
+  }
+  const SS = (d) => d.inventory.filter((it) => it.grade === 'SS').length
+  const a = v2(8).b.data
+  ok(!a.tizzzz.unlocked && SS(a) === 0 && a.rerolls === 2 && !a.story.rewards.includes('deepforest'), '1) chapter 10 not yet cleared: nothing changes (chapter 10 brings it)')
+  const b = v2(12)
+  ok(b.b.data.tizzzz.unlocked && SS(b.b.data) === 1 && b.b.data.rerolls === 4 && b.b.supplied.join() === 'deepforest' && b.b.data.story.seen.includes('ep02_clear'), '2) chapter 10 cleared, 15 not: Tizzzz, the SS ball and rerolls to 4 now (told once); the new cutscene not forced on it')
+  const c = v2(18)
+  ok(c.b.data.tizzzz.unlocked && SS(c.b.data) === 1 && c.b.data.rerolls === 6 && c.b.supplied.length === 0 && c.b.data.story.news.includes('ep02') && !c.b.data.story.seen.includes('skulltown_3') && c.b.data.story.rewards.includes('deepforest'), "3/4) the old chapter-15 Tizzzz event done (Tizzzz on, its SS ball owned): chapter 10's reward counts as given — no second SS ball, Tizzzz once — rerolls to 6; the old cutscene's mark is dropped")
+  const d = v2(12, { inventory: [{ id: 'w1', weaponId: 'bouncy_ball', grade: 'D' }, { id: 'w60', weaponId: 'bouncy_ball', grade: 'SS' }], equippedInstanceId: 'w60' }).b.data
+  ok(SS(d) === 2 && d.story.rewards.includes('deepforest'), '5) an SS ball owned (from chests or fusion) is not the reward: the reward comes (judged by the record, not the pocket)')
+  const e = v2(18, { tizzzz: { unlocked: true, eventSeen: true, rewardGiven: false } })
+  const P2 = createProgress(D, e.mem)
+  P2.clearNews()
+  const again = createProgress(D, e.mem).boot()
+  ok(again.supplied.length === 0 && SS(again.data) === 1 && again.data.rerolls === 6 && !again.data.story.news.length, 'the next visit: nothing given or told again')
+  // the first version (Tizzzz and her SS ball at the old chapter-10 event)
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const o = P.get()
+  o.firstCleared = Array.from({ length: 11 }, (_, i) => i + 1)
+  o.unlockedChapter = 12
+  o.tizzzz = { unlocked: true, eventSeen: true, rewardGiven: true }
+  o.inventory.push({ id: 'w70', weaponId: 'bouncy_ball', grade: 'SS' })
+  delete o.story
+  mem.setItem(KEY, JSON.stringify(o))
+  const f = createProgress(D, mem).boot().data
+  ok(f.tizzzz.unlocked && SS(f) === 1 && f.rerolls === 4 && f.story.rewards.includes('deepforest'), 'a first-version save (its SS ball from the old chapter-10 Tizzzz event): no second SS ball, rerolls to 4')
 }
 
 // ── 친구냥이: the fighting cats (friends.js) ────────────────────────────────

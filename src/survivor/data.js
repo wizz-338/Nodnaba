@@ -9,6 +9,7 @@
 // extra-motion.json the extra special bosses' (MANO_EXTRA_BOSSES), merged in.
 // ep01-assets.json: chapter 5's clear package (MANO_EP01): its pictures,
 // merged into the story pictures, and the friend cat's frames.
+// ep02-assets.json: chapter 10's clear cutscenes (MANO_CH10_CUTSCENES), merged in too.
 import balance from './data/balance.json'
 import weapons from './data/weapons.json'
 import upgrades from './data/upgrades.json'
@@ -22,9 +23,10 @@ import storyBase from './data/story-assets.json'
 import motionBase from './data/motion.json'
 import extraMotion from './data/extra-motion.json'
 import ep01 from './data/ep01-assets.json'
+import ep02 from './data/ep02-assets.json'
 
 const motion = { ...motionBase, characters: { ...motionBase.characters, ...extraMotion.characters } }
 
-const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images] }
+const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images, ...ep02.images] }
 
 export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets, motion, friendCat: ep01.friendCat }

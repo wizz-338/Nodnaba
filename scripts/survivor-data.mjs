@@ -14,7 +14,7 @@ export const D = {
   story: read('story'),
   storyAssets: (() => {
     const a = read('story-assets')
-    return { ...a, images: [...a.images, ...read('ep01-assets').images] }
+    return { ...a, images: [...a.images, ...read('ep01-assets').images, ...read('ep02-assets').images] }
   })(),
   friendCat: read('ep01-assets').friendCat,
   motion: (() => {

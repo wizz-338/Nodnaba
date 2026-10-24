@@ -55,7 +55,8 @@
         "spider": 1,
         "slime": 0.9,
         "bone_beast": 1.3
-      }
+      },
+      "reward": "deepforest"
     },
     {
       "id": "skulltown",
@@ -304,7 +305,7 @@
     }
   },
   "cutscenes": {
-    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. play: false — kept (pictures and lines, watchable in 설정 by a save that saw it) but never played by itself: the episodes' opening cutscenes (chapters 6, 11, 16, 21, 26, 31) were taken out; the clear of an episode's last chapter leads into the next region instead. {next}: the name of the region after the group's own (from regions), with its particle (로/으로). text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. play: false — kept (pictures and lines, watchable in 설정 by a save that saw it) but never played by itself: the episodes' opening cutscenes (chapters 6, 11, 16, 21, 26, 31) were taken out; the clear of an episode's last chapter leads into the next region instead. banner: a system line shown across the top of that cut. layout: 'split' keeps the words out of the picture (a cut whose bottom matters, chapter 10's card). {next}: the name of the region after the group's own (from regions), with its particle (로/으로). text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
     "speaker": "마노",
     "groups": [
       {
@@ -397,6 +398,36 @@
         ]
       },
       {
+        "id": "ep02_clear",
+        "chapter": 10,
+        "when": "clear",
+        "reward": "deepforest",
+        "cuts": [
+          {
+            "image": "ep02_clear_01",
+            "banner": "작가 Tizzzz가 나타났다!",
+            "text": "어!! Tizzzz!!"
+          },
+          {
+            "image": "ep02_clear_02",
+            "text": "으헤헤헤..."
+          },
+          {
+            "image": "ep02_clear_03",
+            "layout": "split",
+            "text": "어? 뭐야?"
+          },
+          {
+            "image": "ep02_clear_04",
+            "text": "우와! 고마워!!"
+          },
+          {
+            "image": "ep02_clear_05",
+            "text": "좋아! 이번엔 {next} 가볼까!"
+          }
+        ]
+      },
+      {
         "id": "skulltown_1",
         "chapter": 11,
         "when": "enter",
@@ -416,18 +447,6 @@
           {
             "image": "cs_03_2",
             "text": "고양이들아, 같이 해 보자! 하나, 둘… 지금이야!"
-          }
-        ]
-      },
-      {
-        "id": "skulltown_3",
-        "chapter": 15,
-        "when": "clear",
-        "reward": "skulltown",
-        "cuts": [
-          {
-            "image": "cs_03_3",
-            "text": "Tizzzz 님이 축복을 줬어! 손끝이 막 간질간질해!"
           }
         ]
       },
@@ -610,7 +629,7 @@
     ]
   },
   "rewards": {
-    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run; blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
     "forest": {
       "chapter": 5,
       "ball": "S",
@@ -627,17 +646,30 @@
         "강화 리롤 2회가 열렸어요!"
       ]
     },
-    "skulltown": {
-      "chapter": 15,
+    "deepforest": {
+      "chapter": 10,
       "tizzzz": true,
       "ball": "SS",
+      "rerolls": 4,
       "images": [
         "blessing_tizzzz",
-        "ball_ss"
+        "ball_ss",
+        "reward_reroll"
       ],
       "lines": [
-        "Tizzzz의 축복: 레벨업마다 선택지 하나를 더 강하게 고쳐 써 줘요.",
-        "빨간 탱탱볼이 SS급으로 강해졌어요!"
+        "Tizzzz 선택지 수정이 열렸어요!",
+        "SS급 탱탱볼을 받았어요!",
+        "강화 리롤 +2회 (누적 4회)"
+      ]
+    },
+    "skulltown": {
+      "chapter": 15,
+      "rerolls": 6,
+      "images": [
+        "reward_reroll"
+      ],
+      "lines": [
+        "강화 리롤 +2회 (누적 6회)"
       ]
     },
     "desert": {
@@ -707,13 +739,13 @@
         "name": "강화 리롤",
         "image": "reward_reroll",
         "from": "forest",
-        "text": "한 판에 2번, 강화 선택지를 새로 뽑을 수 있어요."
+        "text": "강화 선택지를 새로 뽑을 수 있어요. 5장·10장·15장을 처음 깰 때마다 한 판에 2번씩 늘어나요."
       },
       {
         "id": "tizzzz",
         "name": "Tizzzz의 축복",
         "image": "blessing_tizzzz",
-        "from": "skulltown",
+        "from": "deepforest",
         "text": "레벨업마다 선택지 하나를 더 강하게 고쳐 써 줘요."
       },
       {

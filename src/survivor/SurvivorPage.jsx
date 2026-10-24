@@ -3,7 +3,7 @@ import { D } from './data.js'
 import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01 } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02 } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
@@ -455,10 +455,11 @@ function Game({ exitHref }) {
     // (and a save that cleared chapter 5 before it brought the cats and the
     // rerolls: they come now, the S ball it already has)
     if (news.length) {
-      const told = news.filter((rid) => rid !== NEWS_EP01)
+      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02)
       setNotice(
         [
           news.includes(NEWS_EP01) && `5장 클리어 보상이 바뀌었어요: 단추·호두·모루 합류 · 강화 리롤 ${b.data.rerolls}회 (S급 탱탱볼은 이미 받았어요)`,
+          news.includes(NEWS_EP02) && `Tizzzz는 이제 10장 클리어 보상이에요: ${D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요 · 강화 리롤 ${b.data.rerolls}회 (SS급 탱탱볼은 이미 받았어요)`,
           told.length && `이미 깬 장의 이야기 보상을 받았어요: ${told.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`,
         ]
           .filter(Boolean)
@@ -2045,7 +2046,9 @@ function cutText(cut) {
 const REWARD_CAPTION = {
   reward_cats: () => D.cats.companions.map((c) => c.name).join('·'),
   reward_s_ball: (R) => `${R.ball}급 탱탱볼`,
-  reward_reroll: (R) => `리롤 ${R.rerolls}회`,
+  ball_ss: (R) => `${R.ball}급 탱탱볼`,
+  blessing_tizzzz: () => `${D.tizzzz.name} 선택지 수정`,
+  reward_reroll: (R) => (R.rerolls > 2 ? `리롤 +2 (누적 ${R.rerolls}회)` : `리롤 ${R.rerolls}회`),
 }
 
 const leftoverCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'clear' && save.firstCleared.includes(g.chapter) && !save.story.seen.includes(g.id))
@@ -2133,8 +2136,17 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
   // a wide (16:9) picture fills the screen on the PC, the words over its foot
   const info = artInfo(cut.image)
   const wide = !!(info && info.out && info.out[0] > info.out[1])
+  // split: the words below the picture, never over it (a cut whose bottom
+  // matters: chapter 10's rewritten card)
+  const split = cut.layout === 'split'
   return (
-    <div className={`ms-modal ms-cut${wide ? ' ms-cut--wide' : ''}`} role="dialog" aria-modal="true" aria-label="이야기">
+    <div className={`ms-modal ms-cut${wide ? ' ms-cut--wide' : ''}${split ? ' ms-cut--split' : ''}`} role="dialog" aria-modal="true" aria-label="이야기">
+      {/* a system line across the top (작가 Tizzzz가 나타났다!) */}
+      {cut.banner && (
+        <p key={'banner' + i} className="ms-cut__banner">
+          {cut.banner}
+        </p>
+      )}
       <div className="ms-cut__pic" onClick={next}>
         {/* the group's pictures stay in place, only one shown: changing cuts never flashes */}
         {cuts.map((c, k) => (
@@ -2212,6 +2224,13 @@ function Result({ run, reward, save, onRetry, onNext, onEquip, onChests }) {
               <Sprite name={weaponIcon(rw.gift.weaponId)} size={18} /> 첫 클리어 선물: {weaponName(rw.gift.weaponId)} <Grade g={rw.gift.grade} />
             </p>
           )}
+          {/* a chapter's reward with no cutscene to show it (chapter 15: its rerolls) */}
+          {rw.story && !CUT_GROUPS.some((g) => g.reward === rw.story.reward) &&
+            D.story.rewards[rw.story.reward].lines.map((t) => (
+              <p key={t}>
+                <Art id={D.story.rewards[rw.story.reward].images[0]} className="ms-reward__art" /> {t}
+              </p>
+            ))}
         </div>
         {build.length > 0 && (
           <ul className="ms-build" aria-label="선택한 강화">

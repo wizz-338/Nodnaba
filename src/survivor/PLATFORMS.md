@@ -44,7 +44,8 @@ only in its platform-specific part.
   special bosses', made by `scripts/survivor-extra-boss-assets.py`),
   `ep01-assets.json` (chapter 5's clear package MANO_EP01: its five 16:9
   cutscenes, rewards, cat card icons, scratches and the friend cat's atlas,
-  made by `scripts/survivor-ep01-assets.py`).
+  made by `scripts/survivor-ep01-assets.py`), `ep02-assets.json` (chapter
+  10's clear cutscenes, MANO_CH10_CUTSCENES: `scripts/survivor-ep02-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.
@@ -63,7 +64,9 @@ only in its platform-specific part.
   is the `.ms--pc` section at its end (16:9 frame, menus laid out at
   1280 × 720 and scaled with `zoom: var(--z)`, cards side by side, cutscene
   picture with the words beside it; a 16:9 cutscene — chapter 5's clear —
-  fills the screen with the words over its foot: `.ms-cut--wide`). On the
+  fills the screen with the words over its foot: `.ms-cut--wide`; a cut
+  marked `layout: 'split'` keeps the words below the picture instead:
+  `.ms-cut--split`). On the
   phone a 16:9 cutscene is shown whole, never stretched or cut, with dark
   bands above and below.
 - Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`, which
