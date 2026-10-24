@@ -1,7 +1,7 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, reroll, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, reroll, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
@@ -282,7 +282,18 @@ const still = { x: 0, y: 0 }
     const spread = Math.max(...run.enemies.map((e) => Math.hypot(e.x - run.enemies[0].x, e.y - run.enemies[0].y)))
     const away = run.enemies.every((e) => Math.hypot(e.x - run.player.x, e.y - run.player.y) >= 60)
     ok(n >= 1 && n <= ph.pack && one && spread < 120 && away, `from ${ph.from} s: a pack of up to ${ph.pack} of one kind, bunched, away from Mano (${n} ${run.enemies[0]?.type})`)
+    const xpm = ph.xpMultiplier ?? 1
+    ok(run.enemies.every((e) => near(e.xp, B.enemies[e.type].xp * xpm)), `from ${ph.from} s: each is worth ×${xpm} experience`)
   }
+  // the opening is busier than it was (0.83 then 1.9 monsters a second), each
+  // monster weaker and worth a little less
+  const [p0, p1] = B.chapter.phases
+  ok(p0.pack / p0.spawnInterval >= 1.2 && p1.pack / p1.spawnInterval >= 2.4 && p0.xpMultiplier < 1 && p1.xpMultiplier < 1, `the first 70 s: ${(p0.pack / p0.spawnInterval).toFixed(2)} then ${(p1.pack / p1.spawnInterval).toFixed(2)} monsters a second, worth ×${p0.xpMultiplier} / ×${p1.xpMultiplier} experience`)
+  // elites and the boss keep their whole experience
+  const er = newRun({ seed: 4 })
+  er.t = 0.5
+  const th = spawnAt(er, 'thief', { x: 180, y: 200 })
+  ok(th.xp === B.enemies.thief.xp, `the thief keeps its whole experience (${th.xp}) in the opening`)
 }
 
 // regen heals a share of the maximum HP each second, whatever the HP is
@@ -1330,11 +1341,12 @@ const still = { x: 0, y: 0 }
     if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
   }
   ok(r.player.x > px1 - 20 && r.player.y < py0 + 20 && r.view[2] === px1 && r.view[1] === py0, `held up-right: she stops in the field's corner (${r.player.x.toFixed(1)}, ${r.player.y.toFixed(1)}), the view stops at its edges`)
-  // monsters come in near her (the spawn box) and stay in the view; the balls bounce off it
+  // monsters come in near her (the spawn box) and keep to the field (they may
+  // be left out of sight); the balls bounce off the view
   const r2 = newRun({ arena: PC, seed: 8 })
   r2.player.hp = r2.player.maxHp = 1e9
   let far = 0
-  let outView = 0
+  let outField = 0
   let ballsOut = 0
   const seen = new Set()
   for (let i = 0; i < 60 * 40; i++) {
@@ -1345,13 +1357,35 @@ const still = { x: 0, y: 0 }
         seen.add(e.id)
         if (PC.spawnBox && (Math.abs(e.x - r2.player.x) > PC.spawnBox[0] / 2 + 40 || Math.abs(e.y - r2.player.y) > PC.spawnBox[1] / 2 + 40)) far++
       }
-      if (e.state === 'live' && !e.roam && (e.x < vx0 - 0.01 || e.x > vx1 + 0.01 || e.y < vy0 - 0.01 || e.y > vy1 + 0.01)) outView++
+      if (e.state === 'live' && (e.x < px0 + e.r - 0.01 || e.x > px1 - e.r + 0.01 || e.y < py0 + e.r - 0.01 || e.y > py1 - e.r + 0.01)) outField++
     }
     for (const b of r2.balls) if (b.x < vx0 - 0.01 || b.x > vx1 + 0.01 || b.y < vy0 - 0.01 || b.y > vy1 + 0.01) ballsOut++
     if (r2.state === 'levelup') choose(r2, r2.choices[0], r2.choiceSeq)
   }
   ok(seen.size > 20 && far === 0, `40 s walking about the PC field: ${seen.size} monsters came in, ${PC.spawnBox ? `all within the ${PC.spawnBox.join(' × ')} spawn box around Mano` : 'all at the view'}${far ? ` (${far} farther)` : ''}`)
-  ok(outView === 0 && ballsOut === 0, `no monster and no ball ever left the view${outView || ballsOut ? ` (${outView} monster-steps, ${ballsOut} ball-steps)` : ''}`)
+  ok(outField === 0 && ballsOut === 0, `no monster ever left the field, no ball the view${outField || ballsOut ? ` (${outField} monster-steps, ${ballsOut} ball-steps)` : ''}`)
+  // walking away, the monsters stay where they are in the field (they used
+  // to be held in the view, so the camera dragged them after her)
+  const r3 = newRun({ arena: PC, seed: 3 })
+  r3.player.hp = r3.player.maxHp = 1e9
+  r3.player.inv = 1e9
+  r3.spawnT = -1e9
+  r3.player.x = 500
+  step(r3, FIXED, still)
+  const left = spawnAt(r3, 'imp', { x: r3.view[0] + 30, y: r3.player.y })
+  let moved = 0
+  for (let i = 0; i < 60 * 4; i++) {
+    r3.fireT = 1e9
+    const x = left.x
+    step(r3, FIXED, { x: 1, y: 0 })
+    moved = Math.max(moved, left.x - x)
+  }
+  const pace = B.enemies.imp.speed * B.chapter.phases[0].speedMultiplier * FIXED
+  ok(left.state === 'live' && left.x < r3.view[0] - 100 && moved < pace + 0.6, `PC: Mano walks away right; a monster at the view's left edge is left behind out of sight (${(r3.view[0] - left.x).toFixed(0)} px past the edge), never pulled faster than its own pace`)
+  const m3 = newRun({ seed: 3 })
+  const ml = spawnAt(m3, 'imp', { x: M.bounds[0] + 20, y: M.bounds[3] - 20 })
+  for (let i = 0; i < 30; i++) (m3.fireT = 1e9), step(m3, FIXED, still)
+  ok(ml.x >= M.bounds[0] + ml.r && ml.y <= M.bounds[3] - ml.r, 'on the phone the field is the view: monsters still keep inside it')
 }
 // the PC thief: comes from any side, a little past the view, may roam out of
 // sight but never out of the field

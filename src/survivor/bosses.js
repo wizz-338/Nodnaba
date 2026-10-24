@@ -411,7 +411,8 @@ export function updateHazards(run, dt, hurt) {
     run.hazards = run.hazards.filter((h) => run.t < (h.until || h.at) + (h.keep ?? (h.harmless ? 0 : h.linger)))
   }
   if (run.shots.length) {
-    const [x0, y0, x1, y1] = run.view
+    // (shots fly the whole field: a boss off screen may shoot from there)
+    const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
     const out = []
     for (const s of run.shots) {
       s.x += s.vx * dt
