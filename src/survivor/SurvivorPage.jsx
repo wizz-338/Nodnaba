@@ -110,7 +110,7 @@ function change(run, id, times = 1) {
     case 'catSummon': {
       const a = catNow(run)
       const b = catNow({ ...run, cat: n.cat })
-      return `친구냥이 ${run.cat.n}마리 → ${n.cat.n}마리${run.cat.n ? ` · 할퀴기 ${big(a.dmg)} → ${big(b.dmg)}` : ''}`
+      return `친구냥이 ${run.cat.n}마리 → ${n.cat.n}마리 · ${run.cat.n ? `할퀴기 ${big(a.dmg)} → ${big(b.dmg)}` : `할퀴기 ${big(b.dmg)}, ${fmt(b.gap, 2)}초마다`}`
     }
     case 'catSize':
       return `할퀴기 범위 ${fmt(catNow(run).swipe * 2)} → ${fmt(catNow({ ...run, cat: n.cat }).swipe * 2)} · 몸집 ×${fmt(n.cat.size, 2)}`
@@ -127,6 +127,27 @@ function change(run, id, times = 1) {
 
 // one friend cat's numbers in a run (or in a run with other cat numbers)
 const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: catSpeed(run), swipe: catSwipe(run), pack: packMul(run) })
+
+// a run that has the friend cats among its cards
+const hasCats = (run) => run.pool.includes('catSummon')
+// the red ball's own cards: the cats never get them
+const BALL_ONLY = new Set(['count', 'interval', 'damage', 'bounce', 'ballSpeed', 'size', 'split'])
+// a line under a card in a run with the cats: what it does (or not) for
+// them, as friends.js counts it
+function cardHint(run, id) {
+  if (!hasCats(run)) return null
+  if (id === 'crit' || id === 'critDamage') return '친구냥이 할퀴기에도 같이 적용돼요'
+  if (BALL_ONLY.has(id)) return '탱탱볼에만 적용돼요 (친구냥이는 그대로)'
+  if (id === 'catSummon' && !run.cat.n) return '할퀴기 피해·간격은 장착한 탱탱볼과 마노 강화에 비례해요'
+  return null
+}
+// how the cats' numbers come from Mano's (the run stats' note)
+const CAT_RULES = [
+  `할퀴기 피해 = 출발할 때 탱탱볼 피해(장착 등급 · 마노 강화 공격 피해 포함)의 ${D.balance.friendCats.damageCoef}배 × 발톱 갈기 × 냥이 수 보너스`,
+  `할퀴기 간격 = ${D.balance.friendCats.interval}초 × 마노 강화 공격 주기 × 빠르게 할퀴기`,
+  '치명타 확률 · 치명타 피해는 마노와 같아요 (전투 중 고른 카드도 같이 적용)',
+  '탱탱볼 강화 카드(개수 · 공격 주기 · 공격 피해 · 반사 등)는 냥이에게 적용되지 않아요',
+]
 
 // where Mano stands in this run (for the level-up cards): every number a
 // card can change, as it is now, then the cards picked so far
@@ -167,6 +188,13 @@ function RunStats({ run }) {
           </div>
         ))}
       </dl>
+      {run.cat.n > 0 && (
+        <ul className="ms-runstats__note" aria-label="친구냥이 능력치">
+          {CAT_RULES.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      )}
       {build.length > 0 && (
         <ul className="ms-build" aria-label="이번 판에 고른 강화">
           {build.map((b) => (
@@ -1935,6 +1963,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                         <b>{effectTag(id)}</b> {change(run, id)}
                       </span>
                     )}
+                    {cardHint(run, id) && <span className="ms-card__hint">{cardHint(run, id)}</span>}
                   </span>
                   {ed && (
                     <>

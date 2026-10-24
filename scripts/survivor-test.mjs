@@ -1611,7 +1611,22 @@ const still = { x: 0, y: 0 }
     run.hurt(b, b.maxHp * 0.55, b.x, b.y)
     const full = near(hp0 - b.hp, b.maxHp * 0.55, 1e-6 * b.maxHp)
     run.hurt(b, b.maxHp * 0.55, b.x, b.y)
-    ok(full && b.state === 'down' && !b.guard, 'a strong build ends it as fast as it hits: every hit counts in full (no guard, no cap, no shield)')
+    ok(full && b.state === 'down' && !b.guard, `chapter 10: a strong build ends it as fast as it hits: every hit counts in full (no guard before chapter ${B.lateGame.bossGuard.fromChapter}, no cap, no shield)`)
+    ok(near(b.maxHp, run.boss.maxHp * X.hpMul, 1e-9 * b.maxHp) && X.hpMul > 1, `it has ${X.hpMul}× the chapter boss's HP: tougher than the boss it follows`)
+  }
+  // from the boss guard's chapter on it has the guard too
+  {
+    const G = B.lateGame.bossGuard
+    const ch = +Object.keys(X.chapters).find((c) => +c >= G.fromChapter)
+    const run = toBoss(ch)
+    killBoss(run)
+    tick(run, 60 * 6)
+    const b = run.extra.boss
+    tick(run, 60 * 3, { noFire: true })
+    const hp0 = b.hp
+    run.hurt(b, b.maxHp, b.x, b.y)
+    const lost = (hp0 - b.hp) / b.maxHp
+    ok(b.guard && b.state === 'live' && lost <= G.maxShare * G.burst + 1e-9, `chapter ${ch}: the boss's guard (one huge hit takes ${(lost * 100).toFixed(0)}% of its HP, at most ${G.maxShare * G.burst * 100}%)`)
   }
   // the last one: its phases by HP, the combos only later, nothing made up
   {

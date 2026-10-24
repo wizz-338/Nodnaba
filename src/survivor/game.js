@@ -1506,6 +1506,10 @@ function spawnExtra(run, S, appear) {
     t: TELEGRAPH - appear, // its entry lasts `appear` s (no ball, no touch until it stands)
     enter: appear,
   })
+  // from the boss guard's chapter on it has the guard too: never easier than
+  // the boss it follows
+  const G = run.D.balance.lateGame.bossGuard
+  if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: hp * G.maxShare * G.burst, guardT: run.t })
   e.face = p.x > e.x ? 1 : -1
   run.elites.extra = e
   return e
