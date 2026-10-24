@@ -553,7 +553,7 @@
     "fromChapter": 6
   },
   "friendCats": {
-    "note": "친구냥이 (friends.js): fighting cats in runs with the cats. Each 친구냥이 card brings one more (+1). One scratch = catBase × 발톱 갈기, where catBase = the ball's damage at the start of the run (base × grade × coin stat 공격 피해) × damageCoef; Mano's 치명타 확률 and 치명타 피해 apply. The gap between scratches = interval × the coin stat 공격 주기 × 빠르게 할퀴기. The scratch hits every monster in a circle of radius swipe at reach in front of the cat (뚱냥이 grows both, and the cat's size up to maxDrawScale as drawn). speed: px/s; leash: how far from Mano a cat goes after monsters (on screen only); seekEvery: s between looks for a nearer target; crowdPenalty: px a monster counts further for each cat already on it; stickiness: px nearer another must be to change targets; attackSeconds: the scratch's length (shorter, down to minAttackSeconds, when the gap is shorter), strikeAt: its share where the claw lands; recoverSeconds: the paw coming back (drawn); firstScratch: the most a new cat waits; homeRadius: where cats wait near Mano with nothing to fight; powerAt: 발톱 갈기's multiplier from which the scratch is drawn golden; packBonus: every cat beyond the first adds this to every cat's scratch (1 + packBonus × (cats − 1)); drawH: an idle cat's height in field px.",
+    "note": "친구냥이 (friends.js): fighting cats in runs with the cats. Each 친구냥이 card brings one more (+1). One scratch = catBase × 발톱 갈기, where catBase = the ball's damage at the start of the run (base × grade × coin stat 공격 피해) × damageCoef; Mano's 치명타 확률 and 치명타 피해 apply. The gap between scratches = interval × the coin stat 공격 주기 × 빠르게 할퀴기. The scratch hits every monster in a circle of radius swipe at reach in front of the cat (뚱냥이 grows both, and the cat's size up to maxDrawScale as drawn). speed: px/s; leash: how far from Mano a cat goes after monsters (on screen only); seekEvery: s between looks for a better target; aim: how a cat chooses (friends.js, in seconds of 'how soon it could strike'): edge — how much of a monster's size counts in the run to it (0: from its middle, so a big one does not draw every cat), near — the run to it counted again × near (the nearer of two wins while the claw comes back), covered — later a monster counts whose HP the other cats' booked scratches already cover (a boss's never is), coming — later (softer) one the cats still on their way to it would finish, crowd — later for each other cat about to strike it, clump — earlier for each other monster inside a scratch's circle of it (up to clumpMax), switchMargin — how much better another must be before a cat changes targets; attackSeconds: the scratch's length (shorter, down to minAttackSeconds, when the gap is shorter), strikeAt: its share where the claw lands; recoverSeconds: the paw coming back (drawn); firstScratch: the most a new cat waits; homeRadius: where cats wait near Mano with nothing to fight; powerAt: 발톱 갈기's multiplier from which the scratch is drawn golden; packBonus: every cat beyond the first adds this to every cat's scratch (1 + packBonus × (cats − 1)); drawH: an idle cat's height in field px.",
     "damageCoef": 3,
     "interval": 0.8,
     "speed": 230,
@@ -561,8 +561,7 @@
     "swipe": 20,
     "leash": 230,
     "seekEvery": 0.2,
-    "crowdPenalty": 28,
-    "stickiness": 30,
+    "aim": { "edge": 0, "near": 0.5, "covered": 1, "coming": 0.4, "crowd": 0.15, "clump": 0.06, "clumpMax": 4, "switchMargin": 0.3 },
     "attackSeconds": 0.3,
     "minAttackSeconds": 0.12,
     "strikeAt": 0.5,

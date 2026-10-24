@@ -1877,6 +1877,29 @@ const still = { x: 0, y: 0 }
     ok(a.state !== 'live' && b.state !== 'live' && S.kills === 2, `one cat: runs to the nearest, scratches it down, then goes for the other (both fallen, ${S.kills} kills, first at ${firstAt && firstAt.toFixed(2)} s)`)
     ok(Math.hypot(r.friends[0].x - c0.x, r.friends[0].y - c0.y) > 60, 'it really ran there (no hit from afar)')
   }
+  // choosing: a small one another cat is about to finish is left to it, the
+  // second cat takes the other; a boss alone gets every cat
+  {
+    const r = catRun()
+    cat(r, 2)
+    const p = r.player
+    for (const c of r.friends) (c.x = p.x + 20), (c.y = p.y), (c.cd = 0)
+    const hp = catDamage(r) * 0.5
+    const a = enemy(r, p.x + 60, p.y, hp)
+    const b = enemy(r, p.x + 60, p.y + 70, hp)
+    let both = 0
+    fight(r, 3, () => {
+      if (r.friends.filter((c) => c.target === a).length > 1) both++
+    })
+    const S = r.stats.by.cat || {}
+    ok(a.state !== 'live' && b.state !== 'live' && S.kills === 2 && S.hits === 2, `two cats, two small monsters (one scratch each): they split — 2 scratches, 2 kills, none spent twice (${S.hits} hits)`)
+    const rb = catRun()
+    cat(rb, 6)
+    const boss = enemy(rb, rb.player.x + 80, rb.player.y, 1e12, 24)
+    boss.behavior = 'boss'
+    fight(rb, 2)
+    ok(rb.friends.every((c) => c.target === boss) && (rb.stats.by.cat || {}).boss > 0, 'a boss alone: all six cats go at it (its HP is never covered)')
+  }
   // only monsters on screen and near Mano
   {
     const r = catRun()

@@ -95,27 +95,101 @@ export function syncFriends(run) {
   }
 }
 
-// the targets cats share: claims by enemy id this step
-const claims = new Map()
+// ── choosing what to scratch ────────────────────────────────────────────────
+// Each cat weighs the monsters near itself (never Mano's nearest for all):
+//   when it could strike: the run to scratching distance at its speed, or
+//     its scratch still coming back (whichever is longer), in seconds, and
+//     the run again × near (so the nearer of two still wins meanwhile);
+//   what is left of it: its HP less the scratches booked on it by the cats
+//     about to strike it (in reach of it, or scratching it: one scratch's
+//     damage each, no crit counted; a cat still running books nothing, so it
+//     never keeps a nearer cat off). One whose HP is
+//     already covered counts covered s later — the others will finish it —
+//     unless nothing else is near. A boss's HP is never covered: on a boss
+//     every cat may pile in;
+//     A monster the cats already on their way to it would finish counts
+//     coming s later (softer: they may yet turn away);
+//   the cats on it: crowd s later for each other cat about to strike it, so
+//     the monsters near a pile get their share (a boss alone still gets
+//     every cat: nothing else is there to choose);
+//   the crowd round it: monsters inside a scratch's circle of it (뚱냥이
+//     grows that circle) count clump s earlier each, so a scratch there hits
+//     several.
+// It keeps its target unless another is better by switchMargin s, and never
+// changes in the middle of a scratch. About to start a scratch on one the
+// others' booked scratches already finish, it takes the best other one
+// instead, if there is one. Bookings are made afresh every step
+// from what each cat is after, so nothing stays booked once a cat moves on.
+// (balance.json → friendCats.aim)
 
-// the nearest live monster on screen and near Mano (a monster many cats are
-// already on counts as further, so they spread out)
-function findTarget(run, c) {
-  const F = run.D.balance.friendCats
+const booked = new Map() // enemy id → damage the cats about to strike it will deal with their next scratch
+const onIt = new Map() // enemy id → how many cats are about to strike it
+const coming = new Map() // enemy id → damage of the next scratch of every cat after it (running ones too)
+const clumps = new Map() // enemy id → monsters inside a scratch's circle of it (this step)
+
+// one scratch's damage, as the strike deals it (no crit)
+const scratchOf = (run, gap, atkDur) => catDamage(run) * (gap < atkDur ? Math.max(1, Math.round(atkDur / gap)) : 1)
+
+function clumpOf(run, e, sw) {
+  let n = clumps.get(e.id)
+  if (n !== undefined) return n
+  n = 0
+  run.grid.near(e.x, e.y, sw + 30, (o) => {
+    if (o !== e && o.state === 'live' && (o.x - e.x) ** 2 + (o.y - e.y) ** 2 <= (sw + o.r) ** 2) n++
+  })
+  clumps.set(e.id, n)
+  return n
+}
+
+// how good e is for cat c (lower is better), in seconds
+function scoreOf(run, c, e, A) {
+  const d = Math.hypot(e.x - c.x, e.y - c.y)
+  // (from the monster's middle, as a cat sees it: a big one — boss, elite —
+  // looks no nearer for its size, so the small ones round Mano are not left
+  // to her while every cat goes for the big one; edge: how much of its size
+  // counts)
+  const run2 = Math.max(0, d - (e.r * A.aim.edge + A.reach)) / A.speed
+  // (the run counts on its own too: while the claw is coming back, the
+  // nearer of two still comes first)
+  let s = Math.max(run2, Math.max(0, c.cd)) + run2 * A.aim.near
+  const mine = c.target === e && c.ready ? 1 : 0
+  const left = e.hp - ((booked.get(e.id) || 0) - mine * A.hit)
+  // (finished by those about to strike it; or, softer, by those on their way)
+  if (left <= 0) s += A.aim.covered
+  else if (e.hp - ((coming.get(e.id) || 0) - (c.target === e ? A.hit : 0)) <= 0) s += A.aim.coming
+  s += Math.max(0, (onIt.get(e.id) || 0) - mine) * A.aim.crowd
+  return s - Math.min(A.aim.clumpMax, clumpOf(run, e, A.swipe)) * A.aim.clump
+}
+
+const allowed = (run, e, F) => {
   const p = run.player
   const [vx0, vy0, vx1, vy1] = run.view
+  return e.state === 'live' && !e.under && e.x >= vx0 && e.x <= vx1 && e.y >= vy0 && e.y <= vy1 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= F.leash * F.leash
+}
+
+// the best monster for c among those on screen near Mano, looked for near
+// the cat first and further only when nothing good is near
+function findTarget(run, c, A, not = null) {
+  const F = run.D.balance.friendCats
   let best = null
-  let bd = Infinity
+  let bs = Infinity
   for (const R of [90, 180, F.leash]) {
     run.grid.near(c.x, c.y, R, (e) => {
-      if (e.state !== 'live' || e.under || e.x < vx0 || e.x > vx1 || e.y < vy0 || e.y > vy1) return
-      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > F.leash * F.leash) return
-      const d = Math.hypot(e.x - c.x, e.y - c.y) + (claims.get(e.id) || 0) * F.crowdPenalty
-      if (d < bd) (bd = d), (best = e)
+      if (e === not || !allowed(run, e, F)) return
+      const s = scoreOf(run, c, e, A)
+      if (s < bs) (bs = s), (best = e)
     })
-    if (best && bd <= R) break
+    // good enough near (one not covered by others within this ring): no
+    // need to look further
+    if (best && bs <= (R / A.speed) * (1 + A.aim.near) + A.aim.coming) break
   }
-  return best
+  return best ? { e: best, s: bs } : null
+}
+
+const come = (e, n) => coming.set(e.id, (coming.get(e.id) || 0) + n)
+const book = (e, n) => {
+  booked.set(e.id, (booked.get(e.id) || 0) + n)
+  onIt.set(e.id, (onIt.get(e.id) || 0) + Math.sign(n))
 }
 
 const usable = (run, e) => {
@@ -173,27 +247,41 @@ export function updateFriends(run, dt) {
   const sp = catSpeed(run)
   const gap = catInterval(run)
   const size = Math.min(F.maxDrawScale, run.cat.size)
-  claims.clear()
-  for (const c of list) if (c.target) claims.set(c.target.id, (claims.get(c.target.id) || 0) + 1)
+  // this step's bookings: every cat's next scratch on what it is after
+  const atkDur = Math.min(F.attackSeconds, Math.max(F.minAttackSeconds, gap * 0.8))
+  const A = { aim: F.aim, speed: sp, reach: catReach(run) * size + catSwipe(run) * 0.6, swipe: catSwipe(run), hit: scratchOf(run, gap, atkDur) }
+  booked.clear()
+  onIt.clear()
+  coming.clear()
+  clumps.clear()
+  for (const c of list) if (c.ready && c.target && c.target.state === 'live') book(c.target, A.hit)
+  for (const c of list) if (c.target && c.target.state === 'live') come(c.target, A.hit)
   const S = run.stats
   for (const c of list) {
     c.size = size
     c.t += dt
     c.cd -= dt
     if (c.rec > 0) c.rec -= dt
-    if (!usable(run, c.target)) {
-      if (c.target) claims.set(c.target.id, (claims.get(c.target.id) || 1) - 1)
+    const scratching = c.mode === 'attack' && !c.struck
+    if (!usable(run, c.target) && !scratching) {
+      if (c.ready && c.target && c.target.state === 'live') book(c.target, -A.hit)
+      if (c.target && c.target.state === 'live') come(c.target, -A.hit)
       c.target = null
+      c.ready = false
     }
-    if ((c.seek -= dt) <= 0 || !c.target) {
+    // (never in the middle of a scratch: it lands where it was aimed)
+    if (!scratching && ((c.seek -= dt) <= 0 || !c.target)) {
       c.seek = F.seekEvery
       const was = c.target
-      const nt = findTarget(run, c)
-      // keep the one it is scratching unless another is clearly nearer
-      if (nt && nt !== was && (!was || Math.hypot(nt.x - c.x, nt.y - c.y) + F.stickiness < Math.hypot(was.x - c.x, was.y - c.y))) {
-        if (was) claims.set(was.id, (claims.get(was.id) || 1) - 1)
-        claims.set(nt.id, (claims.get(nt.id) || 0) + 1)
-        c.target = nt
+      const nt = findTarget(run, c, A)
+      // keep the one it is after unless another is clearly better
+      if (nt && nt.e !== was && (!was || nt.s + F.aim.switchMargin < scoreOf(run, c, was, A))) {
+        if (was) S.catSwitches = (S.catSwitches || 0) + 1
+        if (was && c.ready) book(was, -A.hit)
+        if (was) come(was, -A.hit)
+        come(nt.e, A.hit)
+        c.ready = false
+        c.target = nt.e
         c.slot = run.rng() * TAU
       }
     }
@@ -202,7 +290,20 @@ export function updateFriends(run, dt) {
       c.atk += dt
       if (!c.struck && c.atk >= c.atkDur * F.strikeAt) {
         c.struck = true
-        const e = c.target && c.target.state === 'live' ? c.target : null
+        let e = c.target && c.target.state === 'live' ? c.target : null
+        // it fell during the swing: the claw goes to a monster already in
+        // reach instead (never towards one further off: it would miss)
+        if (!e) {
+          let bd = Infinity
+          run.grid.near(c.x, c.y, A.reach + 40, (o) => {
+            const d = Math.hypot(o.x - c.x, o.y - c.y) - o.r
+            if (o.state === 'live' && d <= A.reach && d < bd) (bd = d), (e = o)
+          })
+          if (e) (c.target = e), (c.ready = true), book(e, A.hit), come(e, A.hit)
+        }
+        // (telemetry: how many cats were after the one it struck; swings at nothing left)
+        if (e) (S.catStrikes = (S.catStrikes || 0) + 1), (S.catStrikeClaims = (S.catStrikeClaims || 0) + Math.max(1, Math.round((booked.get(e.id) || A.hit) / A.hit)))
+        else S.catDeadSwings = (S.catDeadSwings || 0) + 1
         if (e) {
           // the gap below one step: the scratches due in it land together
           const times = gap < c.atkDur ? Math.max(1, Math.round(c.atkDur / gap)) : 1
@@ -229,8 +330,25 @@ export function updateFriends(run, dt) {
       ty = e.y + Math.sin(c.slot) * stand * 0.7
       const d = Math.hypot(e.x - c.x, e.y - c.y)
       if (d <= e.r + catReach(run) * c.size + catSwipe(run) * 0.6) {
-        // close enough: scratch when ready, else stay put facing it
+        // close enough: scratch when ready, else stay put facing it (and its
+        // next scratch is booked on it)
+        if (!c.ready) (c.ready = true), book(e, A.hit)
         faceTo(c, e.x - c.x, e.y - c.y)
+        // already finished by the others' booked scratches: another one, if any
+        if (c.cd <= 0 && e.hp - ((booked.get(e.id) || 0) - A.hit) <= 0) {
+          const nt = findTarget(run, c, A, e)
+          if (nt && nt.s < A.aim.covered) {
+            book(e, -A.hit)
+            come(e, -A.hit)
+            come(nt.e, A.hit)
+            c.ready = false
+            c.target = nt.e
+            c.slot = run.rng() * TAU
+            S.catSwitches = (S.catSwitches || 0) + 1
+            S.catChase = (S.catChase || 0) + dt
+            continue
+          }
+        }
         if (c.cd <= 0) {
           c.mode = 'attack'
           c.atk = 0
@@ -248,6 +366,7 @@ export function updateFriends(run, dt) {
         ty = c.y
       } else {
         if (c.cd < 0) c.cd = 0
+        if (c.ready) (c.ready = false), book(e, -A.hit)
         S.catChase = (S.catChase || 0) + dt
       }
       c.mode = 'chase'

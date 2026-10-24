@@ -9,6 +9,16 @@
 //     스피드냥이 in turn), 20 s are measured: ball and cat DPS, overkill,
 //     balls that hit nothing, scratches that hit nothing, the cats' time
 //     scratching (uptime), and the time a game step takes.
+//   node scripts/survivor-cats-dps.mjs ai [chapter=10] [seeds=6]
+//     The friend cats alone (the ball held back) with set builds — 4 cats,
+//     8 cats (with 발톱 갈기 and 뚱냥이), 16 cats — in three scenes: many (30
+//     monsters of four kinds coming from every side, a fallen one replaced),
+//     boss (one boss that cannot fall), mixed (that boss and 25 monsters);
+//     the monsters as strong as at 2:00 into the chapter.
+//     20 s measured: the monsters' real loss a second, overkill, kills, how
+//     many cats were on the monster each scratch struck (and the most on one
+//     monster at a time), scratches at a fallen target, target changes, the
+//     time a step takes. For comparing the targeting before and after.
 //   node scripts/survivor-cats-dps.mjs runs [seeds=12] [chapters=6,10,15,20]
 //     Whole chapters played by the bot (survivor-bot.mjs) with three ways of
 //     picking: A ball (the ball's cards first, rerolls for them), B cat (the
@@ -107,6 +117,105 @@ async function bench({ chapter, seed, line, k, scene }) {
   }
 }
 
+// the set cat builds of the 'ai' mode
+const BUILDS = {
+  '4 cats': ['catSummon', 'catSummon', 'catSummon', 'catSummon', 'catClaw', 'catClaw'],
+  '8 cats': [...Array(8).fill('catSummon'), 'catClaw', 'catClaw', 'catSize', 'catSize', 'catRate'],
+  '16 cats': [...Array(16).fill('catSummon'), 'catClaw', 'catClaw', 'catSize', 'catRate'],
+}
+const MOBS = ['imp', 'slime', 'bone_beast', 'spider']
+
+async function ai({ chapter, seed, build, scene }) {
+  const D = await data()
+  const G = await import('../src/survivor/game.js')
+  const run = G.createRun(D, { chapter, weaponId: 'bouncy_ball', seed, cats: true, rerolls: 0, ...LOAD[chapter] })
+  run.player.hp = run.player.maxHp = 1e15
+  run.nextEvent = 1e9
+  for (const id of BUILDS[build]) {
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = [id]
+    G.choose(run, id, run.choiceSeq)
+  }
+  run.state = 'play'
+  // the middle of a fight (2:00): the monsters as strong as then
+  run.t = 120
+  const p = run.player
+  const mobs = scene === 'boss' ? 0 : scene === 'mixed' ? 25 : 30
+  let boss = null
+  // from every side, at the screen's edge or so: they come at Mano
+  const place = () => {
+    const a = run.rng() * Math.PI * 2
+    const d = 120 + run.rng() * 140
+    const [x0, y0, x1, y1] = run.view
+    return { x: Math.max(x0 + 14, Math.min(x1 - 14, p.x + Math.cos(a) * d)), y: Math.max(y0 + 14, Math.min(y1 - 14, p.y + Math.sin(a) * d)) }
+  }
+  const keep = () => {
+    run.spawnT = -1e9
+    run.fireT = 1e9 // the ball held back: the cats alone
+    if (scene !== 'many' && (!boss || (boss.state !== 'live' && boss.state !== 'spawn'))) {
+      boss = G.spawnAt(run, 'boss', { x: p.x, y: p.y - 120 })
+      if (boss) (boss.hp = boss.maxHp = 1e15), (boss.speed = 12)
+    }
+    const live = run.enemies.filter((e) => (e.state === 'live' || e.state === 'spawn') && e !== boss).length
+    for (let i = live; i < mobs; i++) G.spawnAt(run, MOBS[Math.floor(run.rng() * MOBS.length)], place())
+  }
+  let t0 = null
+  let snap = null
+  let ms = 0
+  let steps = 0
+  let most = 0
+  let spreadSum = 0
+  let spreadN = 0
+  let nextLook = 0
+  for (let t = 0; t < 23; t += G.FIXED) {
+    keep()
+    const a = performance.now()
+    G.step(run, G.FIXED, { x: 0, y: 0 })
+    ms += performance.now() - a
+    steps++
+    run.events.length = 0
+    if (run.state !== 'play') run.state = 'play'
+    p.hp = 1e15
+    if (t >= 3 && !snap) (snap = JSON.parse(JSON.stringify(run.stats))), (t0 = run.t), (snap.kills = run.kills)
+    // every 0.25 s: the most cats on one monster, and distinct targets per cat
+    if (snap && t >= nextLook) {
+      nextLook = t + 0.25
+      const n = new Map()
+      for (const c of run.friends) if (c.target && c.target.state === 'live') n.set(c.target.id, (n.get(c.target.id) || 0) + 1)
+      if (n.size) {
+        let m = 0
+        for (const [id, k2] of n) if (!(boss && id === boss.id)) m = Math.max(m, k2)
+        most = Math.max(most, m)
+        spreadSum += n.size / run.friends.length
+        spreadN++
+      }
+    }
+  }
+  const T = run.t - t0
+  const S = run.stats
+  const by = (s2) => s2.by.cat || { raw: 0, eff: 0, over: 0, hits: 0, kills: 0, boss: 0 }
+  const d = (f) => by(S)[f] - by(snap)[f]
+  const diff = (f) => (S[f] || 0) - (snap[f] || 0)
+  return {
+    chapter, build, scene,
+    dps: d('eff') / T,
+    bossDps: d('boss') / T,
+    mobDps: (d('eff') - d('boss')) / T,
+    over: d('raw') ? d('over') / d('raw') : 0,
+    kills: d('kills') / T,
+    perTarget: diff('catStrikes') ? diff('catStrikeClaims') / diff('catStrikes') : 0,
+    most,
+    spread: spreadN ? spreadSum / spreadN : 0,
+    dead: diff('catSwings') ? diff('catDeadSwings') / diff('catSwings') : 0,
+    whiff: diff('catSwings') ? diff('catWhiffs') / diff('catSwings') : 0,
+    switches: diff('catSwitches') / T / run.friends.length,
+    swings: diff('catSwings') / T / run.friends.length,
+    uptime: diff('catBusy') + diff('catChase') + diff('catIdle') ? diff('catBusy') / (diff('catBusy') + diff('catChase') + diff('catIdle')) : 0,
+    stepMs: ms / steps,
+  }
+}
+
 async function playOne({ chapter, seed, policy }) {
   const D = await data()
   const { playRun } = await import('./survivor-bot.mjs')
@@ -144,12 +253,16 @@ async function playOne({ chapter, seed, policy }) {
 
 if (!isMainThread && workerData && workerData.mode) {
   const out = []
-  for (const j of workerData.jobs) out.push(workerData.mode === 'bench' ? await bench(j) : await playOne(j))
+  for (const j of workerData.jobs) out.push(workerData.mode === 'bench' ? await bench(j) : workerData.mode === 'ai' ? await ai(j) : await playOne(j))
   parentPort.postMessage(out)
 } else if (process.argv[1] && process.argv[1].endsWith('survivor-cats-dps.mjs')) {
   const mode = process.argv[2] || 'bench'
   const jobs = []
-  if (mode === 'bench') {
+  if (mode === 'ai') {
+    const ch = +process.argv[3] || 10
+    const seeds = +process.argv[4] || 6
+    for (const scene of ['many', 'boss', 'mixed']) for (const build of Object.keys(BUILDS)) for (let s = 1; s <= seeds; s++) jobs.push({ chapter: ch, seed: s * 31, build, scene })
+  } else if (mode === 'bench') {
     const ch = +process.argv[3] || 10
     const seeds = +process.argv[4] || 4
     for (const scene of ['few', 'many', 'boss']) for (const line of ['ball', 'cat']) for (const k of [0, 1, 2, 3, 4, 6, 8, 10, 12]) for (let s = 1; s <= seeds; s++) jobs.push({ chapter: ch, seed: s, line, k, scene })
@@ -169,7 +282,15 @@ if (!isMainThread && workerData && workerData.mode) {
   const avg = (list, f) => (list.length ? list.reduce((a, r) => a + f(r), 0) / list.length : 0)
   const n0 = (v) => Math.round(v).toLocaleString('en-US')
   const pc = (v) => `${Math.round(v * 100)}%`
-  if (mode === 'bench') {
+  if (mode === 'ai') {
+    console.log(`the cats alone, chapter ${res[0].chapter} loadout; ${JSON.stringify(Object.fromEntries(Object.entries(BUILDS).map(([k, v]) => [k, v.length + ' cards'])))}`)
+    console.log('scene  build    DPS (mobs + boss)            over  kills/s  cats/target  most on one  targets/cat  dead-target  whiff  switches/cat/s  swings/cat/s  uptime  step ms')
+    for (const scene of ['many', 'boss', 'mixed'])
+      for (const build of Object.keys(BUILDS)) {
+        const R = res.filter((r) => r.scene === scene && r.build === build)
+        console.log(`${scene.padEnd(6)} ${build.padEnd(8)} ${n0(avg(R, (r) => r.dps)).padStart(9)} (${n0(avg(R, (r) => r.mobDps))} + ${n0(avg(R, (r) => r.bossDps))})`.padEnd(48) + `${pc(avg(R, (r) => r.over)).padStart(4)}  ${avg(R, (r) => r.kills).toFixed(1).padStart(6)}  ${avg(R, (r) => r.perTarget).toFixed(2).padStart(10)}  ${Math.max(...R.map((r) => r.most)).toString().padStart(10)}  ${avg(R, (r) => r.spread).toFixed(2).padStart(10)}  ${pc(avg(R, (r) => r.dead)).padStart(10)}  ${pc(avg(R, (r) => r.whiff)).padStart(5)}  ${avg(R, (r) => r.switches).toFixed(2).padStart(13)}  ${avg(R, (r) => r.swings).toFixed(2).padStart(12)}  ${pc(avg(R, (r) => r.uptime)).padStart(6)}  ${avg(R, (r) => r.stepMs).toFixed(3)}`)
+      }
+  } else if (mode === 'bench') {
     console.log(`bench, chapter ${res[0].chapter} loadout ${JSON.stringify(LOAD[res[0].chapter])}; DPS = what the monsters really lost a second`)
     for (const scene of ['few', 'many', 'boss']) {
       console.log(`\n${scene === 'few' ? '4 monsters' : scene === 'many' ? '30 monsters' : 'one boss'}:`)
