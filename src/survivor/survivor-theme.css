@@ -2,8 +2,9 @@
    layout; this file only dresses it). Clean and modern, in the warm colours
    of the game's art: a warm off-white page, white cards with a soft shadow
    and no outlines, one accent (the red of Mano's ball), plain bold headings,
-   flat buttons, tabs as a segmented control. Level-up cards carry a thin
-   colour by what they do (attack, defence, help, cats, class). Everything
+   flat buttons, tabs as a segmented control. The level-up cards all look
+   alike (only Tizzzz's, zyo_'s and a class card, each with its badge, have
+   their own colour). Everything
    has a thin dark outline (--edge), as the game's art does; a card that
    stands out has it in its own colour. Both platforms. (`--bg` is the lobby's picture, set on the page itself.) */
 .ms {
@@ -459,13 +460,12 @@
   accent-color: var(--accent);
 }
 
-/* ── the level-up: white cards, a thin colour by what they do ───────────── */
+/* ── the level-up: white cards, all alike ───────────────────────────────── */
 .ms .ms-level .ms-h {
   text-align: center;
 }
 
 .ms .ms-card {
-  --k: #a39890;
   position: relative;
   border: 0;
   border-radius: 14px;
@@ -484,38 +484,10 @@
   transform: scale(0.98);
 }
 
-@media (hover: hover) {
-  .ms .ms-card:hover {
-    box-shadow:
-      inset 0 0 0 1.5px var(--k),
-      0 6px 18px rgba(43, 36, 32, 0.1);
-  }
-}
-
-.ms .ms-card[data-kind='atk'] {
-  --k: #ef5146;
-}
-
-.ms .ms-card[data-kind='def'] {
-  --k: #3b82f6;
-}
-
-.ms .ms-card[data-kind='util'] {
-  --k: #1fa36b;
-}
-
-.ms .ms-card[data-kind='cat'] {
-  --k: #f08c1a;
-}
-
-.ms .ms-card[data-kind='cls'] {
-  --k: #8b5cf6;
-}
-
 .ms .ms-card__icon {
   border: 0;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--k) 13%, #fff);
+  background: var(--soft);
   box-shadow: none;
 }
 
@@ -535,8 +507,8 @@
 }
 
 .ms .ms-card__num b {
-  color: var(--k);
-  background: color-mix(in srgb, var(--k) 12%, #fff);
+  color: var(--ink);
+  background: var(--soft);
   box-shadow: none;
 }
 
@@ -544,7 +516,7 @@
   color: #9a5b12;
 }
 
-/* the picks so far: small dots, the next one ringed in the card's colour */
+/* the picks so far: small dots, the next one ringed */
 .ms .ms-card__pips {
   display: flex;
   gap: 4px;
@@ -558,12 +530,12 @@
 }
 
 .ms .ms-card__pips i.is-on {
-  background: var(--k);
+  background: var(--ink);
 }
 
 .ms .ms-card__pips i.is-new {
-  background: color-mix(in srgb, var(--k) 35%, #fff);
-  box-shadow: 0 0 0 1.5px var(--k);
+  background: #fff;
+  box-shadow: 0 0 0 1.5px var(--ink);
 }
 
 /* Tizzzz's rewrite (pink), zyo_'s card (green), a class (violet) */
@@ -888,30 +860,31 @@
     var(--shadow);
 }
 
-/* the level-up cards: the line, and a stand-out card's own colour */
+/* the level-up cards: the line (a stand-out card, its badge's colour) */
 .ms .ms-card {
   box-shadow: 0 2px 0 var(--edge);
 }
 
+/* under the pointer: it lifts a little, the same line */
 @media (hover: hover) {
   .ms .ms-card:hover {
-    border-color: var(--k);
-    box-shadow: 0 2px 0 var(--k), 0 8px 18px rgba(43, 36, 32, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 0 var(--edge), 0 10px 20px rgba(43, 36, 32, 0.12);
   }
 }
 
 .ms .ms-card.is-edited {
-  border-color: #d2408d;
+  border: 2px solid #d2408d;
   box-shadow: 0 2px 0 #d2408d, 0 4px 14px rgba(228, 90, 160, 0.16);
 }
 
 .ms .ms-card.is-zyo {
-  border-color: #17885a;
+  border: 2px solid #17885a;
   box-shadow: 0 2px 0 #17885a, 0 4px 14px rgba(31, 163, 107, 0.16);
 }
 
 .ms .ms-card.is-class {
-  border-color: #7444e0;
+  border: 2px solid #7444e0;
   box-shadow: 0 2px 0 #7444e0, 0 6px 18px rgba(139, 92, 246, 0.22);
 }
 
@@ -920,7 +893,7 @@
 }
 
 .ms .ms-card__icon {
-  border-color: color-mix(in srgb, var(--k) 55%, var(--edge));
+  border-color: var(--edge);
 }
 
 /* buttons: the line and a small foot under it */

@@ -87,15 +87,7 @@ const effectTag = (id, n = 1, run = null) => {
 }
 // coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
 const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
-// what a level-up card does, for its colour (survivor-theme.css): attack,
-// defence, help, the cats, a class
-const CARD_KIND = {
-  count: 'atk', interval: 'atk', damage: 'atk', bounce: 'atk', crit: 'atk', critDamage: 'atk', ballSpeed: 'atk', size: 'atk', split: 'atk',
-  maxHp: 'def', move: 'def', regen: 'def', armor: 'def',
-  pickup: 'util', luck: 'util', xpGain: 'util', nyang: 'util',
-}
-const cardKind = (id) => (isClassCard(id) || id === 'power' ? 'cls' : CARD_KIND[id] || (id.startsWith('cat') ? 'cat' : 'util'))
-// the picks so far as pips, the one this card adds blinking (a long run of
+// the picks so far as dots, the one this card adds ringed (a long run of
 // picks: a number instead)
 const MAX_PIPS = 9
 function Pips({ n }) {
@@ -2040,7 +2032,6 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   key={id + run.choiceSeq}
                   type="button"
                   data-sfx="none"
-                  data-kind={cardKind(id)}
                   className={`ms-card${ed ? ' is-edited' : ''}${zy ? ' is-zyo' : ''}${isClassCard(id) ? ' is-class' : ''}`}
                   style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
                   onClick={(e) => {
