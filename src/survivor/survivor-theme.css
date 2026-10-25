@@ -1242,3 +1242,30 @@
 .ms .ms-card__hint {
   white-space: pre-line;
 }
+
+.ms .ms-craft__all {
+  justify-self: center;
+  border-color: #1fa36b;
+  color: #1a7f55;
+}
+
+/* Tizzzz's underline: under the number her rewrite gives, never elsewhere */
+.ms .ms-card__mark {
+  position: relative;
+  display: inline-block;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ms .ms-card__mark .ms-card__scribble {
+  left: -2px;
+  right: -2px;
+  bottom: -6px;
+  height: 7px;
+}
+
+.ms .ms-card.is-edited .ms-card__mark .ms-pen {
+  left: -4px;
+  bottom: -4px;
+  font-size: 16px;
+}

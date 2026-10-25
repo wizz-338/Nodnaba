@@ -170,6 +170,30 @@ function change(run, id, times = 1) {
   }
 }
 
+// Tizzzz's rewrite: her pen underlines what it gives — the number after the
+// first → (the card's main one), on its own line
+function Marked({ text }) {
+  const i = text.indexOf('→ ')
+  if (i < 0) return text
+  const end = text.indexOf('\n', i)
+  const j = end < 0 ? text.length : end
+  return (
+    <>
+      {text.slice(0, i + 2)}
+      <span className="ms-card__mark">
+        {text.slice(i + 2, j)}
+        <span className="ms-pen" aria-hidden="true">
+          <Pen />
+        </span>
+        <svg className="ms-card__scribble" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M2 6 Q 12 1 22 6 T 42 6 T 62 6 T 82 6 T 98 5" />
+        </svg>
+      </span>
+      {text.slice(j)}
+    </>
+  )
+}
+
 // one friend cat's numbers in a run (or in a run with other cat numbers)
 const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: catSpeed(run), swipe: catSwipe(run), pack: packMul(run) })
 
@@ -1683,13 +1707,29 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
     if (!n) delete next[id]
     setPick(next)
   }
+  // several turrets at once: every `cost` picks chosen make one
+  const turrets = Math.floor(chosen / cost)
+  // (after the class change: every pick that does nothing now, at one tap;
+  // an odd one out stays)
+  const free = ids.filter((id) => sunk(run, id))
+  const freeAll = () => {
+    const next = {}
+    let left = Math.floor(free.reduce((a, id) => a + have[id], 0) / cost) * cost
+    for (const id of free) if (left > 0) (next[id] = Math.min(have[id], left)), (left -= next[id])
+    setPick(next)
+  }
   return (
     <div className="ms-craft">
       <h2 className="ms-h">{D.turret.craftTitle}</h2>
       <p className="ms-sub ms-center">
-        {chosen}/{cost}회 골랐어요
+        강화 {chosen}개 골랐어요 → 포탑 {turrets}개{chosen % cost ? ` (${cost - (chosen % cost)}개 더 고르면 1개 더)` : ''}
       </p>
       <p className="ms-dim ms-center">{D.turret.craftHint}</p>
+      {free.reduce((a, id) => a + have[id], 0) >= cost && (
+        <button type="button" className="ms-btn ms-btn--small ms-craft__all" onClick={freeAll}>
+          {D.turret.freeAll}
+        </button>
+      )}
       <ul className="ms-craft__list">
         {ids.map((id) => {
           const n = pick[id] || 0
@@ -1710,7 +1750,7 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
                 −
               </button>
               <b className="ms-craft__n">{n}</b>
-              <button type="button" className="ms-btn ms-btn--small" aria-label={`${optionName(run, id)} 더하기`} disabled={n >= have[id] || chosen >= cost} onClick={() => set(id, n + 1)}>
+              <button type="button" className="ms-btn ms-btn--small" aria-label={`${optionName(run, id)} 더하기`} disabled={n >= have[id]} onClick={() => set(id, n + 1)}>
                 +
               </button>
             </li>
@@ -1722,8 +1762,8 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
         <button type="button" className="ms-btn" onClick={onCancel}>
           {D.turret.craftCancel}
         </button>
-        <button type="button" className="ms-btn ms-btn--primary" disabled={chosen !== cost} onClick={() => onMake(Object.entries(pick).flatMap(([id, n]) => Array(n).fill(id)))}>
-          {D.turret.craftGo}
+        <button type="button" className="ms-btn ms-btn--primary" disabled={!turrets || chosen % cost !== 0} onClick={() => onMake(Object.entries(pick).flatMap(([id, n]) => Array(n).fill(id)))}>
+          {chosen % cost ? `${cost - (chosen % cost)}개 더 골라 주세요` : turrets ? `포탑 ${turrets}개 ${D.turret.craftGo}` : D.turret.craftGo}
         </button>
       </div>
     </div>
@@ -2240,7 +2280,9 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     {ed ? (
                       <span className="ms-card__num">
                         <s className="ms-card__old">{effectTag(id, 1, run)}</s> <b className="ms-card__new">{effectTag(id, T, run)}</b>{' '}
-                        <span className="ms-card__new">{change(run, id, T)}</span>
+                        <span className="ms-card__new">
+                          <Marked text={change(run, id, T)} />
+                        </span>
                       </span>
                     ) : (
                       <span className="ms-card__num">
@@ -2255,12 +2297,6 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                       <em className="ms-card__badge">
                         <Pen /> {D.tizzzz.edit.badge}
                       </em>
-                      <span className="ms-pen" aria-hidden="true">
-                        <Pen />
-                      </span>
-                      <svg className="ms-card__scribble" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M2 6 Q 12 1 22 6 T 42 6 T 62 6 T 82 6 T 98 5" />
-                      </svg>
                     </>
                   )}
                 </button>
