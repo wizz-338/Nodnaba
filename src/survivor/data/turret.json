@@ -1,15 +1,16 @@
 {
-  "note": "The turret (chapter 20's reward, story.json → rewards.desert): from balance.json → turret.activeFromChapter on, at a level-up two picks of the upgrades this run took become one turret (one kind only, always the same). Its numbers: balance.json → turret. The words of its option, its making screen and the lobby. free: the mark on a pick that does nothing after the class change (turret.js → sunk); sunkNote: the level-up line when there are such picks.",
+  "note": "The turret (chapter 20's reward, story.json → rewards.desert): from balance.json → turret.activeFromChapter on, at a level-up every two picks of the upgrades this run took become a turret (several at once; the level-up's card is still chosen) (one kind only, always the same). Its numbers: balance.json → turret. The words of its option, its making screen and the lobby. free: the mark on a pick that does nothing after the class change (turret.js → sunk); sunkNote: the level-up line when there are such picks. freeAll: the craft screen's button that puts in every pick that does nothing after the class change.",
   "name": "포탑",
   "option": "포탑 제작",
-  "optionText": "강화 2개 = 포탑 1개 · 포탑은 알아서 쏴요",
+  "optionText": "강화 2개 = 포탑 1개 · 만들어도 카드는 그대로 골라요",
   "craftTitle": "포탑 제작",
-  "craftHint": "이번 판 강화 중 2개를 골라 주세요 (같은 것 2개도 돼요). 고른 강화는 그만큼 빠지고 포탑 1개가 생겨요.",
+  "craftHint": "강화 2개마다 포탑 1개! 여러 개를 한 번에 만들 수 있어요. 고른 강화는 그만큼 빠지고, 만든 뒤에도 카드는 그대로 골라요.",
   "craftGo": "제작하기",
   "craftCancel": "취소",
   "made": "포탑 설치!",
   "none": "포탑으로 바꿀 수 있는 강화가 2회 이상 있어야 해요.",
   "classMats": "{n}개씩은 전직에 쓰였어요 (넘게 모은 만큼만 포탑 재료가 돼요)",
   "free": "전직 후 효과 없음 → 써도 손해 없음",
-  "sunkNote": "전직 전에 고른 탱탱볼·냥이 강화는 이제 효과가 없어요 → 포탑 재료로 쓰면 손해 없음"
+  "sunkNote": "전직 전에 고른 탱탱볼·냥이 강화는 이제 효과가 없어요 → 포탑 재료로 쓰면 손해 없음",
+  "freeAll": "손해 없는 강화 모두 넣기"
 }

@@ -2580,8 +2580,10 @@ const still = { x: 0, y: 0 }
   const spots = []
   for (const ids of plans) {
     atLevelUp(run)
+    const shown = run.choices.join()
     const t = makeTurret(run, ids, run.choiceSeq)
-    if (!t || run.state !== 'play') exact = false
+    // (the level-up is not spent: its cards stay to be chosen)
+    if (!t || t.length !== 1 || run.state !== 'levelup' || run.choices.join() !== shown) exact = false
     spots.push(t)
     const want = {
       damage: w0.damage * E.damage.mul ** (run.picks.damage || 0),
@@ -2594,11 +2596,30 @@ const still = { x: 0, y: 0 }
   const [x0, y0, x1, y1] = run.arena.bounds
   const apart = run.turrets.every((t, i) => run.turrets.every((u, j) => i === j || Math.hypot(t.x - u.x, t.y - u.y) >= T.place.apart * 0.5))
   ok(run.turrets.every((t) => t.x >= x0 + T.place.margin - 1e-9 && t.x <= x1 - T.place.margin + 1e-9 && t.y >= y0 + T.place.margin - 1e-9 && t.y <= y1 - T.place.margin + 1e-9) && apart && new Set(run.turrets.map((t) => Object.keys(t).sort().join())).size === 1, 'every turret inside the field, apart from the others, all the same kind')
+  // several at once, then the level-up's card as ever
+  const sev = fresh({ seed: 99 })
+  give(sev, 'move', 4)
+  give(sev, 'luck', 3)
+  atLevelUp(sev)
+  const odd = makeTurret(sev, ['move', 'move', 'luck'], sev.choiceSeq)
+  const three = makeTurret(sev, ['move', 'move', 'move', 'move', 'luck', 'luck'], sev.choiceSeq)
+  const card = sev.choices[0]
+  const picked = choose(sev, card, sev.choiceSeq)
+  ok(!odd && three && three.length === 3 && sev.turrets.length === 3 && !sev.picks.move && sev.picks.luck === 1 + (card === 'luck' ? 1 : 0) && picked && sev.state === 'play', `six picks at once: three turrets; an odd one (three picks) makes none; then the level-up's card (${card}) is chosen as ever`)
+  // a class card shown whose recipe a turret breaks is drawn again
+  const cc = fresh({ zyo: true, seed: 100 })
+  give(cc, 'size', B.zyo.need)
+  give(cc, 'count', B.zyo.need)
+  atLevelUp(cc)
+  cc.choices = ['clsA', 'move', 'crit']
+  makeTurret(cc, ['size', 'count'], cc.choiceSeq)
+  ok(!cc.choices.includes('clsA') && cc.choices.length === 3 && cc.state === 'levelup', `a turret of recipe cards while their class card is shown: it goes, another card in its place (${cc.choices.join(', ')})`)
   // it shoots the nearest monster in range; the field shrinks: they move in
   const shot = fresh({ seed: 92 })
   give(shot, 'move', 2)
   atLevelUp(shot)
-  const t = makeTurret(shot, ['move', 'move'], shot.choiceSeq)
+  const [t] = makeTurret(shot, ['move', 'move'], shot.choiceSeq)
+  shot.state = 'play'
   const m = spawnAt(shot, 'slime', { x: t.x + 60, y: t.y })
   m.hp = m.maxHp = 1e30
   m.speed = 0

@@ -1450,23 +1450,23 @@ export function choose(run, id, seq) {
   return true
 }
 
-// A level-up spent on a turret (turret.js): `ids`, two picks of this run's
-// upgrades (one card twice, or two cards), are taken back and one turret
-// stands on the field. `seq` must be the one shown with the cards. Returns
-// the turret, or null (nothing is taken).
+// Turrets made at a level-up (turret.js): `ids`, picks of this run's
+// upgrades, `cost` a turret (one card twice, or two cards; several turrets'
+// worth at once), are taken back and that many turrets stand on the field.
+// The level-up is not spent: its cards stay to be chosen (a class card whose
+// recipe is short now is drawn again). `seq` must be the one shown with the
+// cards. Returns the turrets, or null (nothing is taken).
 export function makeTurret(run, ids, seq) {
   if (run.state !== 'levelup' || seq !== run.choiceSeq || !run.turretOn || !fits(run, ids)) return null
   for (const id of ids) takeBack(run, id)
-  const t = placeTurret(run)
-  run.stats.turrets = (run.stats.turrets || 0) + 1
-  run.pending--
-  if (run.pending > 0) openChoice(run)
-  else {
-    run.state = 'play'
-    run.choices = null
-    run.choiceSeq++
-  }
-  return t
+  const made = []
+  for (let i = 0; i < ids.length / run.D.balance.turret.cost; i++) made.push(placeTurret(run))
+  run.stats.turrets = (run.stats.turrets || 0) + made.length
+  const ready = new Set(zyoPool(run))
+  run.choices = run.choices.map((id) => (isClassCard(id) && !run.cls && !ready.has(id) ? drawChoices(run, run.choices)[0] || id : id))
+  const marked = zyoMarks(run)
+  run.zyoPick = marked.length ? { ids: marked, seq: run.choiceSeq } : null
+  return made
 }
 
 // A redraw (the rerolls of chapter 5's reward): the cards on show are put

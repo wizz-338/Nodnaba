@@ -78,6 +78,7 @@ const TURRET_WAYS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
 const AIMS = 32 // the cannon's pictures, one for each of these angles
 const GUN_R = 20 // half the side of a cannon's picture (its longest reach is 19)
 const SHOT = 0.12
+const FLASH = 0.09 // a turret's muzzle flash (s)
 const MAX_SHOTS = 60
 // Mano's own health bar under her feet (logical px)
 const HPBAR_W = 30
@@ -139,6 +140,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const numbers = []
   const sparks = []
   const shots = [] // the turrets' balls in flight
+  const flashes = [] // their muzzle flashes
   const rings = [] // a bright ring where an elite or boss fell
   let shakeT = 0
   let shakeDur = 1
@@ -1001,11 +1003,12 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const f = TURRET_ART.frames[way]
     const s = TURRET_DRAW_H / TURRET_ART.h
     const K = kd()
-    const back = kick * 2.5
+    // (a hard kick back along the aim, squashed down and out, springing back)
+    const back = kick * 5
     const ox = (t.x - Math.cos(t.aim) * back - cam.x) * K
     const oy = (t.y - Math.sin(t.aim) * back * 0.5 - cam.y) * K
-    const sy = s * (1 - kick * 0.08)
-    const sx = s * (1 + kick * 0.05)
+    const sy = s * (1 - kick * 0.16)
+    const sx = s * (1 + kick * 0.1)
     ctx.imageSmoothingEnabled = true
     ctx.setTransform(1, 0, 0, 1, ox, oy)
     ctx.drawImage(atlas, f[0], f[1], f[2], f[3], -f[4] * sx * K, -f[5] * sy * K, f[2] * sx * K, f[3] * sy * K)
@@ -1089,18 +1092,62 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     return turretSprites
   }
 
+  // the turrets' shots: a muzzle flash (a burst and three rays along the aim)
+  // for FLASH s, then the red ball flying SHOT s with a streak behind it,
+  // then a pop, sparks and a small ring where it lands
   function drawShots(dt) {
+    world()
+    for (let i = flashes.length - 1; i >= 0; i--) {
+      const f = flashes[i]
+      f.t += dt
+      if (f.t >= FLASH) {
+        flashes.splice(i, 1)
+        continue
+      }
+      const k = f.t / FLASH
+      ctx.globalAlpha = 1 - k
+      ctx.fillStyle = '#fff6c8'
+      ctx.beginPath()
+      ctx.arc(f.x, f.y, 4 + 7 * (1 - k), 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#ffb02e'
+      ctx.lineWidth = 3 * (1 - k) + 1
+      ctx.beginPath()
+      for (const d of [-0.5, 0, 0.5]) {
+        const a = f.a + d
+        const r = (d ? 9 : 15) * (0.6 + k)
+        ctx.moveTo(f.x + Math.cos(a) * 3, f.y + Math.sin(a) * 3)
+        ctx.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r)
+      }
+      ctx.stroke()
+    }
     for (let i = shots.length - 1; i >= 0; i--) {
       const b = shots[i]
       b.t += dt
       if (b.t >= SHOT) {
         shots.splice(i, 1)
-        if (fx.length < MAX_FX) fx.push({ anim: 'impact', x: b.x1, y: b.y1, t: 0, s: 0.55 })
+        if (fx.length < MAX_FX) fx.push({ anim: 'impact', x: b.x1, y: b.y1, t: 0, s: 0.85 })
+        if (rings.length < 24) rings.push({ x: b.x1, y: b.y1, r: 13, t: 0 })
+        addSparks(b.x1, b.y1, 3, 120)
         continue
       }
       const k = b.t / SHOT
-      put('ball', b.x0 + (b.x1 - b.x0) * k, b.y0 + (b.y1 - b.y0) * k, 8 / 24)
+      const x = b.x0 + (b.x1 - b.x0) * k
+      const y = b.y0 + (b.y1 - b.y0) * k
+      // (the streak: from where it was a third of the way back)
+      const k0 = Math.max(0, k - 0.35)
+      ctx.globalAlpha = 0.55
+      ctx.strokeStyle = '#ff5a4a'
+      ctx.lineWidth = 4
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(b.x0 + (b.x1 - b.x0) * k0, b.y0 + (b.y1 - b.y0) * k0)
+      ctx.lineTo(x, y)
+      ctx.stroke()
+      ctx.globalAlpha = 1
+      put('ball', x, y, 11 / 24)
     }
+    ctx.globalAlpha = 1
   }
 
   function addSparks(x, y, n, speed) {
@@ -1437,8 +1484,11 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       zfx.event(run, ev)
       if (ev.type === 'skillHit') kick(ev.kind === 'ball' ? KICK.meteor : KICK.slash)
       if (ev.type === 'turretShot' && shots.length < MAX_SHOTS) {
-        const [x0, y0] = muzzle(ev.x, ev.y, Math.atan2(ev.ty - ev.y, ev.tx - ev.x))
+        const a = Math.atan2(ev.ty - ev.y, ev.tx - ev.x)
+        const [x0, y0] = muzzle(ev.x, ev.y, a)
         shots.push({ x0, y0, x1: ev.tx, y1: ev.ty - 8, t: 0 })
+        if (flashes.length < MAX_SHOTS) flashes.push({ x: x0, y: y0, a, t: 0 })
+        if (!busy) addSparks(x0, y0, 3, 90)
       }
       if (ev.type === 'turretMade') {
         rings.push({ x: ev.x, y: ev.y - 8, r: 40, t: 0 })
@@ -1583,7 +1633,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (xfx) xfx.reset()
       if (zfx) zfx.reset()
       Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
-      sparks.length = rings.length = shots.length = 0
+      sparks.length = rings.length = shots.length = flashes.length = 0
       shakeT = shakeAmp = 0
       shake(0)
     },

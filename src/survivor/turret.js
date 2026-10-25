@@ -1,9 +1,10 @@
 // MANO SURVIVOR — the turret (chapter 20's reward; balance.json → turret).
-// From turret.activeFromChapter on, in a run with it, a level-up can be spent
-// on a turret instead of a card: two picks of the upgrades this run took (any
-// two, of one card or of two) are taken back — the numbers they gave are
-// undone — and one turret stands on the field. There is one kind of turret
-// only: whatever the picks were, it is always the same.
+// From turret.activeFromChapter on, in a run with it, turrets can be made at
+// a level-up, beside its card (still chosen after): every two picks of the
+// upgrades this run took (any two, of one card or of two; several turrets at
+// once) are taken back — the numbers they gave are undone — and a turret
+// stands on the field. There is one kind of turret only: whatever the picks
+// were, it is always the same.
 //
 // Taking a pick back: every pick remembers what it changed (`recordPick`, in
 // choose), each number either multiplied (a ratio) or added to (a
@@ -124,10 +125,11 @@ export function sunk(run, id) {
 export const materialCount = (run) => Object.values(materials(run)).reduce((a, n) => a + n, 0)
 export const canMake = (run) => !!run.turretOn && materialCount(run) >= run.D.balance.turret.cost
 
-// is `ids` (cost picks: one id twice, or two ids) a turret's material now?
+// is `ids` (cost picks a turret: one id twice, or two ids; several turrets'
+// worth at once) a turret's material now?
 export function fits(run, ids) {
   const T = run.D.balance.turret
-  if (!Array.isArray(ids) || ids.length !== T.cost) return false
+  if (!Array.isArray(ids) || ids.length < T.cost || ids.length % T.cost) return false
   const have = materials(run)
   const want = {}
   for (const id of ids) want[id] = (want[id] || 0) + 1
