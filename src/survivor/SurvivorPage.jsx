@@ -1717,7 +1717,7 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
           )
         })}
       </ul>
-      {gone && <p className="ms-dim ms-center">{gone.map((m) => OPTIONS[m].name).join('·')}: {D.turret.classMats}</p>}
+      {gone && <p className="ms-dim ms-center">{gone.map((m) => OPTIONS[m].name).join('·')}: {D.turret.classMats.replace('{n}', D.balance.zyo.need)}</p>}
       <div className="ms-row ms-row--two">
         <button type="button" className="ms-btn" onClick={onCancel}>
           {D.turret.craftCancel}

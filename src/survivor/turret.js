@@ -9,8 +9,9 @@
 // choose), each number either multiplied (a ratio) or added to (a
 // difference); taking it back divides or subtracts exactly that, so the
 // upgrades left are as if that pick had never been chosen (the multiplying
-// and the adding do not care about the order). A class's recipe cards are
-// gone with the class change (zyo.js): they are never a turret's material.
+// and the adding do not care about the order). What the class change used of
+// its recipe cards (`need` of each, zyo.js) is never a turret's material;
+// picks of them past that are.
 //
 // A turret stands where it was put (at random, inside the field, apart from
 // the others and off the monsters) and shoots the nearest monster in range,
@@ -102,14 +103,14 @@ export function takeBack(run, id) {
 }
 
 // the picks a turret can be made of now: { id: how many } — the run's own
-// picks (those it remembers), less a class's recipe cards (gone with the
-// change), never a class card
+// picks (those it remembers), less what the class change used of its recipe
+// cards (`need` of each: an 8th pick of one is left), never a class card
 export function materials(run) {
   const out = {}
   const gone = run.cls ? new Set(run.D.balance.zyo.recipes[run.cls.k].mats) : null
+  const need = run.D.balance.zyo.need
   for (const [id, list] of Object.entries(run.applied)) {
-    if (gone && gone.has(id)) continue
-    const n = Math.min(list.length, run.picks[id] || 0)
+    const n = Math.min(list.length, run.picks[id] || 0) - (gone && gone.has(id) ? need : 0)
     if (n > 0) out[id] = n
   }
   return out
