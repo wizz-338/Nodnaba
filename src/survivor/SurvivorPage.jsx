@@ -2,11 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, makeTurret, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
-import { isClassCard, classOf, classDps, firepower, recipes, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
+import { isClassCard, classOf, classDps, firepower, recipes, zyoTarget, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04 } from './progress.js'
 import { createRenderer, short } from './render.js'
-import { materials, canMake } from './turret.js'
+import { materials, canMake, sunk } from './turret.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
@@ -187,10 +187,9 @@ function cardHint(run, id) {
   if (isClassCard(id)) return `${D.zyo.classes[classOf(id)].text} · 한 판에 한 번`
   const zr = run.zyo && !run.cls && recipes(run).find((r) => r.mats.includes(id))
   if (zr) {
-    const i = zr.mats.indexOf(id)
-    const other = zr.mats[1 - i]
+    // (as a sum: 왕 탱탱볼 3/7 + 탱탱볼 개수 5/7 = 거대 탱탱볼▪회전 방어막)
     const need = D.balance.zyo.need
-    return `${OPTIONS['cls' + zr.k].name} 재료 ${Math.min(need, zr.picks[i])}/${need} · ${OPTIONS[other].name} ${Math.min(need, zr.picks[1 - i])}/${need}`
+    return `${zr.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(need, zr.picks[i])}/${need}`).join(' + ')} = ${OPTIONS['cls' + zr.k].name}`
   }
   if (!hasCats(run)) return null
   if (id === 'crit' || id === 'critDamage') return '친구냥이 할퀴기에도 같이 적용돼요'
@@ -295,6 +294,23 @@ const LOBBY_IMG = {
 function Art({ id, className = '', alt = '' }) {
   const src = artUrl(id)
   return src ? <img className={className} src={src} alt={alt} draggable="false" decoding="async" /> : null
+}
+
+// the turret as it stands in the fight, facing us (its frames' atlas,
+// ep04-assets.json → turret), fitted into a square box of `size` px
+const TURRET_ATLAS = D.storyAssets.images.find((x) => x.id === 'turret')
+function TurretIcon({ size = 48, className = '' }) {
+  const src = artUrl('turret')
+  if (!src || !TURRET_ATLAS) return <Art id="reward_turret" className={className} />
+  const [x, y, w, h] = TURRET_ATLAS.frames.S
+  const k = size / Math.max(w, h)
+  return (
+    <span
+      className={`ms-turreticon ${className}`}
+      aria-hidden="true"
+      style={{ width: size, height: size, backgroundImage: `url(${src})`, backgroundSize: `${TURRET_ATLAS.out[0] * k}px ${TURRET_ATLAS.out[1] * k}px`, backgroundPosition: `${-x * k + (size - w * k) / 2}px ${-y * k + (size - h * k) / 2}px` }}
+    />
+  )
 }
 
 // the red ball's picture for a weapon item: plain up to A, with a gold band
@@ -632,6 +648,8 @@ function Game({ exitHref }) {
     if (extraOf(D, ch)) loadArt('motion:' + extraOf(D, ch))
     // (and the friend cats' frames and scratches, in a run that can have them)
     if (g.run.pool.includes('catSummon')) for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power']) loadArt(id)
+    // (and the turret's frames, in a run that can make one)
+    if (g.run.turretOn) loadArt('turret')
     // the episodes' opening cutscenes (play: false) are kept but never played
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && c.play !== false && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
@@ -1236,10 +1254,11 @@ function Blessings({ save }) {
           const on = owned(b)
           return (
             <li key={b.id} className={on ? 'is-on' : ''}>
-              <Art id={b.image} className="ms-bless__img" />
+              {b.id === 'turret' ? <TurretIcon size={44} className="ms-bless__img" /> : <Art id={b.image} className="ms-bless__img" />}
               <div>
                 <p className="ms-bless__name">{b.name}</p>
                 <p className="ms-dim">{on ? b.text : `${D.story.rewards[b.from].chapter}장을 깨면 얻어요`}</p>
+                {on && b.id === 'zyo' && <RecipeList />}
               </div>
             </li>
           )
@@ -1594,10 +1613,58 @@ function Fusion({ save, onBack, onFuse }) {
 // the turret's making (turret.js): this run's upgrades that can go into it,
 // how many picks of each are left, the cost picks chosen with − and +, what
 // is left after; 제작하기 takes them back and puts a turret on the field
+// zyo_'s class changes as sums: card + card = class (balance.json → zyo
+// recipes); with a run, how far it is (n/7), else how many it takes
+function RecipeList({ run, only }) {
+  const need = D.balance.zyo.need
+  const list = run ? recipes(run) : Object.entries(D.balance.zyo.recipes).map(([k, r]) => ({ k, mats: r.mats, picks: null, ready: false }))
+  return (
+    <ul className="ms-recipes">
+      {list
+        .filter((r) => !only || only.includes(r.k))
+        .map((r) => (
+          <li key={r.k} className={r.ready ? 'is-ready' : ''}>
+            {r.mats.map((m, i) => (
+              <span key={m} className="ms-recipes__mat">
+                {i > 0 && <b className="ms-recipes__op">+</b>}
+                {OPTIONS[m].name} <small>{r.picks ? `${Math.min(need, r.picks[i])}/${need}` : `${need}번`}</small>
+              </span>
+            ))}
+            <span className="ms-recipes__cls">
+              <b className="ms-recipes__op">=</b> {OPTIONS['cls' + r.k].name}
+            </span>
+          </li>
+        ))}
+    </ul>
+  )
+}
+
+// the level-up's guide to the class change: the recipe this run is closest
+// to (all four on the PC, or when asked), and when one is complete
+function RecipeGuide({ run }) {
+  const pf = usePlatform()
+  const [all, setAll] = useState(pf.id === 'pc')
+  const need = D.balance.zyo.need
+  const ready = recipes(run).find((r) => r.ready)
+  const near = ready || zyoTarget(run)
+  return (
+    <div className="ms-guide">
+      <p className="ms-guide__title">
+        {ready ? `전직 준비 끝! ${OPTIONS['cls' + ready.k].name} 카드가 나오면 고르세요` : `전직: 같은 계열 강화 2종을 ${need}번씩 모으면 전직 카드가 나와요`}
+        <button type="button" className="ms-guide__more" onClick={() => setAll((v) => !v)}>
+          {all ? '접기' : '레시피 전체'}
+        </button>
+      </p>
+      {(all || near) && <RecipeList run={run} only={all ? null : [near.k]} />}
+    </div>
+  )
+}
+
 function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
   const cost = D.balance.turret.cost
   const have = materials(run)
-  const ids = Object.keys(have).sort((a, b) => have[b] - have[a] || a.localeCompare(b))
+  // (after the class change the picks that do nothing now come first: free)
+  const ids = Object.keys(have).sort((a, b) => sunk(run, b) - sunk(run, a) || have[b] - have[a] || a.localeCompare(b))
   const chosen = Object.values(pick).reduce((a, n) => a + n, 0)
   const gone = run.cls ? D.balance.zyo.recipes[run.cls.k].mats : null
   const set = (id, n) => {
@@ -1617,7 +1684,7 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
           const n = pick[id] || 0
           const o = OPTIONS[id]
           return (
-            <li key={id} className={n ? 'is-on' : ''}>
+            <li key={id} className={`${n ? 'is-on' : ''}${sunk(run, id) ? ' is-free' : ''}`}>
               <span className="ms-card__icon ms-craft__icon">
                 <CardIcon o={o} size={28} />
               </span>
@@ -1625,6 +1692,7 @@ function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
                 {optionName(run, id)}
                 <small>
                   {have[id]}회{n ? ` → ${have[id] - n}회` : ''}
+                  {sunk(run, id) && <em> · {D.turret.free}</em>}
                 </small>
               </span>
               <button type="button" className="ms-btn ms-btn--small" aria-label={`${optionName(run, id)} 빼기`} disabled={!n} onClick={() => set(id, n - 1)}>
@@ -2087,6 +2155,12 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   {showStats ? '능력치 닫기' : '내 능력치 보기'}
                 </button>
                 {showStats && <RunStats run={run} />}
+                {run.zyo && !run.cls && <RecipeGuide run={run} />}
+                {run.cls && run.turretOn && Object.keys(materials(run)).some((id) => sunk(run, id)) && (
+                  <div className="ms-guide">
+                    <p className="ms-guide__title">{D.turret.sunkNote}</p>
+                  </div>
+                )}
               </>
             )}
             {craft && craft.seq === run.choiceSeq ? (
@@ -2192,7 +2266,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   setCraft({ seq: run.choiceSeq, pick: {} })
                 }}
               >
-                <Art id="reward_turret" className="ms-turretopt__art" />
+                <TurretIcon size={48} className="ms-turretopt__art" />
                 <span className="ms-turretopt__body">
                   <b>{D.turret.option}</b>
                   <span>{D.turret.optionText}</span>
@@ -2377,8 +2451,9 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
             {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요. 강화 선택지에 친구냥이도 나와요.</p>}
             {R.rerolls && <p className="ms-dim ms-center">{D.balance.rerolls.fromChapter}장부터 한 판에 {R.rerolls}번, 강화 선택지를 새로 뽑을 수 있어요.</p>}
             {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
-            {R.turret && <p className="ms-dim ms-center">{D.balance.turret.activeFromChapter}장부터 레벨업 때 이번 판 강화 {D.balance.turret.cost}회분으로 포탑을 만들 수 있어요.</p>}
-            {R.zyo && <p className="ms-dim ms-center">{D.balance.zyo.activeFromChapter}장부터 같은 계열 강화 두 가지를 {D.balance.zyo.need}단계씩 모으면 한 판에 한 번 전직할 수 있어요.</p>}
+            {R.turret && <p className="ms-dim ms-center">{D.balance.turret.activeFromChapter}장부터 레벨업 때: 이번 판 강화 {D.balance.turret.cost}개 = 포탑 1개. 포탑은 알아서 쏴요.</p>}
+            {R.zyo && <p className="ms-dim ms-center">{D.balance.zyo.activeFromChapter}장부터 같은 계열 강화 2종을 {D.balance.zyo.need}번씩 모으면 전직 카드가 나와요 (한 판에 한 번).</p>}
+            {R.zyo && <RecipeList />}
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
               확인
             </button>

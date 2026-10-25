@@ -9,7 +9,7 @@ import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
 import { growth, classLevel, zyoMarks, firepower, recipes } from '../src/survivor/zyo.js'
-import { materials, materialCount, canMake, turretHit, relocateTurrets } from '../src/survivor/turret.js'
+import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 
 let fails = 0
@@ -2504,6 +2504,8 @@ const still = { x: 0, y: 0 }
   ok(g && g.chapter === 20 && g.when === 'clear' && g.reward === 'desert' && g.play !== false && g.cuts.map((c) => c.image).join() === 'ep04_clear_01,ep04_clear_02,ep04_clear_03,ep04_clear_04,ep04_clear_05', "chapter 20's clear: the five new cuts in order, then its reward")
   ok(g.cuts.map((c) => c.text).join('|') === '흐음...|에잇!|어?|오ㅋㅋㅋ 또 해봐!!|좋아! {next} 가자!' && S.regions[4].from === 21 && S.regions[4].name === '눈 덮인 산', `Mano's five lines; the last names the region of chapters 21–25 from the data (${S.regions[4].name})`)
   ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep04_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7) && D.storyAssets.images.some((x) => x.id === 'reward_turret'), 'the five pictures are wide (16:9), whole; the turret\'s reward picture is there')
+  const TA = D.storyAssets.images.find((x) => x.id === 'turret')
+  ok((await import('fs')).existsSync(new URL('../src/survivor/assets/s84/' + (TA ? TA.file : 'x'), import.meta.url)) && TA && TA.kind === 'atlas' && ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'].every((w) => TA.frames[w] && TA.frames[w][0] + TA.frames[w][2] <= TA.out[0] && TA.muzzle[w]), "the turret's picture: eight ways, each with its foot and mouth, inside the atlas")
   const R = S.rewards.desert
   ok(R.turret && R.rerolls === 8 && R.blessing === 'phoenix' && R.lines[0] === '포탑 제작 해금!' && R.lines[1] === '리롤 +2 (총 8회)', 'the popup: 포탑 제작 해금! and 리롤 +2 (총 8회) (the phoenix gem stays chapter 20\'s)')
   ok(S.cutscenes.groups.filter((x) => x.chapter === 21 && x.play !== false).length === 0, 'no cutscene at the start of chapter 21')
@@ -2618,15 +2620,25 @@ const still = { x: 0, y: 0 }
   const z = fresh({ zyo: true, seed: 94 })
   give(z, 'size', B.zyo.need)
   give(z, 'count', B.zyo.need)
-  give(z, 'damage', 3)
+  give(z, 'damage', 5)
+  give(z, 'armor', 1)
   give(z, 'clsA', 1)
   const mz = materials(z)
-  ok(z.cls && !mz.size && !mz.count && mz.damage === 3 && !mz.clsA, 'after the class change its recipe cards are no turret material; the other picks are')
+  ok(z.cls && !mz.size && !mz.count && mz.damage === 5 && mz.armor === 1 && !mz.clsA, 'after the class change its recipe cards are no turret material; the other picks are')
   give(z, 'power', 2)
+  // the ball is gone: its picks do nothing now (a turret of them costs nothing)
+  const zc = z.cls.base * z.cls.dmg * z.cls.rate
+  const hit0 = turretHit(z)
+  ok(sunk(z, 'damage') && !sunk(z, 'armor') && !sunk(z, 'power') && near(turretBase(z), zc, zc * 1e-12) && near(hit0, B.turret.power * zc * B.turret.interval, hit0 * 1e-12), "after the change: 공격 피해 is sunk (the ball is gone), 단단한 후드 and 전투력 are not; the turrets' blow follows the class (its strength at the change × 전투력), not the dead ball")
+  const cls0 = { ...z.cls }
+  atLevelUp(z)
+  makeTurret(z, ['damage', 'damage'], z.choiceSeq)
+  ok(z.turrets.length === 1 && z.cls.dmg === cls0.dmg && z.cls.base === cls0.base && near(turretHit(z), hit0, hit0 * 1e-12), 'a turret of two sunk picks: the class and every turret\'s blow stay as they were')
   const dmg0 = z.cls.dmg
   atLevelUp(z)
   makeTurret(z, ['power', 'damage'], z.choiceSeq)
-  ok(z.cls && z.cls.k === 'A' && z.picks.power === 1 && z.cls.dmg < dmg0 && z.turrets.length === 1, 'a turret of the class\'s growth card and a damage pick: the class stays, one growth level less')
+  ok(z.cls && z.cls.k === 'A' && z.picks.power === 1 && z.cls.dmg < dmg0 && z.turrets.length === 2 && turretHit(z) < hit0, 'a turret of the class\'s growth card and a damage pick: the class stays, one growth level less (the turrets\' blow too)')
+  ok(!sunk(fresh({ seed: 97 }), 'damage'), 'before a class change no pick is sunk')
   // before it: a turret of a recipe card puts the class card off again
   const y = fresh({ zyo: true, seed: 95 })
   give(y, 'size', B.zyo.need)

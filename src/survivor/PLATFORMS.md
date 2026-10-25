@@ -36,7 +36,8 @@ only in its platform-specific part.
   turret stands at a random spot of the field (the extra special boss's
   fight area while it lasts), shooting the nearest monster. The craft screen
   is in `SurvivorPage.jsx` (`TurretCraft`; on the PC its list has two
-  columns), the drawing in `render.js`. Numbers: `balance.json → turret`;
+  columns), the drawing in `render.js` (its eight ways from `turret.webp`,
+  made by `scripts/survivor-turret-assets.py`). Numbers: `balance.json → turret`;
   words: `turret.json`. Turrets stand in the field, not on the screen, so on
   the PC some are off screen.
 - `friends.js` — 친구냥이, the fighting cats (cards, AI, damage), and the

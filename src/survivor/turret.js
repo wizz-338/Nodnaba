@@ -15,12 +15,18 @@
 // A turret stands where it was put (at random, inside the field, apart from
 // the others and off the monsters) and shoots the nearest monster in range,
 // every `interval` s, a little red ball. Its blow is a share of the run's
-// firepower now (never under a usual build's at its level: the class's base,
-// zyo.js), never more for what was given for it. Turrets last until the run
+// main attack now: before the class change the ball's and the cats'
+// firepower, after it the class's (its strength fixed at the change × its
+// 전투력 cards); never under a usual build's at its level (zyo.js → floor),
+// never more for what was given for it. Turrets last until the run
 // ends; when the field shrinks to an extra special boss's fight area they are
 // moved into it, at random.
 
 import { classBase } from './zyo.js'
+
+// what the ball and the fighting cats are: after the class change they are
+// gone (zyo.js), so a pick that changed only these does nothing any more
+const DEAD = new Set(['weapon.count', 'weapon.damage', 'weapon.bounces', 'weapon.splitChance', 'weapon.interval', 'weapon.radius', 'weapon.speed', 'cat.n', 'cat.size', 'cat.range', 'cat.speed', 'cat.rate', 'cat.claw'])
 
 // the numbers a pick can change, and how: 'add' or 'mul'
 const KEYS = [
@@ -108,6 +114,12 @@ export function materials(run) {
   }
   return out
 }
+// a pick of `id` that does nothing now (after the class change, one that
+// changed only the ball or the fighting cats): a turret of it costs nothing
+export function sunk(run, id) {
+  const list = run.cls && run.applied[id]
+  return !!list && list.length > 0 && list.every((d) => Object.keys(d).length > 0 && Object.keys(d).every((k) => DEAD.has(k)))
+}
 export const materialCount = (run) => Object.values(materials(run)).reduce((a, n) => a + n, 0)
 export const canMake = (run) => !!run.turretOn && materialCount(run) >= run.D.balance.turret.cost
 
@@ -167,11 +179,21 @@ export function relocateTurrets(run) {
   }
 }
 
-// one shot's blow: a share of the run's firepower now (never under a usual
-// build's at this level: the class's base, zyo.js)
+// the firepower a turret's blow is a share of: the ball's and the cats' now,
+// or after the class change the class's (its strength at the change × its
+// 전투력 cards, never the dead ball's numbers); never under a usual build's at
+// this level (classBase, zyo.js)
+export function turretBase(run) {
+  if (!run.cls) return classBase(run)
+  const F = run.D.balance.zyo.floor
+  const cls = run.cls.base * run.cls.dmg * run.cls.rate
+  return F && run.fp0 ? Math.max(cls, run.fp0 * Math.exp(F.perLevel * (run.level - 1))) : cls
+}
+
+// one shot's blow
 export function turretHit(run) {
   const T = run.D.balance.turret
-  return T.power * classBase(run) * T.interval
+  return T.power * turretBase(run) * T.interval
 }
 
 export function updateTurrets(run, dt) {

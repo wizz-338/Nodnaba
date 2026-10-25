@@ -71,7 +71,10 @@ const PUNCH_PX = 3
 // the turrets (turret.js): drawn in code (a stone block and a white-and-blue
 // cannon with a red mouth, as in chapter 20's cutscene), turned to what it
 // shoots; its shot a little red ball, flying SHOT s
-const TURRET_H = 16 // the cannon's height over the ground
+const TURRET_H = 16 // the cannon's height over the ground (the turret drawn in code)
+const TURRET_DRAW_H = 40 // the turret's picture's height (field px)
+// its eight ways, by its aim's angle (0: east, then clockwise on the screen)
+const TURRET_WAYS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
 const AIMS = 32 // the cannon's pictures, one for each of these angles
 const GUN_R = 20 // half the side of a cannon's picture (its longest reach is 19)
 const SHOT = 0.12
@@ -158,6 +161,11 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   let pheart = null // the 퍼센트 하트 bitmap, made once
   // the friend cats (friends.js): their atlas scaled once per size, scratches
   const FC = D.friendCat
+  // the turret's picture: its frames and mouths (ep04-assets.json → turret)
+  const TURRET_ART = (() => {
+    const e = D.storyAssets.images.find((x) => x.id === 'turret')
+    return e && { frames: e.frames, muzzle: e.muzzle, h: Math.max(...Object.values(e.frames).map((f) => f[5])) }
+  })()
   const FCB = D.balance.friendCats
   const fcScaled = new Map()
   const slashes = []
@@ -980,9 +988,38 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.fillRect(x, y, HPBAR_W * v, 1.2)
   }
 
-  // a turret: its block, then the cannon turned to its aim, kicked back as it
-  // fires
+  // a turret: its picture turned the nearest of eight ways to its aim
+  // (turret.webp, scripts/survivor-turret-assets.py), standing on its foot,
+  // kicked back and squashed a little as it fires; drawn in code until the
+  // picture has come
   function drawTurret(run, t) {
+    const atlas = TURRET_ART && art.now('turret')
+    if (!atlas) return drawTurretCode(run, t)
+    const T = run.D.balance.turret
+    const kick = t.kick > 0 ? t.kick / T.kick : 0
+    const way = TURRET_WAYS[(((Math.round(t.aim / (Math.PI / 4)) % 8) + 8) % 8)]
+    const f = TURRET_ART.frames[way]
+    const s = TURRET_DRAW_H / TURRET_ART.h
+    const K = kd()
+    const back = kick * 2.5
+    const ox = (t.x - Math.cos(t.aim) * back - cam.x) * K
+    const oy = (t.y - Math.sin(t.aim) * back * 0.5 - cam.y) * K
+    const sy = s * (1 - kick * 0.08)
+    const sx = s * (1 + kick * 0.05)
+    ctx.imageSmoothingEnabled = true
+    ctx.setTransform(1, 0, 0, 1, ox, oy)
+    ctx.drawImage(atlas, f[0], f[1], f[2], f[3], -f[4] * sx * K, -f[5] * sy * K, f[2] * sx * K, f[3] * sy * K)
+  }
+
+  // where a turret's ball leaves: its mouth, the way it points
+  function muzzle(x, y, aim) {
+    if (!TURRET_ART || !art.now('turret')) return [x, y - TURRET_H]
+    const m = TURRET_ART.muzzle[TURRET_WAYS[(((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8)]]
+    const s = TURRET_DRAW_H / TURRET_ART.h
+    return [x + m[0] * s, y + m[1] * s]
+  }
+
+  function drawTurretCode(run, t) {
     const sp = turretArt(kd())
     world()
     // the stone block, then the cannon turned to its aim (one of AIMS
@@ -1350,7 +1387,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const [vx0, vy0, vx1, vy1] = run.view
     const seen = run.friends.filter((c) => c.x > vx0 - 40 && c.x < vx1 + 40 && c.y > vy0 - 20 && c.y < vy1 + 60)
     for (const c of seen) shadow(c.x, c.y, 8 * c.size, 2.6 * c.size)
-    for (const t of run.turrets) if (t.x > vx0 - 30 && t.x < vx1 + 30 && t.y > vy0 - 20 && t.y < vy1 + 40) shadow(t.x, t.y + 1, 15, 5)
+    for (const t of run.turrets) if (t.x > vx0 - 30 && t.x < vx1 + 30 && t.y > vy0 - 20 && t.y < vy1 + 40) shadow(t.x, t.y - 1, 17, 5.5)
     for (const e of run.enemies) {
       const w = e.r * 1.15
       if (e.state === 'spawn') {
@@ -1399,7 +1436,10 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       xfx.event(run, ev)
       zfx.event(run, ev)
       if (ev.type === 'skillHit') kick(ev.kind === 'ball' ? KICK.meteor : KICK.slash)
-      if (ev.type === 'turretShot' && shots.length < MAX_SHOTS) shots.push({ x0: ev.x, y0: ev.y - TURRET_H, x1: ev.tx, y1: ev.ty - 8, t: 0 })
+      if (ev.type === 'turretShot' && shots.length < MAX_SHOTS) {
+        const [x0, y0] = muzzle(ev.x, ev.y, Math.atan2(ev.ty - ev.y, ev.tx - ev.x))
+        shots.push({ x0, y0, x1: ev.tx, y1: ev.ty - 8, t: 0 })
+      }
       if (ev.type === 'turretMade') {
         rings.push({ x: ev.x, y: ev.y - 8, r: 40, t: 0 })
         addSparks(ev.x, ev.y - 10, 12, 140)
