@@ -918,3 +918,57 @@
   translate: 0 2px;
 }
 
+
+/* ── the lobby's tabs: each its own outlined button, the chosen one in the
+   accent (on the phone a row, on the PC the rail's list) ─────────────── */
+.ms .ms-tabs,
+.ms.ms--pc .ms-tabs {
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ms .ms-tab,
+.ms .ms-page--lobby .ms-tab,
+.ms.ms--pc .ms-tab,
+.ms.ms--pc .ms-page--lobby .ms-tab {
+  border: 2px solid var(--edge);
+  border-radius: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 0 var(--edge);
+}
+
+.ms .ms-tab.is-on,
+.ms .ms-page--lobby .ms-tab.is-on,
+.ms.ms--pc .ms-tab.is-on,
+.ms.ms--pc .ms-page--lobby .ms-tab.is-on {
+  border: 2px solid var(--edge);
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 2px 0 var(--edge);
+}
+
+@media (hover: hover) {
+  .ms .ms-tab:not(.is-on):hover,
+  .ms.ms--pc .ms-tab:not(.is-on):hover {
+    background: var(--soft);
+  }
+}
+
+.ms .ms-tab:active,
+.ms.ms--pc .ms-tab:active {
+  box-shadow: 0 0 0 var(--edge);
+  translate: 0 2px;
+}
+
+/* (the PC's list: the chests' count inside its tab, at the right) */
+.ms.ms--pc .ms-tab__dot {
+  top: 50%;
+  right: 12px;
+  translate: 0 -50%;
+}
