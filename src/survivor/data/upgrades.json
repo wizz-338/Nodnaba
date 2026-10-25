@@ -101,22 +101,22 @@
       "note": "after zyo_'s class change only: the class attack's damage and rate (balance.json → upgrades.effects.power)"
     },
     "clsA": {
-      "name": "거대 탱탱볼 · 회전 방어막",
+      "name": "거대 탱탱볼▪회전 방어막",
       "icon": "upgrade_size",
       "art": "reward_zyo"
     },
     "clsB": {
-      "name": "거대 탱탱볼 · 최후의 반격",
+      "name": "거대 탱탱볼▪최후의 반격",
       "icon": "upgrade_size",
       "art": "reward_zyo"
     },
     "clsC": {
-      "name": "닌자냥이 · 흡혈",
+      "name": "닌자냥이▪흡혈",
       "icon": "cat_hodu_r_0",
       "art": "reward_zyo"
     },
     "clsD": {
-      "name": "닌자냥이 · 쌍둥이 워프홀",
+      "name": "닌자냥이▪쌍둥이 워프홀",
       "icon": "cat_hodu_r_0",
       "art": "reward_zyo"
     }

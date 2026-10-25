@@ -15,7 +15,7 @@
 import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
-import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, powerPreview } from './zyo.js'
+import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, zyoMarks, powerPreview } from './zyo.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -1350,8 +1350,10 @@ function openChoice(run, not) {
   run.choiceSeq++
   // zyo_'s card beside them (zyo.js): a recipe's card, or its class card
   const z = zyoCards(run, run.choices, (id) => catCardOpen(run, id))
-  run.zyoPick = z.length ? { ids: z, seq: run.choiceSeq } : null
   run.choices.push(...z)
+  // (she marks her own card and the drawn ones of her recipe alike)
+  const marked = zyoMarks(run, z)
+  run.zyoPick = marked.length ? { ids: marked, seq: run.choiceSeq } : null
   // Tizzzz rewrites one of them, at random among those that can take it
   run.edit = null
   if (run.writer) {
@@ -1410,6 +1412,7 @@ export function choose(run, id, seq) {
     run.log.push(id)
   }
   if (times > 1) run.stats.edited = (run.stats.edited || 0) + 1
+  if (id === 'power' && run.cls) run.events.push({ type: 'powerUp', level: run.picks.power, x: run.player.x, y: run.player.y })
   syncFriends(run)
   run.pending--
   if (run.pending > 0) openChoice(run)

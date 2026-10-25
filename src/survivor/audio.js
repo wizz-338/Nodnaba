@@ -304,6 +304,21 @@ const SOUNDS = {
       noise(t, { len: 0.35, freq: 5200, q: 0.8, peak: 0.03, at: 0.62 })
     },
   ],
+  // 탱탱 메테오: a falling whistle, then the booms as they land
+  meteor: [
+    0.9,
+    (t) => {
+      tone(t, { type: 'sine', f0: 1500, f1: 300, glide: 0.42, peak: 0.04, len: 0.45 })
+      for (const at of [0.45, 0.55, 0.66]) {
+        noise(t, { len: 0.22, freq: 420, q: 0.8, peak: 0.1, at })
+        tone(t, { type: 'sine', f0: 140, f1: 50, glide: 0.2, peak: 0.1, len: 0.25, at })
+      }
+    },
+  ],
+  // 그림자 분신: a quick swish and two bright cuts
+  shadow: [0.55, (t) => (noise(t, { len: 0.18, freq: 2600, q: 1.2, peak: 0.07 }), noise(t, { len: 0.08, freq: 5200, q: 2, peak: 0.08, at: 0.42 }), tone(t, { type: 'sine', f0: 2400, f1: 1600, glide: 0.08, peak: 0.03, len: 0.1, at: 0.44 }))],
+  // a 전투력 level: a bright rising chime
+  powerup: [0.5, (t) => [659.25, 987.77, 1318.5, 1975.5].forEach((f, i) => tone(t, { f0: f, peak: 0.055, len: 0.2, at: i * 0.06 }))],
   // a warp hole: a short rising whoosh
   warp: [0.3, (t) => (noise(t, { len: 0.25, freq: 1400, q: 1.1, peak: 0.07 }), tone(t, { type: 'sine', f0: 320, f1: 1280, glide: 0.22, peak: 0.05, len: 0.26 }))],
   // 최후의 반격: a deep boom and a bright chord on top
