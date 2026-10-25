@@ -811,7 +811,7 @@ function Game({ exitHref }) {
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
-            <h2 className="ms-h ms-ribbon ms-ribbon--gold">상자 {modal.results.length}개를 열었어요</h2>
+            <h2 className="ms-h">상자 {modal.results.length}개를 열었어요</h2>
             <Sprite name="chest_open" size={72} className="ms-chest__img" />
             <ul className="ms-loot">
               {modal.results.map((r) => (
@@ -1999,7 +1999,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       {run.state === 'levelup' && run.choices && !modal && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="강화 선택">
           <div className={`ms-level${run.choices.length > 3 ? ' ms-level--four' : ''}`}>
-            <h2 className="ms-h ms-ribbon ms-ribbon--gold">이번 판의 행운은?</h2>
+            <h2 className="ms-h">이번 판의 행운은?</h2>
             <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
             <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
               {showStats ? '능력치 닫기' : '내 능력치 보기'}
@@ -2108,7 +2108,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
             <Sprite name="menu_sleep" size={92} className="ms-mascot" />
-            <h2 className="ms-h ms-ribbon ms-ribbon--blue">잠깐 쉬어가기</h2>
+            <h2 className="ms-h">잠깐 쉬어가기</h2>
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setModal(null)}>
               계속하기{pf.input === 'keys' ? ' (Esc)' : ''}
             </button>
@@ -2121,7 +2121,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       {modal && modal.kind === 'quit' && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
-            <h2 className="ms-h ms-ribbon">전투를 포기할까요?</h2>
+            <h2 className="ms-h">전투를 포기할까요?</h2>
             <p className="ms-dim ms-center">이번 판의 강화는 사라져요. 주운 코인과 이미 받은 엘리트·보스 보상은 남아요.</p>
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'pause' })}>
               계속하기
@@ -2319,7 +2319,7 @@ function Result({ run, reward, save, onRetry, onNext, onEquip, onChests }) {
     <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
       <div className="ms-panel ms-result">
         <Sprite name={r.cleared ? 'portrait_happy' : 'portrait_cry'} size={76} className="ms-mascot" />
-        <h2 className={`ms-h ms-ribbon ${r.cleared ? 'ms-ribbon--gold' : 'ms-ribbon--blue'}`}>{r.cleared ? '마노가 해냈다!' : '한 번 더 도전할까?'}</h2>
+        <h2 className="ms-h">{r.cleared ? '마노가 해냈다!' : '한 번 더 도전할까?'}</h2>
         <dl className="ms-stats">
           <div>
             <dt>{run.chapter}장</dt>
