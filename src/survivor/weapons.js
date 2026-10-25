@@ -105,8 +105,10 @@ function updateBalls(run, dt) {
       run.fireT += k * w.interval
     } else run.fireT = 0
   }
-  // the balls bounce off the view (the screen's play area; on the phone, the field)
-  const [x0, y0, x1, y1] = run.view
+  // the balls bounce off the field's edges (on the PC wider than the screen:
+  // they fly on past it as the monsters stand there; on the phone the field
+  // is the screen), or off the extra special boss's fight area during it
+  const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
   const out = []
   for (const b of run.balls) {
     b.ttl -= dt

@@ -165,7 +165,9 @@ function scoreOf(run, c, e, A) {
 
 const allowed = (run, e, F) => {
   const p = run.player
-  const [vx0, vy0, vx1, vy1] = run.view
+  // (anywhere on the field near Mano, not just on screen; the extra special
+  // boss's fight area during it)
+  const [vx0, vy0, vx1, vy1] = (run.extra && run.extra.box) || run.arena.bounds
   return e.state === 'live' && !e.under && e.x >= vx0 && e.x <= vx1 && e.y >= vy0 && e.y <= vy1 && (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= F.leash * F.leash
 }
 
