@@ -62,7 +62,7 @@ const SPARK = 0.42 // s a spark lives
 const SPARK_COLORS = ['#fff6c2', '#ffd84a', '#ff9a3d', '#ffffff']
 // the screen shakes (never with reduced motion): Mano hurt, a meteor
 // landing, an elite or a boss falling — px and s of each
-const KICK = { hurt: [3, 0.18], meteor: [3.5, 0.16], slash: [1.6, 0.1], big: [7, 0.32] }
+const KICK = { hurt: [3, 0.18], meteor: [4.5, 0.18], slash: [1.6, 0.1], big: [7, 0.32] }
 // a monster hit jolts: it swells a little, squashed, and is pushed a few px
 // away from Mano, for its hit flash's 0.12 s
 const PUNCH = 0.12
