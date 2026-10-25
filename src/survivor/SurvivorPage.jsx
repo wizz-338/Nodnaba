@@ -29,8 +29,12 @@ const JOY = D.ui.joystick
 const PlatformCtx = createContext(PLATFORMS.mobile)
 const usePlatform = () => useContext(PlatformCtx)
 
-// 전체 화면 (the PC game): on and off; nothing where the browser has none
-function FullscreenButton() {
+// 전체 화면 (the PC game), in 설정: on and off; nothing where the browser
+// has none. While it is on, Esc is kept for the game where the browser allows
+// it (Chrome, Edge: holding Esc still leaves full screen); elsewhere Esc
+// leaves full screen, and a battle then pauses (see Battle)
+const canLockEsc = () => typeof navigator !== 'undefined' && !!(navigator.keyboard && navigator.keyboard.lock)
+function FullscreenSetting() {
   const pf = usePlatform()
   const [on, setOn] = useState(() => !!document.fullscreenElement)
   useEffect(() => {
@@ -41,12 +45,18 @@ function FullscreenButton() {
   if (pf.id !== 'pc' || !document.fullscreenEnabled) return null
   const toggle = () => {
     const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
-    if (p && p.catch) p.catch(() => {})
+    if (p && p.then) p.then(() => document.fullscreenElement && canLockEsc() && navigator.keyboard.lock(['Escape']).catch(() => {})).catch(() => {})
   }
   return (
-    <button type="button" className="ms-btn ms-btn--small ms-fullbtn" onClick={toggle} aria-pressed={on}>
-      {on ? '전체 화면 끝내기' : '전체 화면'}
-    </button>
+    <section className="ms-panel">
+      <div className="ms-row">
+        <span className="ms-sub">전체 화면</span>
+        <button type="button" className="ms-btn ms-btn--small" onClick={toggle} aria-pressed={on}>
+          {on ? '켜짐' : '꺼짐'}
+        </button>
+      </div>
+      <p className="ms-dim">{canLockEsc() ? '켜져 있을 때 Esc를 길게 누르면 전체 화면이 꺼져요. 짧게 누르면 전투가 멈추고, 한 번 더 누르면 이어져요.' : '켜져 있을 때 Esc를 누르면 전체 화면이 꺼지고 전투가 멈춰요.'}</p>
+    </section>
   )
 }
 const fmt = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toString()
@@ -846,7 +856,6 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
           <a className="ms-exit" href={exitHref}>
             ◀ 나가기
           </a>
-          <FullscreenButton />
           <span className="ms-coins" aria-label={`코인 ${save.currency}`}>
             <Sprite name="coin" size={20} />
             {money(save.currency)}
@@ -1345,6 +1354,7 @@ function Settings({ save, P, onImported, onReplay }) {
         {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
       </section>
       <StoryReplay save={save} onReplay={onReplay} />
+      <FullscreenSetting />
       <section className="ms-panel ms-sound">
         <div className="ms-row">
           <span className="ms-sub">배경음악</span>
@@ -1701,10 +1711,20 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
     const onVis = () => document.hidden && away()
     addEventListener('blur', away)
     document.addEventListener('visibilitychange', onVis)
+    // Esc: the pause, and Esc again: back to the fight (from 포기할까요?,
+    // back to the pause)
     const onKey = (e) => {
-      if (e.key === 'Escape' && !modalRef.current && g.run.state === 'play') away()
+      if (e.key !== 'Escape' || e.repeat) return
+      const m = modalRef.current
+      if (!m) {
+        if (g.run.state === 'play') away()
+      } else if (m.kind === 'pause') setModal(null)
+      else if (m.kind === 'quit') setModal({ kind: 'pause' })
     }
     addEventListener('keydown', onKey)
+    // leaving full screen (where the browser takes Esc for that) pauses too
+    const onFull = () => !document.fullscreenElement && away()
+    document.addEventListener('fullscreenchange', onFull)
 
     // short notices over the battle
     let toastTimer
@@ -1849,6 +1869,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       removeEventListener('blur', away)
       document.removeEventListener('visibilitychange', onVis)
       removeEventListener('keydown', onKey)
+      document.removeEventListener('fullscreenchange', onFull)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -1955,7 +1976,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
           <i className="ms-xwarn__band ms-xwarn__band--bottom" />
         </div>
       )}
-      {hint && <p className="ms-hint">{pf.input === 'keys' ? 'WASD나 방향키로 마노가 달려요. 공격은 자동이에요. Esc: 일시정지' : '화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.'}</p>}
+      {hint && <p className="ms-hint">{pf.input === 'keys' ? 'WASD나 방향키로 마노가 달려요. 공격은 자동이에요. Esc: 일시정지 · 다시 Esc: 계속' : '화면 아무 곳이나 누른 채 움직이면 마노가 달려요. 공격은 자동이에요.'}</p>}
       {pf.input === 'touch' && (
         <div className="ms-joy" ref={joyRef} aria-hidden="true">
           <span className="ms-joy__base">
@@ -2080,12 +2101,11 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
             <Sprite name="menu_sleep" size={92} className="ms-mascot" />
             <h2 className="ms-h ms-ribbon ms-ribbon--blue">잠깐 쉬어가기</h2>
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setModal(null)}>
-              계속하기
+              계속하기{pf.input === 'keys' ? ' (Esc)' : ''}
             </button>
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'quit' })}>
               장비로
             </button>
-            <FullscreenButton />
           </div>
         </div>
       )}

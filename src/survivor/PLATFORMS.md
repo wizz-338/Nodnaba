@@ -7,7 +7,7 @@
 | screen | 9:16, logical 360 × 640 | 16:9, logical 1152 × 648 (any window size: 1920 × 1080, 2560 × 1440 …) |
 | field | the screen | larger than the screen (1620 × 810); the camera follows Mano |
 | moving Mano | touch stick | WASD / arrow keys (mixed, diagonals normalized) |
-| menus | touch | mouse (keyboard: Enter / Space in cutscenes, Esc pauses) |
+| menus | touch | mouse (keyboard: Enter / Space in cutscenes, Esc pauses, Esc again resumes; 전체 화면 is in 설정) |
 
 Both are the same page (`SurvivorPage.jsx`) with a different `platform`
 (`'mobile'` / `'pc'`), chosen in `App.jsx` from the address.
