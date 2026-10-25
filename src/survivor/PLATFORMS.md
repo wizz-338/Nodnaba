@@ -80,6 +80,11 @@ only in its platform-specific part.
   `.ms-cut--split`). On the
   phone a 16:9 cutscene is shown whole, never stretched or cut, with dark
   bands above and below.
+- `survivor-theme.css` — the look of both (loaded after `survivor.css`, which
+  keeps the layout): navy panels with a gold rim, glossy buttons, ribbon
+  titles, level-up cards coloured by what they do (`data-kind`), the battle
+  bar's colours and the low-health red edge. A look change goes here, for
+  both platforms at once.
 - Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`, which
   covers the whole PC field (`assets/s84/backgrounds/`, made by
   `scripts/survivor-story-assets.py`).

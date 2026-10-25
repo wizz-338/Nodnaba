@@ -12,6 +12,7 @@ import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
+import './survivor-theme.css'
 import saveIcon from '../colony/assets/ui/save.png'
 
 // the weapon's picture in the sheet (data/weapons.json names it)
@@ -68,6 +69,27 @@ const effectTag = (id, n = 1) => {
 }
 // coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
 const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
+// what a level-up card does, for its colour (survivor-theme.css): attack,
+// defence, help, the cats, a class
+const CARD_KIND = {
+  count: 'atk', interval: 'atk', damage: 'atk', bounce: 'atk', crit: 'atk', critDamage: 'atk', ballSpeed: 'atk', size: 'atk', split: 'atk', power: 'atk',
+  maxHp: 'def', move: 'def', regen: 'def', armor: 'def',
+  pickup: 'util', luck: 'util', xpGain: 'util', nyang: 'util',
+}
+const cardKind = (id) => (isClassCard(id) ? 'cls' : CARD_KIND[id] || (id.startsWith('cat') ? 'cat' : 'util'))
+// the picks so far as pips, the one this card adds blinking (a long run of
+// picks: a number instead)
+const MAX_PIPS = 9
+function Pips({ n }) {
+  if (n >= MAX_PIPS) return <em className="ms-card__stack">{n}번 고름</em>
+  return (
+    <span className="ms-card__pips" aria-label={n ? `${n}번 고름` : '처음'}>
+      {Array.from({ length: n + 1 }, (_, i) => (
+        <i key={i} className={i < n ? 'is-on' : 'is-new'} />
+      ))}
+    </span>
+  )
+}
 const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
 function change(run, id, times = 1) {
   if (isClassCard(id)) return classText(run, classOf(id))
@@ -771,7 +793,7 @@ function Game({ exitHref }) {
       {modal && modal.kind === 'chest' && (
         <div className="ms-modal" role="dialog" aria-modal="true">
           <div className="ms-panel ms-chest">
-            <h2 className="ms-h">상자 {modal.results.length}개를 열었어요</h2>
+            <h2 className="ms-h ms-ribbon ms-ribbon--gold">상자 {modal.results.length}개를 열었어요</h2>
             <Sprite name="chest_open" size={72} className="ms-chest__img" />
             <ul className="ms-loot">
               {modal.results.map((r) => (
@@ -882,6 +904,8 @@ const chapterBoss = (region, ch) => {
 }
 // at most this many health bars of elites and bosses at once
 const MAX_BARS = 4
+// below this share of health the screen's edges pulse red
+const LOW_HP = 0.3
 // the ordinary bosses' types still to come, kept from one run to the next
 // while the game is open (so in a row they go round all four)
 const BOSS_BAG = { order: [] }
@@ -1859,6 +1883,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   return (
     <div className="ms-stage" ref={stageRef}>
       <canvas ref={canvasRef} className="ms-canvas" aria-label="전투 화면" />
+      {run.state === 'play' && p.hp > 0 && p.hp / p.maxHp < LOW_HP && <i className="ms-lowhp" aria-hidden="true" />}
       {/* top bar: chapter · wave and time, pause; health, experience and
           level; coins. The one weapon sits just below, on the right. */}
       <div className="ms-hud">
@@ -1882,13 +1907,13 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
           <Bar w={H.health[2] * k} h={H.health[3] * k} fill="hp_full" value={p.hp / p.maxHp} label="체력" />
         </div>
         <div className="ms-hudtext" style={box(H.healthText)}>
-          {Math.ceil(p.hp)} / {Math.round(p.maxHp)}
+          {money(Math.ceil(p.hp))} / {money(Math.round(p.maxHp))}
         </div>
         <div className="ms-hudrow" style={box(H.xp)}>
           <Bar w={H.xp[2] * k} h={H.xp[3] * k} fill="exp_full" value={run.xp / run.need} label="경험치" />
         </div>
-        <div className="ms-hudtext" style={box(H.level)}>
-          LV. {run.level}
+        <div className="ms-hudtext ms-hudtext--level" style={box(H.level)}>
+          <b>LV.{run.level}</b>
         </div>
         <div className="ms-cur" style={box(H.currency)}>
           <Sprite name="coin" size={((H.currency[3] * 13) / 15) * k} /> {money(run.coins)}
@@ -1945,7 +1970,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       {run.state === 'levelup' && run.choices && !modal && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="강화 선택">
           <div className={`ms-level${run.choices.length > 3 ? ' ms-level--four' : ''}`}>
-            <h2 className="ms-h">이번 판의 행운은?</h2>
+            <h2 className="ms-h ms-ribbon ms-ribbon--gold">이번 판의 행운은?</h2>
             <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
             <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
               {showStats ? '능력치 닫기' : '내 능력치 보기'}
@@ -1964,6 +1989,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   key={id + run.choiceSeq}
                   type="button"
                   data-sfx="none"
+                  data-kind={cardKind(id)}
                   className={`ms-card${ed ? ' is-edited' : ''}${zy ? ' is-zyo' : ''}${isClassCard(id) ? ' is-class' : ''}`}
                   style={ed ? { '--pen': `${D.balance.tizzzz.penSeconds}s` } : undefined}
                   onClick={(e) => {
@@ -1991,10 +2017,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     <CardIcon o={o} />
                   </span>
                   <span className="ms-card__body">
-                    <span className="ms-card__name">
-                      {o.name}
-                      {run.picks[id] ? <em className="ms-card__stack">{run.picks[id]}번 고름</em> : null}
-                    </span>
+                    <span className="ms-card__name">{o.name}</span>
+                    {!isClassCard(id) && <Pips n={run.picks[id] || 0} />}
                     {ed ? (
                       <span className="ms-card__num">
                         <s className="ms-card__old">{effectTag(id)}</s> <b className="ms-card__new">{effectTag(id, T)}</b>{' '}
@@ -2054,7 +2078,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
             <Sprite name="menu_sleep" size={92} className="ms-mascot" />
-            <h2 className="ms-h">잠깐 쉬어가기</h2>
+            <h2 className="ms-h ms-ribbon ms-ribbon--blue">잠깐 쉬어가기</h2>
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setModal(null)}>
               계속하기
             </button>
@@ -2068,7 +2092,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       {modal && modal.kind === 'quit' && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
           <div className="ms-panel ms-menu">
-            <h2 className="ms-h">전투를 포기할까요?</h2>
+            <h2 className="ms-h ms-ribbon">전투를 포기할까요?</h2>
             <p className="ms-dim ms-center">이번 판의 강화는 사라져요. 주운 코인과 이미 받은 엘리트·보스 보상은 남아요.</p>
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'pause' })}>
               계속하기
@@ -2266,7 +2290,7 @@ function Result({ run, reward, save, onRetry, onNext, onEquip, onChests }) {
     <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true">
       <div className="ms-panel ms-result">
         <Sprite name={r.cleared ? 'portrait_happy' : 'portrait_cry'} size={76} className="ms-mascot" />
-        <h2 className="ms-h">{r.cleared ? '마노가 해냈다!' : '한 번 더 도전할까?'}</h2>
+        <h2 className={`ms-h ms-ribbon ${r.cleared ? 'ms-ribbon--gold' : 'ms-ribbon--blue'}`}>{r.cleared ? '마노가 해냈다!' : '한 번 더 도전할까?'}</h2>
         <dl className="ms-stats">
           <div>
             <dt>{run.chapter}장</dt>
