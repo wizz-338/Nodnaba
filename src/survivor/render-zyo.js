@@ -4,21 +4,66 @@
 // The change: what was out (balls, fighting cats) gathers to Mano, notes of
 // many colours swirl in round her and meet, a flash, and the new attack is
 // there (all in balance.json → zyo.fxSeconds, by the game's clock, so a pause
-// stops it too). Then: the giant balls (the red ball, big, with a shadow),
-// the shield balls round Mano (A), the ninja cats (the friend cat with a red
-// headband, a short afterimage and a crescent at each slash), the two warp
-// holes (D) and the blast of 최후의 반격 (B). A handful of things at most,
-// whatever the build.
+// stops it too). Then a few units drawn as the class's power, not as more of
+// them: the giant balls in a glow with a trail, a turning shine and embers
+// (A: the shield balls on a turning ring), the ninja cats in a violet aura
+// with afterimages, speed lines and a long headband, a crescent and a cross
+// at each slash. The skill over the screen: 탱탱 메테오 (a mark on the ground,
+// a burning ball falling on it, a blast) or 그림자 분신 (a shadow ninja out of
+// a puff, a big X). The 전투력 level shows in the colours (red → gold →
+// violet → all colours), the size (zyo.js growth) and more sparks; a level
+// up rings round Mano with its number. The two warp holes (D), the blast of
+// 최후의 반격 (B). Sparks come from one pool with a cap, fewer on a busy screen.
+
+import { classLevel, growth } from './zyo.js'
 
 const NOTE_COLORS = ['#ff5f8f', '#ffb547', '#6fd389', '#5fb8ff', '#b88bff', '#ff8a5c']
 const WARP = ['rgba(120, 90, 255, ', 'rgba(70, 220, 255, ']
-const CRESCENT = 0.18 // s a slash's crescent shows
-const MAX_CRESCENTS = 12
+const SLASH = 0.24 // s a slash's crescent shows
+const MAX_SLASHES = 16
+const MAX_PARTS = 160
+const MAX_IMPACTS = 10
+const TAU = Math.PI * 2
+
+// the level's colour: [r, g, b] (all colours turning from level 9)
+function tierColor(L, now) {
+  if (L >= 9) {
+    const h = (now / 6) % 360
+    const c = (n) => {
+      const k = (n + h / 30) % 12
+      return Math.round(255 * (0.55 + 0.45 * Math.max(-1, Math.min(k - 3, 9 - k, 1))))
+    }
+    return [c(0), c(8), c(4)]
+  }
+  if (L >= 6) return [196, 92, 255]
+  if (L >= 3) return [240, 150, 30]
+  return [255, 92, 70]
+}
+const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
 
 export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font }) {
-  const crescents = [] // { x, y, r, a, t }
-  const rings = [] // { x, y, r, t, life, c }
-  const words = [] // { x, y, text, t, life, c }
+  const slashes = [] // { x, y, r, a, t, c }
+  const rings = [] // { x, y, r, t, life, c, w }
+  const words = [] // { x, y, text, t, life, c, big }
+  const parts = [] // { x, y, vx, vy, t, life, s, c, g }
+  const meteors = [] // { x, y, r, t, land }
+  const clones = [] // { x, y, r, t, land, face }
+  const flashes = [] // { x, y, r, t, life }
+  const trails = new Map() // a giant ball's last places
+  let impacts = 0
+  let budget = 1
+  let flashT = 0 // the units flash a moment at a level up
+
+  const spark = (x, y, vx, vy, life, s, c, g = 0) => {
+    if (parts.length < MAX_PARTS * budget) parts.push({ x, y, vx, vy, t: 0, life, s, c, g })
+  }
+  const burst = (x, y, n, speed, c, life = 0.45, s = 2) => {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU
+      const v = speed * (0.4 + Math.random() * 0.8)
+      spark(x, y, Math.cos(a) * v, Math.sin(a) * v - speed * 0.2, life * (0.6 + Math.random() * 0.6), s * (0.6 + Math.random() * 0.8), c, 120)
+    }
+  }
 
   // a note: a head, a stem and a flag (two heads joined for ♫)
   function note(x, y, s, c, a, twin) {
@@ -31,7 +76,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     ctx.lineWidth = 1.6
     const head = (hx) => {
       ctx.beginPath()
-      ctx.ellipse(hx, 0, 3.4, 2.5, -0.4, 0, Math.PI * 2)
+      ctx.ellipse(hx, 0, 3.4, 2.5, -0.4, 0, TAU)
       ctx.fill()
       ctx.beginPath()
       ctx.moveTo(hx + 3, -0.5)
@@ -53,6 +98,17 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       ctx.stroke()
     }
     ctx.restore()
+  }
+
+  // a soft glow: a radial gradient disc
+  function glow(x, y, r, c, a) {
+    const g = ctx.createRadialGradient(x, y, r * 0.15, x, y, r)
+    g.addColorStop(0, rgba(c, a))
+    g.addColorStop(1, rgba(c, 0))
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, TAU)
+    ctx.fill()
   }
 
   // the change's moment: k from 0 to 1 over fxSeconds
@@ -77,31 +133,33 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       }
     ctx.globalAlpha = 1
     world()
+    // a ring of light grows under her while the notes come
+    glow(p.x, p.y - 10, 30 + 60 * k, [255, 220, 150], 0.25 + 0.25 * k)
     // the notes: they come in on a spiral and meet over her head
-    const N = 14
+    const N = 18
     for (let i = 0; i < N; i++) {
       const start = (i / N) * 0.45
       const q = (k - start) / 0.5
       if (q <= 0 || q >= 1.05) continue
-      const a = (i / N) * Math.PI * 2 + q * 3.2
-      const R = 120 * (1 - q) + 6
+      const a = (i / N) * TAU + q * 3.2
+      const R = 140 * (1 - q) + 6
       const x = p.x + Math.cos(a) * R
       const y = p.y - 16 + Math.sin(a) * R * 0.75
       ctx.globalAlpha = Math.min(1, q * 4) * (q > 0.9 ? Math.max(0, (1.05 - q) / 0.15) : 1)
-      note(x, y, 1.3 + 0.5 * Math.sin(now / 120 + i), NOTE_COLORS[i % NOTE_COLORS.length], Math.sin(now / 200 + i) * 0.35, i % 3 === 0)
+      note(x, y, 1.4 + 0.6 * Math.sin(now / 120 + i), NOTE_COLORS[i % NOTE_COLORS.length], Math.sin(now / 200 + i) * 0.35, i % 3 === 0)
     }
     ctx.globalAlpha = 1
     // the meeting: a bright burst of colour
     if (k > 0.82) {
       const f = Math.min(1, (k - 0.82) / 0.18)
-      const r = 10 + f * 70
+      const r = 10 + f * 90
       const grd = ctx.createRadialGradient(p.x, p.y - 14, 2, p.x, p.y - 14, r)
-      grd.addColorStop(0, `rgba(255, 255, 255, ${0.9 * (1 - f)})`)
-      grd.addColorStop(0.5, `rgba(255, 200, 120, ${0.5 * (1 - f)})`)
+      grd.addColorStop(0, `rgba(255, 255, 255, ${0.95 * (1 - f)})`)
+      grd.addColorStop(0.5, `rgba(255, 200, 120, ${0.55 * (1 - f)})`)
       grd.addColorStop(1, 'rgba(180, 120, 255, 0)')
       ctx.fillStyle = grd
       ctx.beginPath()
-      ctx.arc(p.x, p.y - 14, r, 0, Math.PI * 2)
+      ctx.arc(p.x, p.y - 14, r, 0, TAU)
       ctx.fill()
     }
   }
@@ -116,6 +174,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     for (let i = 0; i < 2; i++) {
       const h = C.warps[i]
       const dim = locked === i || C.warpCd > 0 ? 0.55 : 1
+      glow(h.x, h.y, R * 2.2, [140, 100, 255], 0.25 * dim)
       for (let j = 0; j < 3; j++) {
         const a = now / (500 - j * 90) + j * 2.1 + i
         const rr = R * (1.1 - j * 0.28)
@@ -130,7 +189,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       grd.addColorStop(1, 'rgba(90, 60, 200, 0)')
       ctx.fillStyle = grd
       ctx.beginPath()
-      ctx.ellipse(h.x, h.y, R, R * 0.55, 0, 0, Math.PI * 2)
+      ctx.ellipse(h.x, h.y, R, R * 0.55, 0, 0, TAU)
       ctx.fill()
     }
   }
@@ -139,84 +198,272 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   function shadows(run) {
     const C = run.cls
     if (!C || run.t < C.fxEnd) return
-    for (const u of C.units) shadow(u.x, u.y, C.form === 'ball' ? run.D.balance.zyo.ball.radius * 0.9 : 8, C.form === 'ball' ? 7 : 2.6, 0.22)
-    for (const s of C.shield) shadow(s.x, s.y, run.D.balance.zyo.shield.radius * 0.9, 6, 0.18)
+    const G = growth(run)
+    for (const u of C.units) shadow(u.x, u.y, C.form === 'ball' ? run.D.balance.zyo.ball.radius * 0.9 * G : 8, C.form === 'ball' ? 7 * G : 2.6, 0.22)
+    for (const s of C.shield) shadow(s.x, s.y, run.D.balance.zyo.shield.radius * 0.9 * G, 6, 0.18)
   }
 
-  // under the standing things: the warp holes
+  // under the standing things: the warp holes, the skill's marks, auras
   function under(run, now) {
     const C = run.cls
-    if (C && C.k === 'D') drawWarps(run, now)
+    if (!C) return
+    if (C.k === 'D') drawWarps(run, now)
+    world()
+    // a meteor's mark: a ring that closes in, a cross in it
+    for (const m of meteors) {
+      const k = Math.min(1, m.t / m.land)
+      const rr = m.r * (1.6 - 0.6 * k)
+      ctx.strokeStyle = `rgba(255, 70, 50, ${0.35 + 0.5 * k})`
+      ctx.lineWidth = 2.5
+      ctx.setLineDash([6, 5])
+      ctx.lineDashOffset = -now / 30
+      ctx.beginPath()
+      ctx.ellipse(m.x, m.y, rr, rr * 0.55, 0, 0, TAU)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = `rgba(255, 80, 40, ${0.12 + 0.18 * k})`
+      ctx.beginPath()
+      ctx.ellipse(m.x, m.y, m.r, m.r * 0.55, 0, 0, TAU)
+      ctx.fill()
+    }
+    if (run.t < C.fxEnd) return
+    const L = classLevel(run)
+    const c = tierColor(L, now)
+    const G = growth(run)
+    if (C.form === 'ninja') for (const u of C.units) glow(u.x, u.y - 6, 22 * G, [150, 80, 255], 0.35)
+    else for (const u of C.units) glow(u.x, u.y - lift, run.D.balance.zyo.ball.radius * 2 * G, c, 0.28 + 0.08 * Math.sin(now / 120 + u.id))
+  }
+
+  // one giant ball: its trail, its glow, the ball, a turning shine, embers
+  function giant(run, u, r, now, c, L, key) {
+    let tr = trails.get(key)
+    if (!tr) trails.set(key, (tr = []))
+    tr.push(u.x, u.y)
+    if (tr.length > 14) tr.splice(0, 2)
+    for (let i = 0; i + 1 < tr.length - 2; i += 2) {
+      const k = i / tr.length
+      ctx.globalAlpha = 0.1 + 0.35 * k
+      ctx.fillStyle = rgba(c, 1)
+      ctx.beginPath()
+      ctx.arc(tr[i], tr[i + 1] - lift, r * (0.45 + 0.5 * k), 0, TAU)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
+    put('ball', u.x, u.y - lift, (r * 2) / 24)
+    world()
+    // the shine: a bright arc turning over the ball
+    const a = now / 140 + (u.id || 0)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)'
+    ctx.lineWidth = Math.max(2, r * 0.14)
+    ctx.beginPath()
+    ctx.arc(u.x, u.y - lift, r * 0.72, a, a + 0.9)
+    ctx.stroke()
+    // its edge in the level's colour, flashing at a level up
+    ctx.strokeStyle = rgba(c, 0.6 + 0.4 * Math.min(1, flashT * 3))
+    ctx.lineWidth = 2 + flashT * 6
+    ctx.beginPath()
+    ctx.arc(u.x, u.y - lift, r * 1.05, 0, TAU)
+    ctx.stroke()
+    // sparks round it from level 3, more with the level
+    const n = L >= 3 ? Math.min(6, 2 + Math.floor(L / 3)) : 0
+    for (let i = 0; i < n; i++) {
+      const b = now / 260 + (i / n) * TAU
+      const x = u.x + Math.cos(b) * r * 1.35
+      const y = u.y - lift + Math.sin(b) * r * 0.8
+      ctx.fillStyle = rgba(c, 0.95)
+      ctx.beginPath()
+      ctx.arc(x, y, 2.2, 0, TAU)
+      ctx.fill()
+    }
+    if (Math.random() < 0.35 * budget) spark(u.x + (Math.random() - 0.5) * r, u.y - lift + (Math.random() - 0.5) * r, (Math.random() - 0.5) * 30, -20 - Math.random() * 30, 0.5, 2 + L * 0.15, c, -20)
   }
 
   // the units, over the monsters
   function over(run, now, dt) {
+    budget = run.balls.length > 0 || run.enemies.length > 120 ? 0.6 : 1
+    flashT = Math.max(0, flashT - dt)
     const C = run.cls
     if (C) {
       const Z = run.D.balance.zyo
+      const L = classLevel(run)
+      const c = tierColor(L, now)
+      const G = growth(run)
       if (run.t >= C.fxEnd) {
-        if (C.form === 'ball') {
-          const s = (Z.ball.radius * 2) / 24
-          for (const u of C.units) put('ball', u.x, u.y - lift, s)
-        } else
+        if (C.form === 'ball') for (const u of C.units) giant(run, u, Z.ball.radius * G, now, c, L, 'u' + u.id)
+        else
           for (const u of C.units) {
-            // the afterimage: a few faint copies where it just was
+            // the afterimages and the speed lines behind it
+            world()
+            if (u.trail.length > 2) {
+              ctx.strokeStyle = 'rgba(170, 110, 255, 0.55)'
+              ctx.lineWidth = 3
+              ctx.beginPath()
+              ctx.moveTo(u.trail[0], u.trail[1] - 8)
+              for (let i = 2; i + 1 < u.trail.length; i += 2) ctx.lineTo(u.trail[i], u.trail[i + 1] - 8)
+              ctx.lineTo(u.x, u.y - 8)
+              ctx.stroke()
+            }
             for (let i = 0; i + 1 < u.trail.length; i += 2) {
-              ctx.globalAlpha = 0.12 + (0.2 * i) / u.trail.length
-              drawFriend({ x: u.trail[i], y: u.trail[i + 1], size: 1.1, mode: 'move', step: 0, moving: true, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
+              ctx.globalAlpha = 0.12 + (0.25 * i) / u.trail.length
+              drawFriend({ x: u.trail[i], y: u.trail[i + 1], size: 1.15 * G, mode: 'move', step: 0, moving: true, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
             }
             ctx.globalAlpha = 1
             const moving = u.trail.length > 0
-            drawFriend({ x: u.x, y: u.y, size: 1.1, mode: u.slash > 0 ? 'attack' : 'move', atk: 0.16 - u.slash, atkDur: 0.16, step: now / 8, moving, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
-            // the ninja's headband: a red band with its two tails flying back
+            drawFriend({ x: u.x, y: u.y, size: 1.15 * G, mode: u.slash > 0 ? 'attack' : 'move', atk: 0.16 - u.slash, atkDur: 0.16, step: now / 8, moving, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
+            // the headband: the level's colour, its tails flying long behind
             world()
-            ctx.strokeStyle = '#d23a3a'
-            ctx.lineWidth = 2
+            ctx.strokeStyle = rgba(L >= 3 ? c : [214, 58, 58], 1)
+            ctx.lineWidth = 2.4
             const hx = u.x + u.face * 1
-            const hy = u.y - 15
+            const hy = u.y - 15 * G
+            const tail = 16 + (moving ? 8 : 0) + L
             ctx.beginPath()
             ctx.moveTo(hx - 5, hy)
             ctx.lineTo(hx + 5, hy)
             ctx.moveTo(hx - u.face * 5, hy)
-            ctx.quadraticCurveTo(hx - u.face * 11, hy - 3 + Math.sin(now / 90 + u.id) * 2, hx - u.face * 16, hy + 1)
+            ctx.quadraticCurveTo(hx - u.face * tail * 0.6, hy - 4 + Math.sin(now / 70 + u.id) * 3, hx - u.face * tail, hy + 1 + Math.sin(now / 90 + u.id) * 2)
             ctx.stroke()
+            if (Math.random() < (0.2 + L * 0.03) * budget) spark(u.x + (Math.random() - 0.5) * 14, u.y - 6, 0, -40, 0.45, 2, [170, 110, 255], -30)
           }
         if (C.shield.length) {
-          const s = (Z.shield.radius * 2) / 24
           world()
           const p = run.player
-          ctx.strokeStyle = 'rgba(255, 120, 120, 0.25)'
-          ctx.lineWidth = 2
+          const R = Z.shield.orbit
+          // the ring: a turning band of light
+          ctx.lineWidth = 3
+          for (let i = 0; i < 3; i++) {
+            const a = now / 300 + (i / 3) * TAU
+            ctx.strokeStyle = rgba(c, 0.55)
+            ctx.beginPath()
+            ctx.arc(p.x, p.y - 6, R, a, a + 1.2)
+            ctx.stroke()
+          }
+          ctx.strokeStyle = rgba(c, 0.18)
+          ctx.lineWidth = 8
           ctx.beginPath()
-          ctx.arc(p.x, p.y - 6, Z.shield.orbit, 0, Math.PI * 2)
+          ctx.arc(p.x, p.y - 6, R, 0, TAU)
           ctx.stroke()
-          for (const sb of C.shield) put('ball', sb.x, sb.y - lift, s)
+          C.shield.forEach((sb, i) => giant(run, sb, Z.shield.radius * G, now, c, L, 's' + i))
         }
       }
       drawChange(run, now)
-    }
-    // crescents, rings and words from the events
+    } else if (trails.size) trails.clear()
     world()
-    for (let i = crescents.length - 1; i >= 0; i--) {
-      const c = crescents[i]
-      c.t += dt
-      if (c.t >= CRESCENT) {
-        crescents.splice(i, 1)
+    // the meteors falling: a burning ball and its fiery tail
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i]
+      m.t += dt
+      if (m.t >= m.land + 0.05) {
+        meteors.splice(i, 1)
         continue
       }
-      const k = c.t / CRESCENT
-      ctx.globalAlpha = 1 - k
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 3.2 * (1 - k) + 0.8
+      if (m.t < 0) continue
+      const k = Math.min(1, m.t / m.land)
+      const h = 300 * (1 - k)
+      const x = m.x + 60 * (1 - k)
+      const y = m.y - h - lift
+      const tail = ctx.createLinearGradient(x, y, x + 50, y - 90)
+      tail.addColorStop(0, 'rgba(255, 220, 120, 0.9)')
+      tail.addColorStop(1, 'rgba(255, 80, 40, 0)')
+      ctx.strokeStyle = tail
+      ctx.lineWidth = m.r * 0.7
+      ctx.lineCap = 'round'
       ctx.beginPath()
-      ctx.arc(c.x, c.y - 8, c.r * (0.8 + 0.4 * k), c.a - 1.1, c.a + 1.1)
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + 50, y - 90)
       ctx.stroke()
-      ctx.strokeStyle = 'rgba(140, 90, 255, 0.8)'
-      ctx.lineWidth = 1.2
-      ctx.beginPath()
-      ctx.arc(c.x, c.y - 8, c.r * (0.7 + 0.4 * k), c.a - 0.9, c.a + 0.9)
-      ctx.stroke()
+      ctx.lineCap = 'butt'
+      glow(x, y, m.r * 1.3, [255, 140, 60], 0.6)
+      put('ball', x, y, (m.r * 1.1) / 24)
+      world()
+      if (Math.random() < 0.5 * budget) spark(x + 10, y - 14, 30, -40, 0.35, 2.5, [255, 160, 60], 0)
     }
+    // the shadow ninjas: out of a puff beside the monster, a moment there
+    for (let i = clones.length - 1; i >= 0; i--) {
+      const cl = clones[i]
+      cl.t += dt
+      if (cl.t >= cl.land + 0.25) {
+        clones.splice(i, 1)
+        continue
+      }
+      if (cl.t < cl.land - 0.3) continue
+      const k = (cl.t - (cl.land - 0.3)) / 0.55
+      ctx.globalAlpha = Math.max(0, Math.min(1, k * 4, (1 - k) * 4)) * 0.85
+      glow(cl.x - cl.face * 18, cl.y - 6, 20, [110, 40, 200], 0.6)
+      drawFriend({ x: cl.x - cl.face * (18 - 20 * Math.min(1, k * 2)), y: cl.y, size: 1.1, mode: k > 0.5 ? 'attack' : 'move', atk: (k - 0.5) * 0.3, atkDur: 0.16, step: 0, moving: k <= 0.5, dir: 'e', face: cl.face, id: 7, rec: 0 }, now)
+      ctx.globalAlpha = 1
+      world()
+    }
+    // the slashes: a bright crescent and a crossing one
+    for (let i = slashes.length - 1; i >= 0; i--) {
+      const s = slashes[i]
+      s.t += dt
+      if (s.t >= SLASH) {
+        slashes.splice(i, 1)
+        continue
+      }
+      const k = s.t / SLASH
+      ctx.globalAlpha = 1 - k
+      for (const [da, col, w] of [
+        [0, '#ffffff', 4.5],
+        [Math.PI / 2, rgba(s.c, 1), 3],
+      ]) {
+        ctx.strokeStyle = col
+        ctx.lineWidth = w * (1 - k) + 1
+        ctx.beginPath()
+        ctx.arc(s.x, s.y - 8, s.r * (0.8 + 0.5 * k), s.a + da - 1.2, s.a + da + 1.2)
+        ctx.stroke()
+      }
+    }
+    ctx.globalAlpha = 1
+    // the big ones: an X across the monster (그림자 분신), a blast (메테오)
+    for (let i = flashes.length - 1; i >= 0; i--) {
+      const f = flashes[i]
+      f.t += dt
+      if (f.t >= f.life) {
+        flashes.splice(i, 1)
+        continue
+      }
+      const k = f.t / f.life
+      if (f.kind === 'x') {
+        const len = f.r * (0.6 + 1.2 * Math.min(1, k * 3))
+        ctx.globalAlpha = 1 - k
+        for (const a of [Math.PI / 4, -Math.PI / 4]) {
+          for (const [col, w] of [
+            ['rgba(130, 60, 255, 0.9)', 9],
+            ['#ffffff', 4],
+          ]) {
+            ctx.strokeStyle = col
+            ctx.lineWidth = w * (1 - k * 0.7)
+            ctx.beginPath()
+            ctx.moveTo(f.x - Math.cos(a) * len, f.y - 8 - Math.sin(a) * len)
+            ctx.lineTo(f.x + Math.cos(a) * len, f.y - 8 + Math.sin(a) * len)
+            ctx.stroke()
+          }
+        }
+      } else {
+        ctx.globalAlpha = 1 - k
+        glow(f.x, f.y - 6, f.r * (0.8 + 0.8 * k), [255, 240, 200], 0.9)
+        glow(f.x, f.y - 6, f.r * (1 + k), [255, 120, 40], 0.6)
+      }
+    }
+    ctx.globalAlpha = 1
+    // sparks
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i]
+      q.t += dt
+      if (q.t >= q.life) {
+        parts.splice(i, 1)
+        continue
+      }
+      q.vy += q.g * dt
+      q.x += q.vx * dt
+      q.y += q.vy * dt
+      ctx.globalAlpha = 1 - q.t / q.life
+      ctx.fillStyle = rgba(q.c, 1)
+      ctx.fillRect(q.x - q.s / 2, q.y - q.s / 2, q.s, q.s)
+    }
+    ctx.globalAlpha = 1
     for (let i = rings.length - 1; i >= 0; i--) {
       const r = rings[i]
       r.t += dt
@@ -227,11 +474,12 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       const k = r.t / r.life
       ctx.globalAlpha = 1 - k
       ctx.strokeStyle = r.c
-      ctx.lineWidth = 8 * (1 - k) + 2
+      ctx.lineWidth = (r.w || 8) * (1 - k) + 2
       ctx.beginPath()
-      ctx.arc(r.x, r.y, r.r * (0.15 + 0.85 * Math.sqrt(k)), 0, Math.PI * 2)
+      ctx.arc(r.x, r.y, r.r * (0.15 + 0.85 * Math.sqrt(k)), 0, TAU)
       ctx.stroke()
     }
+    impacts = rings.length
     ctx.textAlign = 'center'
     for (let i = words.length - 1; i >= 0; i--) {
       const w = words[i]
@@ -241,35 +489,80 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
         continue
       }
       const k = w.t / w.life
+      const pop = w.t < 0.15 ? 0.6 + (w.t / 0.15) * 0.6 : w.t < 0.3 ? 1.2 - ((w.t - 0.15) / 0.15) * 0.2 : 1
       ctx.globalAlpha = Math.min(1, (1 - k) * 3)
       ctx.font = font
       ctx.lineWidth = 4
       ctx.strokeStyle = 'rgba(255, 248, 232, 0.95)'
-      const y = w.y - k * 16
-      ctx.strokeText(w.text, w.x, y)
+      ctx.save()
+      ctx.translate(w.x, w.y - k * 16)
+      ctx.scale(pop * (w.big ? 1.35 : 1), pop * (w.big ? 1.35 : 1))
+      ctx.strokeText(w.text, 0, 0)
       ctx.fillStyle = w.c
-      ctx.fillText(w.text, w.x, y)
+      ctx.fillText(w.text, 0, 0)
+      ctx.restore()
     }
     ctx.globalAlpha = 1
   }
 
   function event(run, ev) {
+    const C = run.cls
+    const now = performance.now()
     if (ev.type === 'slash') {
-      if (crescents.length < MAX_CRESCENTS) crescents.push({ x: ev.x, y: ev.y, r: ev.r, a: Math.random() * Math.PI * 2, t: 0 })
+      if (slashes.length < MAX_SLASHES) slashes.push({ x: ev.x, y: ev.y, r: ev.r, a: Math.random() * TAU, t: 0, c: tierColor(classLevel(run), now) })
+      burst(ev.x, ev.y - 8, 4, 90, [200, 160, 255], 0.3)
+    } else if (ev.type === 'hit' && (ev.by === 'giant' || ev.by === 'shield') && impacts < MAX_IMPACTS) {
+      // a giant ball's blow: a small shock ring and sparks
+      if (Math.random() < 0.5) {
+        const c = tierColor(classLevel(run), now)
+        rings.push({ x: ev.x, y: ev.y, r: 26, t: 0, life: 0.22, c: rgba(c, 0.9), w: 4 })
+        burst(ev.x, ev.y, 3, 110, c, 0.3)
+      }
+    } else if (ev.type === 'skillCast' && C) {
+      for (const s of ev.list) {
+        if (ev.kind === 'ball') meteors.push({ x: s.x, y: s.y, r: s.r, t: 0, land: s.at })
+        else clones.push({ x: s.x, y: s.y, r: s.r, t: 0, land: s.at, face: Math.random() < 0.5 ? 1 : -1 })
+      }
+      words.push({ x: ev.x, y: ev.y - 58, text: run.D.zyo.skills[ev.kind], t: 0, life: 0.9, c: ev.kind === 'ball' ? '#d2452a' : '#7a3fd1' })
+    } else if (ev.type === 'skillHit') {
+      if (ev.kind === 'ball') {
+        flashes.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, life: 0.35, kind: 'blast' })
+        rings.push({ x: ev.x, y: ev.y - 4, r: ev.r * 1.6, t: 0, life: 0.4, c: 'rgba(255, 150, 60, 0.95)', w: 10 })
+        burst(ev.x, ev.y - 6, 12, 220, [255, 170, 70], 0.5, 3)
+        burst(ev.x, ev.y - 6, 6, 120, [120, 90, 80], 0.6, 3)
+      } else {
+        flashes.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, life: 0.32, kind: 'x' })
+        burst(ev.x, ev.y - 8, 10, 200, [190, 140, 255], 0.4, 2.5)
+        burst(ev.x, ev.y - 8, 5, 90, [60, 30, 90], 0.5, 4)
+      }
     } else if (ev.type === 'classReady') {
-      const D = run.D
-      const C = run.cls
-      rings.push({ x: ev.x, y: ev.y - 10, r: 90, t: 0, life: 0.5, c: 'rgba(255, 190, 90, 0.9)' })
-      words.push({ x: ev.x, y: ev.y - 46, text: `${D.zyo.forms[C.form]} 전직!`, t: 0, life: 1.6, c: '#8a3fd1' })
+      rings.push({ x: ev.x, y: ev.y - 10, r: 110, t: 0, life: 0.6, c: 'rgba(255, 190, 90, 0.95)', w: 12 })
+      burst(ev.x, ev.y - 10, 24, 240, [255, 220, 140], 0.7, 3)
+      words.push({ x: ev.x, y: ev.y - 50, text: `${run.D.upgrades.options['cls' + ev.k].name}!`, t: 0, life: 1.8, c: '#8a3fd1', big: true })
+    } else if (ev.type === 'powerUp' && C) {
+      const c = tierColor(ev.level, now)
+      flashT = 0.5
+      rings.push({ x: ev.x, y: ev.y - 10, r: 120, t: 0, life: 0.6, c: rgba(c, 0.95), w: 12 })
+      rings.push({ x: ev.x, y: ev.y - 10, r: 70, t: 0, life: 0.45, c: 'rgba(255, 255, 255, 0.9)', w: 6 })
+      burst(ev.x, ev.y - 10, 20, 220, c, 0.6, 3)
+      for (const u of C.units) burst(u.x, u.y - 8, 8, 140, c, 0.5, 3)
+      words.push({ x: ev.x, y: ev.y - 52, text: `전투력 Lv.${ev.level}!`, t: 0, life: 1.4, c: rgba(c, 1), big: true })
     } else if (ev.type === 'revive') {
-      rings.push({ x: ev.x, y: ev.y - 8, r: ev.r, t: 0, life: 0.7, c: 'rgba(255, 140, 40, 0.95)' })
+      rings.push({ x: ev.x, y: ev.y - 8, r: ev.r, t: 0, life: 0.7, c: 'rgba(255, 140, 40, 0.95)', w: 14 })
       rings.push({ x: ev.x, y: ev.y - 8, r: ev.r * 0.6, t: 0, life: 0.5, c: 'rgba(255, 240, 180, 0.95)' })
-      words.push({ x: ev.x, y: ev.y - 50, text: `${run.D.zyo.classes.B.special}!`, t: 0, life: 1.6, c: '#d2452a' })
+      flashes.push({ x: ev.x, y: ev.y, r: ev.r * 0.7, t: 0, life: 0.5, kind: 'blast' })
+      burst(ev.x, ev.y - 8, 30, 320, [255, 170, 70], 0.7, 3.5)
+      words.push({ x: ev.x, y: ev.y - 50, text: `${run.D.zyo.classes.B.special}!`, t: 0, life: 1.6, c: '#d2452a', big: true })
     } else if (ev.type === 'warp') {
-      rings.push({ x: ev.from.x, y: ev.from.y, r: 30, t: 0, life: 0.35, c: 'rgba(120, 90, 255, 0.9)' })
-      rings.push({ x: ev.to.x, y: ev.to.y, r: 40, t: 0, life: 0.45, c: 'rgba(70, 220, 255, 0.9)' })
+      rings.push({ x: ev.from.x, y: ev.from.y, r: 36, t: 0, life: 0.35, c: 'rgba(120, 90, 255, 0.9)' })
+      rings.push({ x: ev.to.x, y: ev.to.y, r: 50, t: 0, life: 0.45, c: 'rgba(70, 220, 255, 0.9)' })
+      burst(ev.to.x, ev.to.y - 8, 14, 180, [120, 200, 255], 0.45, 2.5)
     }
   }
 
-  return { shadows, under, over, event, reset: () => ((crescents.length = 0), (rings.length = 0), (words.length = 0)) }
+  const reset = () => {
+    for (const a of [slashes, rings, words, parts, meteors, clones, flashes]) a.length = 0
+    trails.clear()
+  }
+  return { shadows, under, over, event, reset }
 }
