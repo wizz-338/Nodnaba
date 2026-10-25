@@ -1227,8 +1227,8 @@
       "max": 9,
       "share": 0.6,
       "radius": 46,
-      "delay": 0.45,
-      "stagger": 0.07
+      "delay": 0.3,
+      "stagger": 0.045
     },
     "growth": {
       "perLevel": 0.07,
