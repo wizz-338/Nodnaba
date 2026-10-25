@@ -2190,12 +2190,14 @@ const still = { x: 0, y: 0 }
     while (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
     const changed = run.cls && run.cls.k === k && run.balls.length === 0 && run.friends.length === 0
     let later = 0
+    let grow = 0
     for (let i = 0; i < 8; i++) {
       levelUp(run)
       if (run.choices.some((id) => /^cls/.test(id) || Object.values(B.zyo.recipes).some((r) => r.mats.includes(id)))) later++
-      choose(run, run.choices[0], run.choiceSeq)
+      if (run.choices.filter((id) => id === 'power').length === 1 && run.zyoPick && run.zyoPick.ids.join() === 'power') grow++
+      choose(run, run.choices.find((id) => id !== 'power'), run.choiceSeq)
     }
-    ok(before === 0 && extra && offered && others === 0 && changed && later === 0 && run.pool.join() === [...B.zyo.keep, 'power'].join(), `${k} (${R.mats.join(' + ')}): no class card at 10 + 9; zyo_'s card is the one missing, a fourth card; at 10 + 10 the class card comes; taken, the ball and the cats stop and no recipe or class card ever comes again`)
+    ok(before === 0 && extra && offered && others === 0 && changed && later === 0 && grow === 8 && run.pool.join() === [...B.zyo.keep, 'power'].join(), `${k} (${R.mats.join(' + ')}): no class card at 10 + 9; zyo_'s card is the one missing, a fourth card; at 10 + 10 the class card comes; taken, the ball and the cats stop, no recipe or class card ever comes again, and the class's growth card is on show (marked by zyo_) at every level-up`)
   }
   // the class is never by itself: complete, it waits for the player
   const r = fresh({ seed: 50 })
@@ -2310,7 +2312,7 @@ const still = { x: 0, y: 0 }
     if (nc.player.hp > nc.player.maxHp) over = true
   }
   const gain = nc.player.hp - hp0
-  ok(gain > 0 && !over && gain <= B.zyo.lifesteal.perSecond * nc.player.maxHp * 4.2 + 1e-6, `흡혈: slashing a boss heals ${gain.toFixed(0)} in 4 s (never past full, at most ${B.zyo.lifesteal.perSecond * 100}% of her HP a second)`)
+  ok(gain > 0 && !over && gain <= B.zyo.lifesteal.perSecond * nc.player.maxHp * 5 + 1e-6, `흡혈: slashing a boss heals ${gain.toFixed(0)} in 4 s (never past full, at most ${B.zyo.lifesteal.perSecond * 100}% of her HP a second, and one second's worth kept in store)`)
   // 쌍둥이 워프홀: two holes far apart; in one, out of the other, never back at once
   const wd = make('D')
   const [h0, h1] = wd.cls.warps
@@ -2333,13 +2335,16 @@ const still = { x: 0, y: 0 }
   const pw = make('A', { tizzzz: true })
   const n0 = pw.cls.units.length
   const E = B.upgrades.effects.power
+  pw.level = (E.damageMulFrom || 0) + 10
+  const m0 = E.damageMul + (E.damageMulPerLevel || 0) * 10
+  const m1 = m0
   pw.state = 'levelup'
   pw.pending = 1
   pw.choices = ['power', 'crit']
   pw.choiceSeq++
   pw.edit = { id: 'power', seq: pw.choiceSeq }
   choose(pw, 'power', pw.choiceSeq)
-  ok(near(pw.cls.dmg, E.damageMul ** 2) && near(pw.cls.rate, E.rateMul ** 2) && pw.cls.units.length === n0, `전투력 (Tizzzz: twice): damage ×${E.damageMul}², rate ×${E.rateMul}²; still ${n0} giant balls`)
+  ok(near(pw.cls.dmg, m0 * m1) && near(pw.cls.rate, E.rateMul ** 2) && pw.cls.units.length === n0 && pw.picks.power === 2, `전투력 (Tizzzz: twice): damage ×${m0.toFixed(3)} twice (at level ${pw.level}: ${E.damageMul} + ${E.damageMulPerLevel} × 10), rate ×${E.rateMul}²; still ${n0} giant balls`)
 }
 // the skill over the screen, and what 전투력 levels change (never more units)
 {

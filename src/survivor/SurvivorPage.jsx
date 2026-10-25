@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
-import { isClassCard, classOf, classDps, firepower, recipes, bonusOf, classLevel } from './zyo.js'
+import { isClassCard, classOf, classDps, firepower, recipes, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03 } from './progress.js'
 import { createRenderer, short } from './render.js'
@@ -65,10 +65,18 @@ const pctOf = (v) => `${fmt(v * 100, 1)}%`
 // what a card really does: its effect straight from the balanceConfig (the
 // same numbers the game applies), then what it is now → what it becomes
 // (n: how many times it applies — Tizzzz's rewritten card does it more than once)
-const effectTag = (id, n = 1) => {
+const effectTag = (id, n = 1, run = null) => {
   if (isClassCard(id)) return D.zyo.classBadge
   const e = EFFECTS[id]
-  if (id === 'power') return `화력 ×${fmt((e.damageMul * e.rateMul) ** n, 2)}`
+  if (id === 'power') {
+    // (the later in the run, the more: see powerMul)
+    let m = 1
+    for (let i = 0; i < n; i++) {
+      const pm = run && run.cls ? powerMul(run) : { dmg: e.damageMul, rate: e.rateMul }
+      m *= pm.dmg * pm.rate
+    }
+    return `화력 ×${fmt(m, 2)}`
+  }
   if (id === 'crit' || id === 'split') return `+${fmt(e.add * n * 100)}%p`
   if (id === 'regen') return `최대 체력의 +${fmt(e.addMaxHpShare * n * 100)}%/초`
   if (id === 'nyang') return n > 1 ? `고양이 Lv.+${n}` : '고양이'
@@ -82,11 +90,11 @@ const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n)
 // what a level-up card does, for its colour (survivor-theme.css): attack,
 // defence, help, the cats, a class
 const CARD_KIND = {
-  count: 'atk', interval: 'atk', damage: 'atk', bounce: 'atk', crit: 'atk', critDamage: 'atk', ballSpeed: 'atk', size: 'atk', split: 'atk', power: 'atk',
+  count: 'atk', interval: 'atk', damage: 'atk', bounce: 'atk', crit: 'atk', critDamage: 'atk', ballSpeed: 'atk', size: 'atk', split: 'atk',
   maxHp: 'def', move: 'def', regen: 'def', armor: 'def',
   pickup: 'util', luck: 'util', xpGain: 'util', nyang: 'util',
 }
-const cardKind = (id) => (isClassCard(id) ? 'cls' : CARD_KIND[id] || (id.startsWith('cat') ? 'cat' : 'util'))
+const cardKind = (id) => (isClassCard(id) || id === 'power' ? 'cls' : CARD_KIND[id] || (id.startsWith('cat') ? 'cat' : 'util'))
 // the picks so far as pips, the one this card adds blinking (a long run of
 // picks: a number instead)
 const MAX_PIPS = 9
@@ -231,7 +239,7 @@ function RunStats({ run }) {
   if (run.nyang > 0) rows.push(['냥냥 연금술', `Lv.${run.nyang}`])
   if (run.cls) {
     const C = run.cls
-    rows.push(['전직', OPTIONS['cls' + C.k].name], ['전직 초당 피해', big(classDps(run))], ['전투력', `Lv.${classLevel(run)} · 공격 ×${fmt(C.dmg, 2)} · 빈도 ×${fmt(C.rate, 2)}`])
+    rows.push(['전직', OPTIONS['cls' + C.k].name], ['전직 초당 피해', big(classDps(run))], ['전직 레벨', `Lv.${classLevel(run)} · 공격 ×${fmt(C.dmg, 2)} · 빈도 ×${fmt(C.rate, 2)}`])
     if (C.k === 'B') rows.push(['최후의 반격', `${C.revives}회 남음`])
     if (C.k === 'C') rows.push(['흡혈로 회복', big(C.healed)])
   } else if (run.zyo) for (const r of recipes(run)) if (r.mats.every((m) => run.pool.includes(m))) rows.push([`전직 ${D.zyo.classes[r.k].special}`, r.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(D.balance.zyo.need, r.picks[i])}`).join(' · ')])
@@ -1998,7 +2006,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
             </button>
             {showStats && <RunStats run={run} />}
             {run.choices.map((id) => {
-              const o = OPTIONS[id]
+              // (the class's growth card wears the class's own name and picture)
+              const o = id === 'power' && run.cls ? { ...OPTIONS[id], ...OPTIONS['cls' + run.cls.k] } : OPTIONS[id]
               // Tizzzz's rewrite: the pen crosses the card, the old number is
               // struck out and the stronger one pops in (CSS only, ~1.2 s; the
               // card can be chosen at once, it is stronger from the start)
@@ -2023,7 +2032,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     const st = stageRef.current.getBoundingClientRect()
                     const n = ed ? T : 1
                     const key = `${run.choiceSeq}:${id}`
-                    g.fx = { key, x: r.left - st.left, y: r.top - st.top, w: r.width, h: r.height, o, name: o.name, tag: effectTag(id, n), text: change(run, id, n) }
+                    g.fx = { key, x: r.left - st.left, y: r.top - st.top, w: r.width, h: r.height, o, name: optionName(run, id), tag: effectTag(id, n, run), text: change(run, id, n) }
                     setTimeout(() => {
                       if (g.fx && g.fx.key === key) (g.fx = null), rerender()
                     }, PICK_FX_MS)
@@ -2038,16 +2047,16 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                     <CardIcon o={o} />
                   </span>
                   <span className="ms-card__body">
-                    <span className="ms-card__name">{o.name}</span>
-                    {!isClassCard(id) && <Pips n={run.picks[id] || 0} />}
+                    <span className="ms-card__name">{optionName(run, id)}</span>
+                    {!isClassCard(id) && id !== 'power' && <Pips n={run.picks[id] || 0} />}
                     {ed ? (
                       <span className="ms-card__num">
-                        <s className="ms-card__old">{effectTag(id)}</s> <b className="ms-card__new">{effectTag(id, T)}</b>{' '}
+                        <s className="ms-card__old">{effectTag(id, 1, run)}</s> <b className="ms-card__new">{effectTag(id, T, run)}</b>{' '}
                         <span className="ms-card__new">{change(run, id, T)}</span>
                       </span>
                     ) : (
                       <span className="ms-card__num">
-                        <b>{effectTag(id)}</b> {change(run, id)}
+                        <b>{effectTag(id, 1, run)}</b> {change(run, id)}
                       </span>
                     )}
                     {cardHint(run, id) && <span className="ms-card__hint">{cardHint(run, id)}</span>}

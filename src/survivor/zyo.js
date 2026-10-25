@@ -41,6 +41,13 @@ import { critCount, TAU } from './weapons.js'
 import { catDamage, catInterval } from './friends.js'
 
 export const CLASS_CARDS = { A: 'clsA', B: 'clsB', C: 'clsC', D: 'clsD' }
+// a card's name in this run: after the change 전투력 goes by the class's own
+// name (닌자냥이▪흡혈 …), as its level
+export const optionName = (run, id) => {
+  const O = run.D.upgrades.options
+  if (id === 'power' && run.cls) return O[CLASS_CARDS[run.cls.k]].name
+  return O[id] ? O[id].name : id
+}
 export const isClassCard = (id) => typeof id === 'string' && /^cls[A-D]$/.test(id)
 export const classOf = (id) => id.slice(3)
 
@@ -73,9 +80,12 @@ export function zyoTarget(run) {
 // zyo_'s cards for this level-up beside the three drawn (`shown`): the class
 // cards of the recipes complete, else one card of the recipe furthest along
 // (by the fewer picks of its two, then by all of them; one this run can pick
-// now: `open`), else none. Never after the change.
+// now: `open`), else none. After the change: the class's own growth card
+// (전투력, shown under the class's name) at every level-up, so the class keeps
+// growing as fast as the attack cards it gave up would have.
 export function zyoCards(run, shown, open) {
-  if (!run.zyo || run.cls) return []
+  if (run.cls) return shown.includes('power') ? [] : ['power']
+  if (!run.zyo) return []
   const Z = run.D.balance.zyo
   const R = recipes(run).filter((r) => r.mats.every((m) => run.pool.includes(m)))
   const ready = R.filter((r) => r.ready)
@@ -89,6 +99,7 @@ export function zyoCards(run, shown, open) {
 
 // the cards on show zyo_ marks: hers, and the drawn ones of her recipe
 export function zyoMarks(run, extra) {
+  if (run.cls) return run.choices.filter((id) => id === 'power')
   const r = zyoTarget(run)
   const need = run.D.balance.zyo.need
   const mine = r ? run.choices.filter((id) => r.mats.includes(id) && (run.picks[id] || 0) < need) : []
@@ -556,9 +567,17 @@ function updateWarps(run, dt) {
 
 // ── the 전투력 card ──────────────────────────────────────────────────────────
 
-// what one 전투력 does (pure): damage × damageMul, rate × rateMul
-export function powerPreview(run) {
+// what one 전투력 does (pure): damage × (damageMul + damageMulPerLevel × the
+// run's levels past damageMulFrom), rate × rateMul. The later in the run, the
+// more one adds: the attack cards the class gave up multiply on each other,
+// faster and faster as a run goes on, and the class keeps up with them
+// (by the run's level, so a class taken late catches up)
+export function powerMul(run, level = run.level) {
   const E = run.D.balance.upgrades.effects.power
+  return { dmg: E.damageMul + (E.damageMulPerLevel || 0) * Math.max(0, level - (E.damageMulFrom || 0)), rate: E.rateMul }
+}
+export function powerPreview(run) {
+  const m = powerMul(run)
   const C = run.cls
-  return { cls: { ...C, dmg: C.dmg * E.damageMul, rate: C.rate * E.rateMul } }
+  return { cls: { ...C, dmg: C.dmg * m.dmg, rate: C.rate * m.rate } }
 }
