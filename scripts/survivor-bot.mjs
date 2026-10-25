@@ -19,7 +19,7 @@
 //            class card
 // Every policy takes a class card (zyo_'s class change) when it is offered,
 // and 전투력 comes first after it.
-import { createRun, step, choose, reroll, chargePath, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, reroll, makeTurret, chargePath, FIXED } from '../src/survivor/game.js'
 import { touches, inGap, reachesAt } from '../src/survivor/bosses.js'
 
 export const POLICIES = {
@@ -166,12 +166,17 @@ export function pick(run, policy) {
   return c[0]
 }
 
-// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, rerolls, arena, maxTime }
-export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, zyo = false, blessings = {}, rerolls = 0, arena, maxTime = 600 } = {}) {
-  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, zyo, blessings, rerolls, arena })
+// one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, rerolls, arena, maxTime, turret, craft }
+export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, zyo = false, blessings = {}, rerolls = 0, arena, maxTime = 600, turret = false, craft } = {}) {
+  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, zyo, blessings, rerolls, arena, turret })
   const mem = {}
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
+    // (craft(run): the picks to spend on a turret now, or none)
+    if (run.state === 'levelup' && craft) {
+      const ids = craft(run)
+      if (ids) makeTurret(run, ids, run.choiceSeq)
+    }
     if (run.state === 'levelup') {
       // (a cats' recipe needs a cat before its cards come: 친구냥이 first)
       const line = policy.startsWith('zyo') && ZYO[policy.slice(3)][0].startsWith('cat') && run.cat.n === 0 ? ['catSummon'] : LINE[policy]

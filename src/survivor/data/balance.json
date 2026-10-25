@@ -1241,5 +1241,22 @@
       "perLevel": 0.07,
       "maxLevels": 12
     }
+  },
+  "turret": {
+    "note": "the turret (turret.js; its words: turret.json). From activeFromChapter on, in a run with it (chapter 20's reward), a level-up can be spent on a turret: cost picks of the upgrades this run took (any of them, the same twice or two; never a class's recipe cards) are taken back exactly and one turret stands at a random spot in the field (margin px in from its edge, apart px from the others, clear px off any monster; the best of tries). One kind only. It shoots the nearest monster within range px every interval s (retry s when none; first s after it is made; kick: its barrel's recoil s): a blow of power × the run's firepower now (its ball and cats, a second; never under a usual build's at its level: the class's floor, zyo.js → classBase) × interval — the same for every turret, never more for what was given (taking picks back lowers every turret's blow with the rest). Turrets stay until the run ends; an extra special boss's fight area takes them inside it.",
+    "activeFromChapter": 21,
+    "cost": 2,
+    "range": 230,
+    "interval": 0.7,
+    "first": 0.5,
+    "retry": 0.15,
+    "kick": 0.12,
+    "power": 1,
+    "place": {
+      "margin": 40,
+      "apart": 70,
+      "clear": 24,
+      "tries": 24
+    }
   }
 }

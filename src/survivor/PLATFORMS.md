@@ -31,6 +31,14 @@ only in its platform-specific part.
   zyo`; names and words: `zyo.json`. The warp holes sit at shares of the
   field, so on the PC they are far apart off screen and on the phone both
   are on it.
+- `turret.js` — the turret (chapter 20's reward, from chapter 21): at a
+  level-up two picks of this run's upgrades are taken back exactly and one
+  turret stands at a random spot of the field (the extra special boss's
+  fight area while it lasts), shooting the nearest monster. The craft screen
+  is in `SurvivorPage.jsx` (`TurretCraft`; on the PC its list has two
+  columns), the drawing in `render.js`. Numbers: `balance.json → turret`;
+  words: `turret.json`. Turrets stand in the field, not on the screen, so on
+  the PC some are off screen.
 - `friends.js` — 친구냥이, the fighting cats (cards, AI, damage), and the
   rerolls (`reroll` in game.js): the same on both. Their leash
   (`friendCats.leash`) is in field px, so on the PC (a wider view) they
@@ -56,7 +64,9 @@ only in its platform-specific part.
   made by `scripts/survivor-ep01-assets.py`), `ep02-assets.json` (chapter
   10's clear cutscenes, MANO_CH10_CUTSCENES: `scripts/survivor-ep02-assets.py`),
   `ep03-assets.json` (chapter 15's, MANO_CH15_CUTSCENES, with zyo_'s reward
-  picture and face: `scripts/survivor-ep03-assets.py`).
+  picture and face: `scripts/survivor-ep03-assets.py`), `ep04-assets.json`
+  (chapter 20's, MANO_CH20_CUTSCENES, with the turret's reward picture:
+  `scripts/survivor-ep04-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.

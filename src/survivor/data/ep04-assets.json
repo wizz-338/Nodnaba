@@ -1,0 +1,108 @@
+{
+ "note": "MANO SURVIVOR chapter 20 clear package (MANO_CH20_CUTSCENES, built by scripts/survivor-ep04-assets.py). images: the same form as story-assets.json (merged into it by data.js).",
+ "package": "MANO_CH20_CUTSCENES",
+ "images": [
+  {
+   "source": "ep04_clear_01_cards.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "50ddcb1e8f7c851c3b7b1f37a80da154f48493742162524a1fb42305b3acd74f",
+   "id": "ep04_clear_01",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "카드 만지작",
+   "file": "ep04/cutscenes/ep04_clear_01.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 183166
+  },
+  {
+   "source": "ep04_clear_02_combine.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "1933c3719904f28a28b60fca7236f473305a02943d2c811b171c7161cfb2af34",
+   "id": "ep04_clear_02",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "카드 합치기",
+   "file": "ep04/cutscenes/ep04_clear_02.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 166328
+  },
+  {
+   "source": "ep04_clear_03_turret.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "fa12983e2448c28bd20342aa4d9455eba502d2f7abde678ec3cce51bcb82b77e",
+   "id": "ep04_clear_03",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "포탑 등장",
+   "file": "ep04/cutscenes/ep04_clear_03.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 173248
+  },
+  {
+   "source": "ep04_clear_04_fire.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "15ce74b6e2f5ef1431d9e41c913acf08cba7476fd3b767daf71f009100781f8d",
+   "id": "ep04_clear_04",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "포탑 발사",
+   "file": "ep04/cutscenes/ep04_clear_04.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 162270
+  },
+  {
+   "source": "ep04_clear_05_departure.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "0bdda5cb5843ac7b8b37a2446e748fe3b8f03c6697c950744a88797a6faf35ba",
+   "id": "ep04_clear_05",
+   "kind": "cutscene",
+   "region": "desert",
+   "name": "다음 모험",
+   "file": "ep04/cutscenes/ep04_clear_05.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 203966
+  },
+  {
+   "source": "ep04_clear_03_turret.png",
+   "width": 480,
+   "height": 480,
+   "sha256": "fa12983e2448c28bd20342aa4d9455eba502d2f7abde678ec3cce51bcb82b77e",
+   "id": "reward_turret",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    280,
+    250,
+    760,
+    730
+   ],
+   "name": "포탑",
+   "file": "ep04/rewards/reward_turret.webp",
+   "out": [
+    256,
+    256
+   ],
+   "bytes": 19148
+  }
+ ]
+}

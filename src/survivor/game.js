@@ -14,6 +14,7 @@
 
 import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
+import { snap, recordPick, takeBack, fits, placeTurret, relocateTurrets, updateTurrets } from './turret.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
 import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, powerPreview, optionName, firepower } from './zyo.js'
 
@@ -126,6 +127,7 @@ export function createRun(D, opts) {
   const withWriter = !!opts.tizzzz && chapter >= B.tizzzz.activeFromChapter
   // zyo_'s class change from her chapter on (zyo.js)
   const withZyo = !!opts.zyo && chapter >= B.zyo.activeFromChapter
+  const withTurret = !!opts.turret && chapter >= B.turret.activeFromChapter
   const pool = [...def.core, ...B.upgrades.pool.filter((id) => !CORE.includes(id))]
   // with the cats, the magnet's place among the cards goes to 냥냥 연금술, and
   // the friend cats' five cards come in (four of them once there is a cat)
@@ -192,6 +194,12 @@ export function createRun(D, opts) {
     writer: withWriter,
     zyo: withZyo,
     cls: null, // the class this run changed into (zyo.js), once
+    // the turret (turret.js): whether it can be made this run, the turrets
+    // standing, and what each pick changed (so two can be taken back)
+    turretOn: withTurret,
+    turrets: [],
+    turretId: 1,
+    applied: {},
     zyoPick: null, // { ids, seq }: zyo_'s cards among those on show
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
     region: regionOf(D, chapter), // where the chapter is: its monsters' looks and mix
@@ -1412,7 +1420,10 @@ export function choose(run, id, seq) {
     run.picks[id] = 1
     run.log.push(id)
   } else for (let i = 0; i < times; i++) {
+    // (what it changes is kept, so a turret can take it back: turret.js)
+    const before = snap(run)
     applyChange(run, applyPreview(run, id))
+    recordPick(run, id, before)
     run.picks[id] = (run.picks[id] || 0) + 1
     run.log.push(id)
   }
@@ -1427,6 +1438,25 @@ export function choose(run, id, seq) {
     run.choiceSeq++
   }
   return true
+}
+
+// A level-up spent on a turret (turret.js): `ids`, two picks of this run's
+// upgrades (one card twice, or two cards), are taken back and one turret
+// stands on the field. `seq` must be the one shown with the cards. Returns
+// the turret, or null (nothing is taken).
+export function makeTurret(run, ids, seq) {
+  if (run.state !== 'levelup' || seq !== run.choiceSeq || !run.turretOn || !fits(run, ids)) return null
+  for (const id of ids) takeBack(run, id)
+  const t = placeTurret(run)
+  run.stats.turrets = (run.stats.turrets || 0) + 1
+  run.pending--
+  if (run.pending > 0) openChoice(run)
+  else {
+    run.state = 'play'
+    run.choices = null
+    run.choiceSeq++
+  }
+  return t
 }
 
 // A redraw (the rerolls of chapter 5's reward): the cards on show are put
@@ -1471,6 +1501,8 @@ function startExtra(run) {
   const id = extraOf(run.D, run.chapter)
   const S = extraSpec(run.D, id)
   run.extra = { id, phase: 'calm', t: 0, box: run.view.slice(), boss: null, final: !!S.final }
+  // (the turrets outside its fight area are put inside it)
+  relocateTurrets(run)
   // (the fallen boss has lain its time: it fades with the rest)
   for (const e of run.enemies) if (e.state !== 'gone') (e.state = 'gone'), (e.t = 0)
   run.hazards = []
@@ -1619,6 +1651,7 @@ function tick(run, dt, input) {
     run.behaviour.update(run, dt)
     updateFriends(run, dt)
   }
+  updateTurrets(run, dt)
   if (run.balls.length > run.stats.peakBalls) run.stats.peakBalls = run.balls.length
   // finished death animations leave
   if (run.enemies.some(gone)) run.enemies = run.enemies.filter((e) => !gone(e))

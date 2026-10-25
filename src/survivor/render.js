@@ -68,6 +68,14 @@ const KICK = { hurt: [3, 0.18], meteor: [4.5, 0.18], slash: [1.6, 0.1], big: [7,
 const PUNCH = 0.12
 const PUNCH_SCALE = 0.16
 const PUNCH_PX = 3
+// the turrets (turret.js): drawn in code (a stone block and a white-and-blue
+// cannon with a red mouth, as in chapter 20's cutscene), turned to what it
+// shoots; its shot a little red ball, flying SHOT s
+const TURRET_H = 16 // the cannon's height over the ground
+const AIMS = 32 // the cannon's pictures, one for each of these angles
+const GUN_R = 20 // half the side of a cannon's picture (its longest reach is 19)
+const SHOT = 0.12
+const MAX_SHOTS = 60
 // Mano's own health bar under her feet (logical px)
 const HPBAR_W = 30
 const HPBAR_H = 4.5
@@ -127,6 +135,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const fx = []
   const numbers = []
   const sparks = []
+  const shots = [] // the turrets' balls in flight
   const rings = [] // a bright ring where an elite or boss fell
   let shakeT = 0
   let shakeDur = 1
@@ -971,6 +980,92 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.fillRect(x, y, HPBAR_W * v, 1.2)
   }
 
+  // a turret: its block, then the cannon turned to its aim, kicked back as it
+  // fires
+  function drawTurret(run, t) {
+    const sp = turretArt(kd())
+    world()
+    // the stone block, then the cannon turned to its aim (one of AIMS
+    // pictures, never rotated as it is drawn) and kicked back as it fires
+    const T = run.D.balance.turret
+    const back = t.kick > 0 ? (t.kick / T.kick) * 3 : 0
+    const i = ((Math.round((t.aim / (Math.PI * 2)) * AIMS) % AIMS) + AIMS) % AIMS
+    const a = (i / AIMS) * Math.PI * 2
+    ctx.drawImage(sp.block, t.x - 15, t.y - 16, 30, 19)
+    ctx.drawImage(sp.guns[i], t.x - Math.cos(a) * back - GUN_R, t.y - TURRET_H - Math.sin(a) * back - GUN_R, GUN_R * 2, GUN_R * 2)
+  }
+
+  // the turret's pictures, drawn in code once for the screen's scale: the
+  // stone block, and the cannon (with its gold pivot) at AIMS angles
+  let turretSprites = null
+  function turretArt(k) {
+    if (turretSprites && turretSprites.k === k) return turretSprites
+    const make = (w, h, ox, oy, draw) => {
+      const c = document.createElement('canvas')
+      c.width = Math.max(1, Math.ceil(w * k))
+      c.height = Math.max(1, Math.ceil(h * k))
+      const g = c.getContext('2d')
+      g.scale(c.width / w, c.height / h)
+      g.translate(ox, oy)
+      g.lineWidth = 1.5
+      g.strokeStyle = '#4a3a28'
+      draw(g)
+      return c
+    }
+    const gun = (a) => (g) => {
+      g.save()
+      g.rotate(a)
+      g.fillStyle = '#f2efe6'
+      g.beginPath()
+      g.roundRect(-8, -5.5, 19, 11, 5)
+      g.fill()
+      g.stroke()
+      g.fillStyle = '#5b7fba'
+      g.fillRect(-1, -5.5, 5, 11)
+      g.strokeRect(-1, -5.5, 5, 11)
+      g.fillStyle = '#e2453b'
+      g.beginPath()
+      g.roundRect(10, -6.5, 5, 13, 2)
+      g.fill()
+      g.stroke()
+      g.restore()
+      g.fillStyle = '#e9b949'
+      g.beginPath()
+      g.arc(0, 0, 2.6, 0, Math.PI * 2)
+      g.fill()
+      g.stroke()
+    }
+    turretSprites = {
+      k,
+      // (block: x −15…15, y −16…3 around its foot)
+      block: make(30, 19, 15, 16, (g) => {
+        g.fillStyle = '#c9ad7c'
+        g.fillRect(-13, -9, 26, 10)
+        g.strokeRect(-13, -9, 26, 10)
+        g.fillStyle = '#ead6aa'
+        g.fillRect(-13, -14, 26, 6)
+        g.strokeRect(-13, -14, 26, 6)
+      }),
+      // (cannon: a square of GUN_R around its pivot)
+      guns: Array.from({ length: AIMS }, (_, i) => make(GUN_R * 2, GUN_R * 2, GUN_R, GUN_R, gun((i / AIMS) * Math.PI * 2))),
+    }
+    return turretSprites
+  }
+
+  function drawShots(dt) {
+    for (let i = shots.length - 1; i >= 0; i--) {
+      const b = shots[i]
+      b.t += dt
+      if (b.t >= SHOT) {
+        shots.splice(i, 1)
+        if (fx.length < MAX_FX) fx.push({ anim: 'impact', x: b.x1, y: b.y1, t: 0, s: 0.55 })
+        continue
+      }
+      const k = b.t / SHOT
+      put('ball', b.x0 + (b.x1 - b.x0) * k, b.y0 + (b.y1 - b.y0) * k, 8 / 24)
+    }
+  }
+
   function addSparks(x, y, n, speed) {
     for (let i = 0; i < n && sparks.length < MAX_SPARKS; i++) {
       const a = Math.random() * Math.PI * 2
@@ -1255,6 +1350,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const [vx0, vy0, vx1, vy1] = run.view
     const seen = run.friends.filter((c) => c.x > vx0 - 40 && c.x < vx1 + 40 && c.y > vy0 - 20 && c.y < vy1 + 60)
     for (const c of seen) shadow(c.x, c.y, 8 * c.size, 2.6 * c.size)
+    for (const t of run.turrets) if (t.x > vx0 - 30 && t.x < vx1 + 30 && t.y > vy0 - 20 && t.y < vy1 + 40) shadow(t.x, t.y + 1, 15, 5)
     for (const e of run.enemies) {
       const w = e.r * 1.15
       if (e.state === 'spawn') {
@@ -1285,8 +1381,10 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     list.push([p.y + 0.01, 1, p])
     for (const c of run.cats) list.push([c.y, 2, c])
     for (const c of seen) list.push([c.y, 3, c])
+    // (turrets off the screen are not drawn: on the PC the field is wider)
+    for (const t of run.turrets) if (t.x > vx0 - 30 && t.x < vx1 + 30 && t.y > vy0 - 20 && t.y < vy1 + 40) list.push([t.y, 4, t])
     list.sort((a, b) => a[0] - b[0])
-    for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : drawEnemy(run, o))
+    for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : kind === 4 ? drawTurret(run, o) : drawEnemy(run, o))
     drawManoBar(run)
     for (const b of run.balls) drawBall(b, !busy)
     zfx.over(run, now, dt)
@@ -1301,6 +1399,13 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       xfx.event(run, ev)
       zfx.event(run, ev)
       if (ev.type === 'skillHit') kick(ev.kind === 'ball' ? KICK.meteor : KICK.slash)
+      if (ev.type === 'turretShot' && shots.length < MAX_SHOTS) shots.push({ x0: ev.x, y0: ev.y - TURRET_H, x1: ev.tx, y1: ev.ty - 8, t: 0 })
+      if (ev.type === 'turretMade') {
+        rings.push({ x: ev.x, y: ev.y - 8, r: 40, t: 0 })
+        addSparks(ev.x, ev.y - 10, 12, 140)
+        fx.push({ anim: 'dust', x: ev.x, y: ev.y - 2, t: 0, s: 1.1 })
+        if (!ev.moved) numbers.push({ x: ev.x, y: ev.y - 40, text: D.turret.made, t: 0, color: '#ffd84a' })
+      }
       if (ev.type === 'hit') {
         // (a cat's scratch has its own claw marks, not the ball's impact)
         if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: ev.crit ? 0.95 : 0.75 })
@@ -1370,6 +1475,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       }
       put(f.frame || animFrame(f.anim, f.t * 1000, false), f.x, f.y, f.s, { alpha: f.frame ? Math.min(1, (d - f.t) * 4) : 1 })
     }
+    drawShots(dt)
     drawSparks(dt)
     shake(dt)
     // damage and the like rising and fading; critical hits after the rest,
@@ -1437,7 +1543,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (xfx) xfx.reset()
       if (zfx) zfx.reset()
       Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
-      sparks.length = rings.length = 0
+      sparks.length = rings.length = shots.length = 0
       shakeT = shakeAmp = 0
       shake(0)
     },
