@@ -3,12 +3,14 @@
    of the game's art: a warm off-white page, white cards with a soft shadow
    and no outlines, one accent (the red of Mano's ball), plain bold headings,
    flat buttons, tabs as a segmented control. Level-up cards carry a thin
-   colour by what they do (attack, defence, help, cats, class). Both
-   platforms. (`--bg` is the lobby's picture, set on the page itself.) */
+   colour by what they do (attack, defence, help, cats, class). Everything
+   has a thin dark outline (--edge), as the game's art does; a card that
+   stands out has it in its own colour. Both platforms. (`--bg` is the lobby's picture, set on the page itself.) */
 .ms {
   --ink: #2b2420; /* text */
   --ink-2: #6f655e; /* secondary text */
   --line: rgba(43, 36, 32, 0.08);
+  --edge: #3a302b; /* the outlines */
   --page: #f8f4ef;
   --card: #ffffff;
   --soft: #f3eee8; /* quiet surfaces inside a card */
@@ -806,3 +808,140 @@
     animation: none;
   }
 }
+
+/* ── the outlines: a thin dark line round everything, as in the game's art;
+   a card that stands out has it in its own colour ─────────────────────── */
+.ms .ms-panel,
+.ms .ms-level,
+.ms .ms-epinfo,
+.ms .ms-page--lobby .ms-panel,
+.ms .ms-notice,
+.ms .ms-page--lobby .ms-notice,
+.ms .ms-cut__box,
+.ms .ms-story__box,
+.ms .ms-story__title,
+.ms.ms--pc .ms-lobby__rail {
+  border: 2px solid var(--edge);
+}
+
+.ms .ms-btn,
+.ms .ms-page--lobby .ms-exit,
+.ms .ms-page--lobby .ms-arrow,
+.ms .ms-coins,
+.ms .ms-page--lobby .ms-coins,
+.ms .ms-tabs,
+.ms .ms-card,
+.ms .ms-inv__item,
+.ms .ms-stat,
+.ms .ms-runstats,
+.ms .ms-chapter,
+.ms .ms-ep,
+.ms .ms-cut__banner {
+  border: 2px solid var(--edge);
+}
+
+.ms .ms-loot li,
+.ms .ms-reward,
+.ms .ms-stats div,
+.ms .ms-build li,
+.ms .ms-card__icon,
+.ms .ms-tab.is-on,
+.ms .ms-page--lobby .ms-tab.is-on,
+.ms .ms-card__badge,
+.ms .ms-ep__tag,
+.ms .ms-hudtext--level b {
+  border: 1.5px solid var(--edge);
+}
+
+.ms .ms-btn:disabled {
+  border-color: #b7aca4;
+}
+
+/* (the PC's rail: its parts inside the outlined board) */
+.ms.ms--pc .ms-tabs {
+  border: 0;
+}
+
+.ms.ms--pc .ms-tab.is-on,
+.ms.ms--pc .ms-page--lobby .ms-tab.is-on {
+  border: 2px solid var(--accent);
+}
+
+.ms .ms-ep.is-on {
+  border-color: var(--edge);
+}
+
+.ms .ms-chapter.is-on {
+  border-color: var(--edge);
+}
+
+.ms .ms-inv__item {
+  box-shadow: inset 4px 0 0 var(--g);
+}
+
+.ms .ms-inv__item.is-on,
+.ms .ms-inv__item.is-sel {
+  border-color: var(--accent);
+  box-shadow:
+    inset 4px 0 0 var(--g),
+    0 0 0 2px var(--accent-soft),
+    var(--shadow);
+}
+
+/* the level-up cards: the line, and a stand-out card's own colour */
+.ms .ms-card {
+  box-shadow: 0 2px 0 var(--edge);
+}
+
+@media (hover: hover) {
+  .ms .ms-card:hover {
+    border-color: var(--k);
+    box-shadow: 0 2px 0 var(--k), 0 8px 18px rgba(43, 36, 32, 0.1);
+  }
+}
+
+.ms .ms-card.is-edited {
+  border-color: #d2408d;
+  box-shadow: 0 2px 0 #d2408d, 0 4px 14px rgba(228, 90, 160, 0.16);
+}
+
+.ms .ms-card.is-zyo {
+  border-color: #17885a;
+  box-shadow: 0 2px 0 #17885a, 0 4px 14px rgba(31, 163, 107, 0.16);
+}
+
+.ms .ms-card.is-class {
+  border-color: #7444e0;
+  box-shadow: 0 2px 0 #7444e0, 0 6px 18px rgba(139, 92, 246, 0.22);
+}
+
+.ms .ms-card__badge {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.ms .ms-card__icon {
+  border-color: color-mix(in srgb, var(--k) 55%, var(--edge));
+}
+
+/* buttons: the line and a small foot under it */
+.ms .ms-btn {
+  box-shadow: 0 2px 0 var(--edge);
+}
+
+.ms .ms-btn--primary {
+  box-shadow: 0 2px 0 var(--edge), 0 4px 12px rgba(239, 81, 70, 0.22);
+}
+
+.ms .ms-startbtn {
+  box-shadow: 0 3px 0 var(--edge), 0 8px 20px rgba(239, 81, 70, 0.28);
+}
+
+.ms .ms-btn:disabled {
+  box-shadow: none;
+}
+
+.ms .ms-btn:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--edge);
+  translate: 0 2px;
+}
+

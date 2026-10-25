@@ -82,7 +82,7 @@ only in its platform-specific part.
   bands above and below.
 - `survivor-theme.css` — the look of both (loaded after `survivor.css`, which
   keeps the layout): clean and light — a warm off-white page, white cards
-  with soft shadows and no outlines, flat buttons in one accent (Mano's red),
+  with soft shadows and a thin dark outline, flat buttons in one accent (Mano's red),
   tabs as a segmented control, level-up cards tinted by what they do
   (`data-kind`), the battle bar's colours and the low-health red edge. A look
   change goes here, for both platforms at once.
