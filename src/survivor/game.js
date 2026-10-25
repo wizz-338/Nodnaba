@@ -155,8 +155,9 @@ export function createRun(D, opts) {
       vy: 0,
       hp,
       maxHp: hp,
-      speed: B.player.speed * pm.move,
-      baseSpeed: B.player.speed,
+      // (the PC field is wider than the phone's: Mano runs arena.speedMul as fast)
+      speed: B.player.speed * pm.move * (arena.speedMul || 1),
+      baseSpeed: B.player.speed * (arena.speedMul || 1),
       hitR: B.player.hitRadius,
       pickupR: B.player.pickupRadius,
       regen: 0,
