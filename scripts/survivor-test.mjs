@@ -8,7 +8,7 @@ import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
-import { growth, classLevel, zyoMarks } from '../src/survivor/zyo.js'
+import { growth, classLevel, zyoMarks, firepower } from '../src/survivor/zyo.js'
 import { migrateStory } from '../src/survivor/progress.js'
 
 let fails = 0
@@ -2140,7 +2140,7 @@ const still = { x: 0, y: 0 }
   const R15 = S.rewards.skulltown
   ok(R15.lines.join('|') === 'zyo_ 전직 해금!|리롤 +2 (총 6회)' && R15.images.includes('reward_zyo') && D.storyAssets.images.some((x) => x.id === 'reward_zyo') && D.storyAssets.images.some((x) => x.id === 'zyo_face'), 'the reward popup: zyo_ 전직 해금! and 리롤 +2 (총 6회), with its pictures')
   const Z = B.zyo
-  ok(Z.activeFromChapter === 16 && Z.need === 10 && Object.values(Z.recipes).map((r) => r.mats.join('+')).join() === 'size+count,interval+ballSpeed,catSize+catRate,catSpeed+catClaw', 'four recipes, two cards ×10 each, from chapter 16')
+  ok(Z.activeFromChapter === 16 && Z.need === 7 && Object.values(Z.recipes).map((r) => r.mats.join('+')).join() === 'size+count,interval+ballSpeed,catSize+catRate,catSpeed+catClaw', 'four recipes, two cards ×7 each, from chapter 16')
   ok(Object.values(Z.recipes).every((r) => r.mats.every((m) => !B.upgrades.effects[m].levels)), 'every recipe card has no last level: ten picks are always possible')
 }
 // the recipe: zyo_'s card, then the class card; nothing before her chapter or without her
@@ -2164,50 +2164,72 @@ const still = { x: 0, y: 0 }
     return run
   }
   ok(!newRun({ chapter: 15, zyo: true }).zyo && !newRun({ chapter: 16 }).zyo && newRun({ chapter: 16, zyo: true }).zyo, 'zyo_ is in a run from chapter 16, and only with her')
+  const N = B.zyo.need
   for (const [k, R] of Object.entries(B.zyo.recipes)) {
     const run = fresh({ seed: 30 + k.charCodeAt(0) })
     if (R.form === 'ninja') give(run, 'catSummon', 2)
-    give(run, R.mats[0], 10)
-    give(run, R.mats[1], 9)
+    give(run, R.mats[0], N)
+    give(run, R.mats[1], N - 1)
+    // one short: never a class card, never a fourth card; her recipe's card
+    // when it comes (at random, as any other) is marked
     let before = 0
-    for (let i = 0; i < 6; i++) {
+    let four = 0
+    let marked = 0
+    let seen = 0
+    for (let i = 0; i < 40; i++) {
       levelUp(run)
       if (run.choices.some((id) => /^cls/.test(id))) before++
+      if (run.choices.length !== 3) four++
+      if (run.choices.includes(R.mats[1])) seen++, run.zyoPick && run.zyoPick.ids.includes(R.mats[1]) && marked++
       choose(run, run.choices.find((id) => !R.mats.includes(id)) || run.choices[0], run.choiceSeq)
+      while (run.state === 'levelup') choose(run, run.choices.find((id) => !R.mats.includes(id)) || run.choices[0], run.choiceSeq)
     }
-    // (zyo_'s card: the one left, beside three drawn ones)
-    levelUp(run)
-    const zy = run.zyoPick && run.zyoPick.ids[0]
-    const extra = run.choices.length === 4 && zy === R.mats[1] && run.choices.indexOf(zy) === 3
-    if (run.choices.includes(R.mats[1])) choose(run, R.mats[1], run.choiceSeq)
-    else give(run, R.mats[1], 1)
-    while (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
-    levelUp(run)
-    const offered = run.choices.includes('cls' + k)
+    give(run, R.mats[1], 1)
+    // complete: its class card is drawn at random among the others
+    let offered = 0
     let others = 0
-    for (const o of Object.keys(B.zyo.recipes)) if (o !== k && run.choices.includes('cls' + o)) others++
+    for (let i = 0; i < 60 && !offered; i++) {
+      levelUp(run)
+      if (run.choices.length !== 3) four++
+      if (run.choices.includes('cls' + k)) offered++, run.zyoPick && run.zyoPick.ids.includes('cls' + k) ? 0 : (marked = -99)
+      for (const o of Object.keys(B.zyo.recipes)) if (o !== k && run.choices.includes('cls' + o)) others++
+      if (!offered) while (run.state === 'levelup') choose(run, run.choices.find((id) => !/^cls/.test(id)) || run.choices[0], run.choiceSeq)
+    }
     choose(run, 'cls' + k, run.choiceSeq)
     while (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
     const changed = run.cls && run.cls.k === k && run.balls.length === 0 && run.friends.length === 0
     let later = 0
     let grow = 0
-    for (let i = 0; i < 8; i++) {
+    let growMarked = 0
+    for (let i = 0; i < 30; i++) {
       levelUp(run)
+      if (run.choices.length !== 3) four++
       if (run.choices.some((id) => /^cls/.test(id) || Object.values(B.zyo.recipes).some((r) => r.mats.includes(id)))) later++
-      if (run.choices.filter((id) => id === 'power').length === 1 && run.zyoPick && run.zyoPick.ids.join() === 'power') grow++
-      choose(run, run.choices.find((id) => id !== 'power'), run.choiceSeq)
+      if (run.choices.includes('power')) grow++, run.zyoPick && run.zyoPick.ids.join() === 'power' && growMarked++
+      choose(run, run.choices.find((id) => id !== 'power') || run.choices[0], run.choiceSeq)
     }
-    ok(before === 0 && extra && offered && others === 0 && changed && later === 0 && grow === 8 && run.pool.join() === [...B.zyo.keep, 'power'].join(), `${k} (${R.mats.join(' + ')}): no class card at 10 + 9; zyo_'s card is the one missing, a fourth card; at 10 + 10 the class card comes; taken, the ball and the cats stop, no recipe or class card ever comes again, and the class's growth card is on show (marked by zyo_) at every level-up`)
+    ok(before === 0 && four === 0 && seen > 0 && marked === seen && offered && others === 0 && changed && later === 0 && grow > 0 && grow < 30 && growMarked === grow && run.pool.join() === [...B.zyo.keep, 'power'].join(), `${k} (${R.mats.join(' + ')}): at ${N} + ${N - 1} no class card; never a fourth card (zyo_ adds none); her recipe's card, when it comes at random, is marked (${marked}/${seen}); at ${N} + ${N} the class card comes at random among the three, marked; taken, the ball and the cats stop, no recipe or class card again, the class's growth card comes now and then (${grow} of 30) and is marked`)
   }
   // the class is never by itself: complete, it waits for the player
   const r = fresh({ seed: 50 })
-  give(r, 'size', 10)
-  give(r, 'count', 10)
+  give(r, 'size', B.zyo.need)
+  give(r, 'count', B.zyo.need)
   for (let i = 0; i < 60 * 3; i++) step(r, FIXED, still)
   ok(!r.cls, 'a complete recipe changes nothing until its card is chosen')
+  // the class's floor: a weak build changing late starts from a usual build's
+  // firepower at its level, never from less
+  {
+    const w = fresh({ seed: 53 })
+    give(w, 'size', B.zyo.need)
+    give(w, 'count', B.zyo.need)
+    w.level = 45
+    const fp = firepower(w)
+    const floor = w.fp0 * Math.exp(B.zyo.floor.perLevel * 44)
+    give(w, 'clsA', 1)
+    ok(w.fp0 > 0 && fp < floor && near(w.cls.base, floor), `a weak build at level 45 (firepower ${fp.toExponential(2)}) starts its class from the floor ${floor.toExponential(2)} (its start × e^(${B.zyo.floor.perLevel} × 44))`)
+  }
   // once a run: a second class card is refused
-  levelUp(r)
-  choose(r, 'clsA', r.choiceSeq)
+  give(r, 'clsA', 1)
   r.state = 'levelup'
   r.pending = 1
   r.choices = ['clsB']
@@ -2225,11 +2247,9 @@ const still = { x: 0, y: 0 }
   // the collectors stay; the fighting cats never come back
   const c = fresh({ seed: 52 })
   give(c, 'catSummon', 3)
-  give(c, 'catSize', 10)
-  give(c, 'catRate', 10)
-  levelUp(c)
-  choose(c, 'clsC', c.choiceSeq)
-  while (c.state === 'levelup') choose(c, c.choices[0], c.choiceSeq)
+  give(c, 'catSize', B.zyo.need)
+  give(c, 'catRate', B.zyo.need)
+  give(c, 'clsC', 1)
   for (let i = 0; i < 60 * 3; i++) step(c, FIXED, still)
   ok(c.friends.length === 0 && c.cats.length === 3 && c.cls.units.length === B.zyo.ninja.count, `after it: ${B.zyo.ninja.count} ninja cats, no fighting cat; 단추·호두·모루 still pick things up`)
 }
@@ -2336,7 +2356,7 @@ const still = { x: 0, y: 0 }
   const n0 = pw.cls.units.length
   const E = B.upgrades.effects.power
   pw.level = (E.damageMulFrom || 0) + 10
-  const m0 = E.damageMul + (E.damageMulPerLevel || 0) * 10
+  const m0 = (E.damageMul + (E.damageMulPerLevel || 0) * 10) ** (E.pow || 1)
   const m1 = m0
   pw.state = 'levelup'
   pw.pending = 1
@@ -2344,7 +2364,7 @@ const still = { x: 0, y: 0 }
   pw.choiceSeq++
   pw.edit = { id: 'power', seq: pw.choiceSeq }
   choose(pw, 'power', pw.choiceSeq)
-  ok(near(pw.cls.dmg, m0 * m1) && near(pw.cls.rate, E.rateMul ** 2) && pw.cls.units.length === n0 && pw.picks.power === 2, `전투력 (Tizzzz: twice): damage ×${m0.toFixed(3)} twice (at level ${pw.level}: ${E.damageMul} + ${E.damageMulPerLevel} × 10), rate ×${E.rateMul}²; still ${n0} giant balls`)
+  ok(near(pw.cls.dmg, m0 * m1) && near(pw.cls.rate, E.rateMul ** (2 * (E.pow || 1))) && pw.cls.units.length === n0 && pw.picks.power === 2, `전투력 (Tizzzz: twice): damage ×${m0.toFixed(3)} twice (at level ${pw.level}: (${E.damageMul} + ${E.damageMulPerLevel} × 10)^${E.pow || 1}), rate ×${E.rateMul}^${2 * (E.pow || 1)}; still ${n0} giant balls`)
 }
 // the skill over the screen, and what 전투력 levels change (never more units)
 {
@@ -2398,17 +2418,17 @@ const still = { x: 0, y: 0 }
     choose(run, 'power', run.choiceSeq)
   }
   ok(classLevel(run) === 6 && near(growth(run), 1 + 6 * B.zyo.growth.perLevel) && growth(run) > g0 && run.cls.units.length === n0, `전투력 Lv.6: the giant balls and their hit areas ×${growth(run).toFixed(2)}, still ${n0} of them`)
-  // zyo_ marks the drawn cards of her recipe too, beside her own
+  // zyo_ marks the drawn cards of her recipe (the ones it still needs)
   const z = newRun({ chapter: 16, cats: true, zyo: true, seed: 83 })
   z.picks.catSummon = 1
   z.cat.n = 1
   z.picks.catSize = 2
   z.picks.catRate = 1
   z.state = 'levelup'
-  z.choices = ['catRate', 'crit', 'bounce', 'catSize']
+  z.choices = ['catRate', 'crit', 'catSize']
   z.choiceSeq++
-  const marks = zyoMarks(z, ['catSize'])
-  ok(marks.includes('catRate') && marks.includes('catSize') && !marks.includes('crit'), 'zyo_ marks a drawn card of her recipe as well as her own')
+  const marks = zyoMarks(z)
+  ok(marks.includes('catRate') && marks.includes('catSize') && !marks.includes('crit'), 'zyo_ marks the drawn cards of her recipe')
 }
 // saves: chapter 15 cleared before zyo_ came (story v3), and older
 {

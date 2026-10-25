@@ -77,33 +77,46 @@ export function zyoTarget(run) {
   return best && best.r
 }
 
-// zyo_'s cards for this level-up beside the three drawn (`shown`): the class
-// cards of the recipes complete, else one card of the recipe furthest along
-// (by the fewer picks of its two, then by all of them; one this run can pick
-// now: `open`), else none. After the change: the class's own growth card
-// (전투력, shown under the class's name) at every level-up, so the class keeps
-// growing as fast as the attack cards it gave up would have.
-export function zyoCards(run, shown, open) {
-  if (run.cls) return shown.includes('power') ? [] : ['power']
-  if (!run.zyo) return []
-  const Z = run.D.balance.zyo
-  const R = recipes(run).filter((r) => r.mats.every((m) => run.pool.includes(m)))
-  const ready = R.filter((r) => r.ready)
-  if (ready.length) return ready.map((r) => CLASS_CARDS[r.k])
-  const best = zyoTarget(run)
-  if (!best) return []
-  const left = best.mats.filter((m, i) => best.picks[i] < Z.need && open(m) && !shown.includes(m))
-  left.sort((a, b) => (run.picks[a] || 0) - (run.picks[b] || 0))
-  return left.length ? [left[0]] : []
+// zyo_ adds no card of her own: the cards come at random as any other, and
+// she marks those of hers that came. Her cards in the draw (beside the
+// run's pool): a complete recipe's class card, once a run (before the
+// change). After the change the class's own growth card (전투력, shown
+// under the class's name) is in the pool with the eight left.
+export function zyoPool(run) {
+  if (!run.zyo || run.cls) return []
+  return recipes(run)
+    .filter((r) => r.ready && r.mats.every((m) => run.pool.includes(m)))
+    .map((r) => CLASS_CARDS[r.k])
 }
 
-// the cards on show zyo_ marks: hers, and the drawn ones of her recipe
-export function zyoMarks(run, extra) {
+// zyo_'s own card beside the three drawn, some of the time (`offer`: the
+// chance at a level-up; `shown`: the three): the recipe she is going for's
+// card it needs most (one this run can pick now: `open`), or after the change
+// the class's growth card; none when it is among the three already
+export function zyoCards(run, shown, open) {
+  const Z = run.D.balance.zyo
+  if (!run.zyo && !run.cls) return []
+  let id = null
+  if (run.cls) id = 'power'
+  else {
+    const best = zyoTarget(run)
+    if (!best) return []
+    const left = best.mats.filter((m, i) => best.picks[i] < Z.need && open(m))
+    left.sort((a, b) => (run.picks[a] || 0) - (run.picks[b] || 0))
+    id = left[0]
+  }
+  if (!id || shown.includes(id) || run.rng() >= (Z.offer ?? 1)) return []
+  return [id]
+}
+
+// the cards on show zyo_ marks: a class card; the recipe she is going for's
+// cards it still needs; after the change, the class's growth card
+export function zyoMarks(run) {
   if (run.cls) return run.choices.filter((id) => id === 'power')
+  if (!run.zyo) return []
   const r = zyoTarget(run)
   const need = run.D.balance.zyo.need
-  const mine = r ? run.choices.filter((id) => r.mats.includes(id) && (run.picks[id] || 0) < need) : []
-  return [...new Set([...extra, ...mine])]
+  return run.choices.filter((id) => isClassCard(id) || (r && r.mats.includes(id) && (run.picks[id] || 0) < need))
 }
 
 // the strength of the attacks there are now, one number a second (see above)
@@ -116,6 +129,17 @@ export function firepower(run) {
 
 // the class attack's numbers now: one hit of a unit, the gap between its hits
 // (the rate past rateCap turns into damage, so hits never come too thick)
+// what the class starts from: the run's firepower now, but never under a
+// usual build's at this level (floor: its firepower at the start × e^(perLevel
+// × levels gone by), a bot's median), so a class taken from a build that put
+// its picks elsewhere is not left behind
+export function classBase(run) {
+  const F = run.D.balance.zyo.floor
+  const fp = firepower(run)
+  if (!F || !run.fp0) return fp
+  return Math.max(fp, run.fp0 * Math.exp(F.perLevel * (run.level - 1)))
+}
+
 // the class's level: the 전투력 picked (a rewritten one counts twice)
 export const classLevel = (run) => run.picks.power || 0
 // how much bigger its units and hit areas are at that level
@@ -146,7 +170,7 @@ export function startClass(run, k) {
   run.cls = {
     k,
     form: R.form,
-    base: firepower(run),
+    base: classBase(run),
     bonus: bonusOf(run.D, k),
     dmg: 1, // the 전투력 card: damage
     rate: 1, // and how often
@@ -574,7 +598,10 @@ function updateWarps(run, dt) {
 // (by the run's level, so a class taken late catches up)
 export function powerMul(run, level = run.level) {
   const E = run.D.balance.upgrades.effects.power
-  return { dmg: E.damageMul + (E.damageMulPerLevel || 0) * Math.max(0, level - (E.damageMulFrom || 0)), rate: E.rateMul }
+  // (pow: it comes about one level-up in three, at random, so one counts
+  // for about three)
+  const n = E.pow || 1
+  return { dmg: (E.damageMul + (E.damageMulPerLevel || 0) * Math.max(0, level - (E.damageMulFrom || 0))) ** n, rate: E.rateMul ** n }
 }
 export function powerPreview(run) {
   const m = powerMul(run)

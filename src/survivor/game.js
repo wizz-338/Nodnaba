@@ -15,7 +15,7 @@
 import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
-import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, zyoMarks, powerPreview, optionName } from './zyo.js'
+import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, powerPreview, optionName, firepower } from './zyo.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -243,6 +243,8 @@ export function createRun(D, opts) {
   }
   // a ball's hit may set off a blessing (lightning never does)
   run.blessHit = (e, dmg, x, y) => blessHit(run, e, dmg, x, y)
+  // its firepower at the start (zyo.js: the class's floor grows from it)
+  run.fp0 = firepower(run)
   return run
 }
 
@@ -1332,7 +1334,8 @@ export function applyPreview(run, id) {
 export function drawChoices(run, not = []) {
   // a card with levels (냥냥 연금술) leaves the pool at its last level; the
   // cat cards other than 친구냥이 wait for a cat
-  let left = run.pool.filter((id) => !maxed(run, id) && catCardOpen(run, id))
+  // (and zyo_'s class card, once a recipe is complete: zyo.js)
+  let left = [...run.pool, ...zyoPool(run)].filter((id) => !maxed(run, id) && catCardOpen(run, id))
   // a redraw: other cards than those shown, while there are enough
   const others = left.filter((id) => !not.includes(id))
   if (not.length && others.length >= 3) left = others
@@ -1348,11 +1351,10 @@ function openChoice(run, not) {
   run.state = 'levelup'
   run.choices = drawChoices(run, not)
   run.choiceSeq++
-  // zyo_'s card beside them (zyo.js): a recipe's card, or its class card
-  const z = zyoCards(run, run.choices, (id) => catCardOpen(run, id))
-  run.choices.push(...z)
-  // (she marks her own card and the drawn ones of her recipe alike)
-  const marked = zyoMarks(run, z)
+  // zyo_'s own card beside them, some of the time (zyo.js)
+  run.choices.push(...zyoCards(run, run.choices, (id) => catCardOpen(run, id)))
+  // she marks hers among them, if any came
+  const marked = zyoMarks(run)
   run.zyoPick = marked.length ? { ids: marked, seq: run.choiceSeq } : null
   // Tizzzz rewrites one of them, at random among those that can take it
   run.edit = null
