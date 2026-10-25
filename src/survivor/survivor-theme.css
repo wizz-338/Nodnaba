@@ -1,0 +1,979 @@
+/* MANO SURVIVOR — the game's look (loaded after survivor.css, which keeps the
+   layout; this file only dresses it). The style of the popular survivor
+   games: deep navy panels with a gold rim, chunky glossy buttons that sink
+   under the finger, white headings with a dark outline, ribbons over the
+   boxes, and the level-up cards coloured by what they do (attack red,
+   defence blue, help green, cats orange, classes violet). Both platforms. */
+.ms {
+  --ink: #120f2a; /* outlines */
+  --tx: #f5f3ff; /* text on the panels */
+  --tx-dim: #b9b6e6;
+  --navy: #262a63;
+  --navy-2: #1b1d48;
+  --navy-3: #12133a;
+  --rim: #f2c14e;
+  --rim-dark: #a86b12;
+  --paper: #23265c; /* (old name) the boxes inside a panel */
+  --panel: #2c3070;
+  --muted: #aeb0e0;
+  --accent: #ffcb3d;
+  --outline:
+    -1.5px -1.5px 0 var(--ink), 1.5px -1.5px 0 var(--ink), -1.5px 1.5px 0 var(--ink), 1.5px 1.5px 0 var(--ink),
+    0 2.5px 0 var(--ink);
+  background: radial-gradient(120% 90% at 50% 20%, #2a2d6b, #0d0e26 70%);
+}
+
+/* ── panels ─────────────────────────────────────────────────────────────── */
+.ms .ms-page {
+  --paper: #23265c;
+  --panel: #2c3070;
+  --accent: #ffcb3d;
+  --muted: #aeb0e0;
+  color: var(--tx);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(120, 110, 255, 0.28), transparent 60%),
+    linear-gradient(#20235a, #121335);
+}
+
+.ms .ms-panel,
+.ms .ms-level,
+.ms .ms-epinfo,
+.ms .ms-page--lobby .ms-panel {
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  color: var(--tx);
+  background: linear-gradient(#30347a, var(--navy-2) 58%);
+  box-shadow:
+    inset 0 0 0 2px rgba(150, 160, 255, 0.22),
+    inset 0 3px 0 rgba(255, 255, 255, 0.1),
+    0 5px 0 rgba(6, 5, 20, 0.55),
+    0 12px 26px rgba(4, 3, 16, 0.45);
+}
+
+/* the boxes in a battle (level-up, pause, result, chests): a gold rim */
+.ms .ms-modal .ms-panel,
+.ms .ms-level {
+  box-shadow:
+    inset 0 0 0 2px var(--rim),
+    inset 0 0 0 4px rgba(18, 15, 42, 0.9),
+    inset 0 6px 0 rgba(255, 255, 255, 0.1),
+    0 6px 0 rgba(6, 5, 20, 0.6),
+    0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+.ms .ms-modal {
+  background: radial-gradient(circle at 50% 45%, rgba(20, 18, 60, 0.55), rgba(6, 5, 20, 0.82));
+}
+
+/* the story's own boxes stay as they are under the picture */
+.ms .ms-modal.ms-cut,
+.ms .ms-story {
+  background: radial-gradient(circle at 50% 30%, #241f48, #0c0b1e 75%);
+}
+
+.ms .ms-h {
+  color: #fff;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  text-shadow: var(--outline);
+}
+
+.ms .ms-sub {
+  color: #ffd75e;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+.ms .ms-dim,
+.ms .ms-title {
+  color: var(--tx-dim);
+}
+
+.ms .ms-text,
+.ms .ms-ok {
+  color: var(--tx);
+}
+
+.ms .ms-why {
+  color: #ff8a8a;
+}
+
+.ms .ms-notice,
+.ms .ms-page--lobby .ms-notice {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  color: #3a2400;
+  background: linear-gradient(#fff2b8, #ffd86a);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 4px 0 rgba(6, 5, 20, 0.5);
+}
+
+/* a ribbon across the top of a box: the box's title (inside the box: the
+   battle's boxes scroll when the screen is short); its folded ends go under
+   it, so the box keeps its own layer */
+.ms .ms-panel,
+.ms .ms-level {
+  isolation: isolate;
+}
+
+.ms .ms-ribbon {
+  position: relative;
+  justify-self: center;
+  margin: 0 auto 2px;
+  padding: 4px 26px 7px;
+  min-width: 66%;
+  max-width: calc(100% - 24px);
+  color: #fff;
+  font-size: 21px;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: var(--outline);
+  background: linear-gradient(#ff7a6e, #e2384a 55%, #b8233a);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(0, 0, 0, 0.2), 0 4px 0 rgba(6, 5, 20, 0.6);
+}
+
+.ms .ms-ribbon::before,
+.ms .ms-ribbon::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  bottom: -9px;
+  z-index: -1;
+  width: 20px;
+  background: #8e1a2e;
+  border: 3px solid var(--ink);
+}
+
+.ms .ms-ribbon::before {
+  left: -12px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 45% 50%);
+}
+
+.ms .ms-ribbon::after {
+  right: -12px;
+  clip-path: polygon(0 0, 100% 0, 55% 50%, 100% 100%, 0 100%);
+}
+
+.ms .ms-ribbon--gold {
+  color: #fff;
+  background: linear-gradient(#ffe27a, #f6b62a 55%, #d88a12);
+}
+
+.ms .ms-ribbon--gold::before,
+.ms .ms-ribbon--gold::after {
+  background: #a8630c;
+}
+
+.ms .ms-ribbon--blue {
+  background: linear-gradient(#7fb6ff, #3f78e6 55%, #2a56b8);
+}
+
+.ms .ms-ribbon--blue::before,
+.ms .ms-ribbon--blue::after {
+  background: #1f3f8a;
+}
+
+/* ── buttons: chunky, glossy, they sink when pressed ────────────────────── */
+.ms .ms-btn,
+.ms .ms-exit {
+  --b1: #69b4ff;
+  --b2: #3b7ae8;
+  --b3: #2c5dc2;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(var(--b1), var(--b2) 55%, var(--b3));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    0 3px 0 var(--ink);
+  text-shadow: 0 1.5px 0 rgba(10, 8, 40, 0.75), 0 0 2px rgba(10, 8, 40, 0.6);
+}
+
+.ms .ms-btn--primary {
+  --b1: #ffe680;
+  --b2: #ffc42e;
+  --b3: #f09a12;
+  color: #4d2a00;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.ms .ms-btn--danger {
+  --b1: #ff8a8a;
+  --b2: #e8454f;
+  --b3: #bf2d3d;
+}
+
+.ms .ms-btn:disabled {
+  --b1: #8a8aa8;
+  --b2: #6a6a88;
+  --b3: #55556f;
+  color: #e4e4f2;
+  opacity: 0.75;
+  text-shadow: none;
+}
+
+.ms .ms-exit {
+  --b1: #4a4f98;
+  --b2: #343877;
+  --b3: #282b60;
+}
+
+.ms .ms-btn:active:not(:disabled),
+.ms .ms-exit:active {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 1px 0 var(--ink);
+  translate: 0 2px;
+}
+
+/* the start: big and gold, a light sweeping over it now and then */
+.ms .ms-startbtn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border-color: var(--ink);
+  font-size: 22px;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -5px 0 rgba(160, 80, 0, 0.35),
+    0 4px 0 var(--ink),
+    0 0 22px rgba(255, 196, 46, 0.45);
+}
+
+.ms .ms-startbtn::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: skewX(-18deg);
+  animation: ms-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.ms .ms-startbtn:disabled::after {
+  display: none;
+}
+
+@keyframes ms-shine {
+  0%,
+  55% {
+    left: -40%;
+  }
+  85%,
+  100% {
+    left: 130%;
+  }
+}
+
+/* ── the lobby: navy and gold over the episode's picture ────────────────── */
+.ms .ms-page--lobby {
+  background:
+    linear-gradient(rgba(14, 12, 40, 0.15), rgba(14, 12, 40, 0.3) 45%, rgba(14, 12, 40, 0.78)),
+    #15143a var(--bg) center / cover no-repeat;
+}
+
+.ms .ms-page--lobby .ms-title {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: #ffd84a;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  text-shadow:
+    -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink), 2px 2px 0 var(--ink),
+    0 -2px 0 var(--ink), 0 2px 0 var(--ink), -2px 0 0 var(--ink), 2px 0 0 var(--ink),
+    0 5px 0 #7a3c00, 0 6px 0 var(--ink), 0 10px 18px rgba(0, 0, 0, 0.5);
+}
+
+.ms .ms-page--lobby .ms-exit,
+.ms .ms-page--lobby .ms-arrow {
+  border: 2.5px solid var(--ink);
+  color: #fff;
+  background: linear-gradient(#4a4f98, #2c3070);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), 0 3px 0 var(--ink);
+}
+
+.ms .ms-coins,
+.ms .ms-page--lobby .ms-coins {
+  padding: 3px 12px 3px 5px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(#1c1f4e, #121338);
+  box-shadow: inset 0 0 0 1.5px rgba(242, 193, 78, 0.6), 0 3px 0 rgba(6, 5, 20, 0.6);
+  text-shadow: 0 1.5px 0 var(--ink);
+}
+
+/* tabs: dark, the chosen one gold */
+.ms .ms-tab,
+.ms .ms-page--lobby .ms-tab {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  color: #dcdcff;
+  background: linear-gradient(#3a3f8a, #262a66);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.18), 0 3px 0 var(--ink);
+  text-shadow: 0 1.5px 0 var(--ink);
+}
+
+.ms .ms-tab.is-on,
+.ms .ms-page--lobby .ms-tab.is-on {
+  color: #4d2a00;
+  background: linear-gradient(#ffe680, #ffc42e 55%, #f09a12);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -3px 0 rgba(160, 80, 0, 0.3), 0 3px 0 var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.ms .ms-tab__dot {
+  border: 2px solid var(--ink);
+  background: linear-gradient(#ff7a7a, #e23a4a);
+  line-height: 16px;
+}
+
+/* the episode cards: a gold frame */
+.ms .ms-ep {
+  border-color: #6a6fb8;
+  background: var(--navy-3);
+  box-shadow: 0 0 0 2px var(--ink), 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+.ms .ms-ep.is-on {
+  border-color: var(--rim);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 0 18px rgba(255, 210, 90, 0.55),
+    0 12px 26px rgba(0, 0, 0, 0.55);
+}
+
+.ms .ms-ep__head {
+  background: linear-gradient(rgba(14, 12, 44, 0.9), rgba(14, 12, 44, 0.55) 70%, transparent);
+  color: #fff;
+}
+
+.ms .ms-ep__head b {
+  text-shadow: var(--outline);
+}
+
+.ms .ms-ep__tag {
+  border: 2px solid var(--ink);
+  color: #fff;
+  background: linear-gradient(#5b61b5, #34397f);
+  text-shadow: 0 1px 0 var(--ink);
+}
+
+.ms .ms-ep__tag--done {
+  color: #4d2a00;
+  background: linear-gradient(#ffe680, #f6b62a);
+  text-shadow: none;
+}
+
+.ms .ms-epinfo__ep {
+  color: #ffd75e;
+}
+
+.ms .ms-epinfo__name {
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+.ms .ms-epinfo__blurb,
+.ms .ms-epinfo__crew {
+  color: var(--tx-dim);
+}
+
+.ms .ms-epinfo__extra {
+  color: #ff8f8f;
+}
+
+.ms .ms-epinfo__rec {
+  border-top: 2px solid rgba(150, 160, 255, 0.2);
+}
+
+.ms .ms-epinfo__rec dt {
+  color: var(--tx-dim);
+}
+
+.ms .ms-epinfo__rec dd {
+  color: #fff;
+}
+
+.ms .ms-crew__face {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1.5px var(--rim);
+}
+
+.ms .ms-chapter {
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 rgba(6, 5, 20, 0.7);
+}
+
+.ms .ms-chapter.is-on {
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 2.5px var(--rim),
+    0 0 14px rgba(255, 210, 90, 0.6),
+    0 3px 0 rgba(6, 5, 20, 0.7);
+}
+
+.ms .ms-chapter__no {
+  background: rgba(14, 12, 44, 0.85);
+  color: #fff;
+}
+
+.ms .ms-chapter__done {
+  color: #ffd84a;
+  text-shadow: var(--outline);
+}
+
+/* the PC's rail: a tall navy board with a gold edge */
+.ms.ms--pc .ms-lobby__rail {
+  border: 3px solid var(--ink);
+  background: linear-gradient(#2e3278, #1a1c48 60%, #121336);
+  box-shadow:
+    inset 0 0 0 2px rgba(242, 193, 78, 0.65),
+    inset 0 3px 0 rgba(255, 255, 255, 0.1),
+    0 12px 28px rgba(0, 0, 0, 0.5);
+}
+
+.ms.ms--pc .ms-lobby__rail .ms-exit {
+  background: linear-gradient(#3a3f8a, #262a66);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.18), 0 3px 0 var(--ink);
+}
+
+.ms.ms--pc .ms-page--lobby .ms-title {
+  font-size: 32px;
+}
+
+.ms.ms--pc .ms-page--lobby {
+  background: #15143a;
+}
+
+.ms.ms--pc .ms-page--lobby::before {
+  background:
+    linear-gradient(rgba(14, 12, 40, 0.35), rgba(14, 12, 40, 0.45) 50%, rgba(14, 12, 40, 0.75)),
+    var(--bg) center 30% / cover no-repeat;
+}
+
+.ms.ms--pc .ms-notices .ms-notice {
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 4px 0 rgba(6, 5, 20, 0.5), 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* ── 장비 · 마노 강화 · 설정 ───────────────────────────────────────────── */
+.ms .ms-inv__item {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  color: #fff;
+  background:
+    linear-gradient(color-mix(in srgb, var(--g) 55%, transparent), transparent 75%),
+    #22255a;
+  box-shadow: inset 0 0 0 2px var(--g), inset 0 3px 0 rgba(255, 255, 255, 0.15), 0 3px 0 rgba(6, 5, 20, 0.6);
+}
+
+.ms .ms-inv__item small {
+  color: var(--tx-dim);
+}
+
+.ms .ms-inv__item.is-on,
+.ms .ms-inv__item.is-sel {
+  background:
+    linear-gradient(color-mix(in srgb, var(--g) 70%, transparent), transparent 80%),
+    #2c3070;
+  box-shadow:
+    inset 0 0 0 2px var(--g),
+    0 0 0 3px var(--rim),
+    0 0 14px rgba(255, 210, 90, 0.5);
+}
+
+.ms .ms-grade,
+.ms .ms-wslot__g {
+  border: 1.5px solid var(--ink);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.4);
+}
+
+.ms .ms-fuse__slot {
+  border-color: var(--g, #6a6fb8);
+  color: var(--tx-dim);
+  background: #1b1d48;
+  box-shadow: 0 0 0 2px var(--ink), inset 0 3px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ms .ms-fuse__arrow {
+  color: #ffd84a;
+  text-shadow: var(--outline);
+}
+
+.ms .ms-stat {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: linear-gradient(#2f3376, #23265c);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 3px 0 rgba(6, 5, 20, 0.55);
+}
+
+.ms .ms-stat__name {
+  color: #fff;
+}
+
+.ms .ms-stat__name small {
+  color: #ffd75e;
+}
+
+.ms .ms-loot li,
+.ms .ms-reward,
+.ms .ms-stats div,
+.ms .ms-build li {
+  color: #fff;
+  background: rgba(10, 10, 40, 0.45);
+  box-shadow: inset 0 0 0 1.5px rgba(150, 160, 255, 0.22);
+}
+
+.ms .ms-stats dt {
+  color: var(--tx-dim);
+}
+
+.ms .ms-stats dd {
+  color: #ffd84a;
+  text-shadow: 0 2px 0 var(--ink);
+}
+
+.ms .ms-savebox {
+  background: linear-gradient(#24603f, #1a4630);
+}
+
+.ms .ms-savebox.is-bad {
+  background: linear-gradient(#7a3a24, #5a2a1a);
+}
+
+.ms .ms-bless__name {
+  color: #fff;
+}
+
+.ms .ms-volume {
+  accent-color: #ffc42e;
+}
+
+/* ── the level-up: cards coloured by what they do ───────────────────────── */
+.ms .ms-card {
+  --k: #6a6fb8;
+  --k2: #3c4090;
+  position: relative;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  color: #fff;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--k) 38%, transparent), transparent 55%),
+    linear-gradient(#2c3070, #1f2257);
+  box-shadow:
+    inset 0 0 0 2px var(--k),
+    inset 0 3px 0 rgba(255, 255, 255, 0.14),
+    0 4px 0 rgba(6, 5, 20, 0.65);
+  transition:
+    transform 0.09s ease-out,
+    filter 0.12s;
+}
+
+.ms .ms-card:active {
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--k) 55%, transparent), transparent 60%),
+    linear-gradient(#34388a, #262a66);
+}
+
+.ms .ms-card[data-kind='atk'] {
+  --k: #ff5b5f;
+  --k2: #b8263a;
+}
+
+.ms .ms-card[data-kind='def'] {
+  --k: #4aa8ff;
+  --k2: #1f5cc2;
+}
+
+.ms .ms-card[data-kind='util'] {
+  --k: #4fd67f;
+  --k2: #1e8f4a;
+}
+
+.ms .ms-card[data-kind='cat'] {
+  --k: #ffa13d;
+  --k2: #c4620f;
+}
+
+.ms .ms-card[data-kind='cls'] {
+  --k: #c07bff;
+  --k2: #6a2fc2;
+}
+
+.ms .ms-card__icon {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--k) 70%, #fff), var(--k) 45%, var(--k2));
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.4), inset 0 -4px 0 rgba(0, 0, 0, 0.25), 0 3px 0 rgba(6, 5, 20, 0.6);
+}
+
+.ms .ms-card__name {
+  color: #fff;
+  text-shadow: 0 2px 0 var(--ink), 0 0 2px var(--ink);
+}
+
+.ms .ms-card__stack {
+  border: 1.5px solid var(--ink);
+  color: #4d2a00;
+  background: linear-gradient(#ffe680, #f6b62a);
+}
+
+.ms .ms-card__num {
+  color: #e4e2ff;
+}
+
+.ms .ms-card__num b {
+  color: #fff;
+  background: var(--k2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.ms .ms-card__hint {
+  color: #ffd75e;
+}
+
+/* the picks so far, as pips under the name */
+.ms .ms-card__pips {
+  display: flex;
+  gap: 3px;
+}
+
+.ms .ms-card__pips i {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  transform: rotate(45deg);
+}
+
+.ms .ms-card__pips i.is-on {
+  background: linear-gradient(#ffe680, #f6b62a);
+}
+
+.ms .ms-card__pips i.is-new {
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  animation: ms-pip 0.9s ease-in-out infinite;
+}
+
+@keyframes ms-pip {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Tizzzz's rewrite: pink; zyo_'s: green; a class: violet with a glow */
+.ms .ms-card.is-edited {
+  --k: #ff5fae;
+  --k2: #b0287a;
+  border-color: var(--ink);
+  background:
+    linear-gradient(100deg, rgba(255, 95, 174, 0.4), transparent 60%),
+    linear-gradient(#3a2a6e, #261d55);
+  box-shadow: inset 0 0 0 2px #ff5fae, 0 0 16px rgba(255, 95, 174, 0.45), 0 4px 0 rgba(6, 5, 20, 0.65);
+}
+
+.ms .ms-card.is-zyo {
+  border-color: var(--ink);
+  background:
+    linear-gradient(100deg, rgba(60, 230, 160, 0.38), transparent 60%),
+    linear-gradient(#1f4a5a, #172f45);
+  box-shadow: inset 0 0 0 2px #3fe0a0, 0 0 16px rgba(60, 230, 160, 0.45), 0 4px 0 rgba(6, 5, 20, 0.65);
+}
+
+.ms .ms-card.is-class {
+  --k: #c07bff;
+  --k2: #6a2fc2;
+  background:
+    linear-gradient(115deg, rgba(255, 120, 200, 0.35), rgba(120, 200, 255, 0.3) 50%, rgba(180, 120, 255, 0.4)),
+    linear-gradient(#3a2a7a, #22195a);
+  box-shadow:
+    inset 0 0 0 2px #e0b0ff,
+    0 0 22px rgba(190, 120, 255, 0.7),
+    0 4px 0 rgba(6, 5, 20, 0.65);
+  animation: ms-classglow 1.6s ease-in-out infinite;
+}
+
+@keyframes ms-classglow {
+  50% {
+    filter: brightness(1.15) saturate(1.2);
+  }
+}
+
+.ms .ms-card__badge {
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 2px 0 rgba(6, 5, 20, 0.6);
+}
+
+.ms .ms-card__badge--zyo {
+  background: linear-gradient(#5ff0b4, #1f9f72);
+  color: #06301f;
+}
+
+.ms .ms-card.is-class .ms-card__badge--zyo {
+  background: linear-gradient(#e7b8ff, #9a52f0);
+  color: #fff;
+}
+
+.ms .ms-card.is-zyo .ms-card__name {
+  color: #b6ffe0;
+}
+
+.ms .ms-card.is-class .ms-card__name {
+  color: #fff;
+}
+
+.ms .ms-card__new,
+.ms .ms-card__num b.ms-card__new {
+  color: #ff8fd0;
+}
+
+.ms .ms-card__num b.ms-card__new {
+  color: #fff;
+  background: #c93c86;
+}
+
+/* the cards come in one after the other */
+.ms .ms-level .ms-card {
+  animation: ms-cardin 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.ms .ms-level .ms-card.is-class {
+  animation:
+    ms-cardin 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    ms-classglow 1.6s ease-in-out 0.4s infinite;
+}
+
+.ms .ms-level .ms-card:nth-of-type(2) {
+  animation-delay: 0.05s;
+}
+
+.ms .ms-level .ms-card:nth-of-type(3) {
+  animation-delay: 0.1s;
+}
+
+.ms .ms-level .ms-card:nth-of-type(4) {
+  animation-delay: 0.15s;
+}
+
+.ms .ms-level .ms-card:nth-of-type(5) {
+  animation-delay: 0.2s;
+}
+
+@keyframes ms-cardin {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+}
+
+@media (hover: hover) {
+  .ms .ms-card:hover {
+    filter: brightness(1.12);
+  }
+}
+
+.ms.ms--pc .ms-level .ms-card:hover {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--k) 45%, transparent), transparent 60%),
+    linear-gradient(#34388a, #262a66);
+  transform: translateY(-4px);
+}
+
+.ms.ms--pc .ms-level .ms-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--k) 36%, transparent), transparent 55%),
+    linear-gradient(#2c3070, #1f2257);
+}
+
+.ms.ms--pc .ms-level .ms-card.is-class {
+  background:
+    linear-gradient(160deg, rgba(255, 120, 200, 0.35), rgba(120, 200, 255, 0.3) 50%, rgba(180, 120, 255, 0.4)),
+    linear-gradient(#3a2a7a, #22195a);
+}
+
+.ms.ms--pc .ms-level .ms-card.is-zyo:not(.is-class) {
+  background:
+    linear-gradient(180deg, rgba(60, 230, 160, 0.38), transparent 60%),
+    linear-gradient(#1f4a5a, #172f45);
+}
+
+.ms.ms--pc .ms-level .ms-card.is-edited {
+  background:
+    linear-gradient(180deg, rgba(255, 95, 174, 0.4), transparent 60%),
+    linear-gradient(#3a2a6e, #261d55);
+}
+
+.ms.ms--pc .ms-level > .ms-ribbon {
+  grid-column: 1 / -1;
+  min-width: 40%;
+  font-size: 26px;
+}
+
+.ms.ms--pc .ms-card__pips {
+  justify-content: center;
+}
+
+.ms .ms-runstats {
+  border: 2px solid rgba(150, 160, 255, 0.35);
+  color: #fff;
+  background: rgba(10, 10, 40, 0.5);
+}
+
+.ms .ms-runstats dt {
+  color: var(--tx-dim);
+}
+
+.ms .ms-runstats dd {
+  color: #ffd84a;
+}
+
+.ms .ms-runstats__note {
+  color: #e4e2ff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ms .ms-pickfx__card {
+  border-color: var(--rim);
+}
+
+/* ── the battle's bar at the top ────────────────────────────────────────── */
+.ms .ms-hudbar {
+  background: linear-gradient(rgba(22, 20, 62, 0.96), rgba(14, 12, 40, 0.9));
+  border-bottom: 2px solid var(--ink);
+  box-shadow: inset 0 -2px 0 rgba(242, 193, 78, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.ms .ms-stagename,
+.ms .ms-time,
+.ms .ms-hudtext,
+.ms .ms-cur {
+  color: #fff;
+  text-shadow: 0 1.5px 0 var(--ink), 0 0 2px var(--ink);
+}
+
+.ms .ms-time {
+  color: #ffd84a;
+}
+
+/* the level: a small gold badge */
+.ms .ms-hudtext--level {
+  justify-content: center;
+}
+
+.ms .ms-hudtext--level b {
+  padding: 0.15em 0.55em;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  color: #4d2a00;
+  background: linear-gradient(#ffe680, #f6b62a);
+  text-shadow: none;
+  font-weight: inherit;
+}
+
+.ms .ms-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ms .ms-track__fill {
+  background: linear-gradient(90deg, #ffd84a, #ff9a2e);
+}
+
+.ms .ms-bossbar__name {
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+.ms .ms-hint,
+.ms .ms-toast {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(rgba(44, 48, 112, 0.92), rgba(24, 26, 70, 0.92));
+  box-shadow: inset 0 0 0 1.5px rgba(242, 193, 78, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1.5px 0 var(--ink);
+}
+
+/* low health: the edges of the screen pulse red */
+.ms-lowhp {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(220, 20, 40, 0.5) 100%);
+  animation: ms-lowhp 1s ease-in-out infinite;
+}
+
+@keyframes ms-lowhp {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ── the story's text boxes ─────────────────────────────────────────────── */
+.ms .ms-cut__box,
+.ms .ms-story__box {
+  border: 3px solid var(--ink);
+  color: #fff;
+  background: linear-gradient(rgba(44, 48, 112, 0.96), rgba(24, 26, 70, 0.96));
+  box-shadow: inset 0 0 0 2px rgba(242, 193, 78, 0.6), 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.ms .ms-cut__who {
+  color: #ff9fd2;
+}
+
+.ms .ms-story__name {
+  color: #4d2a00;
+  background: linear-gradient(#ffe680, #f6b62a);
+}
+
+.ms .ms-story__title {
+  border: 2px solid var(--ink);
+  color: #fff;
+  background: linear-gradient(#ff7a6e, #d8394c);
+  text-shadow: 0 1.5px 0 var(--ink);
+}
+
+.ms .ms-cut__count {
+  color: var(--tx-dim);
+}
+
+.ms .ms-cut__skip,
+.ms .ms-story__skip {
+  border: 2px solid var(--ink);
+  color: #fff;
+  background: rgba(30, 32, 80, 0.88);
+}
+
+.ms .ms-cut__banner {
+  color: #fff;
+  background: linear-gradient(#ff7ab8, #d63c8a);
+  text-shadow: 0 1.5px 0 var(--ink);
+}
+
+.ms .ms-cut__line,
+.ms .ms-cut__prop {
+  color: #fff;
+}
+
+.ms.ms--pc .ms-cut--wide .ms-cut__box {
+  background: linear-gradient(rgba(44, 48, 112, 0.94), rgba(24, 26, 70, 0.94));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms .ms-startbtn::after,
+  .ms .ms-card,
+  .ms .ms-level .ms-card,
+  .ms .ms-lowhp,
+  .ms .ms-card__pips i.is-new {
+    animation: none;
+  }
+}

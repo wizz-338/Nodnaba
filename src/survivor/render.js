@@ -48,6 +48,24 @@ const MAX_NUMBERS = 40
 const MAX_SLASH = 24 // friend cats' scratches on screen at once (a busy screen: a third)
 const SLASH = 0.2 // s a scratch shows
 const CRIT_COLOR = '#e5303a'
+// the numbers: white with a dark edge (the hits), red (Mano hurt), green
+// (healed), pink (the cats' words)
+const NUM_COLOR = '#ffffff'
+const NUM_EDGE = 'rgba(26, 21, 48, 0.92)'
+const HURT_COLOR = '#ff4d5a'
+const HEAL_COLOR = '#5ff07f'
+const CAT_COLOR = '#ff7cc4'
+// a monster that falls throws a few sparks (an elite or a boss many, and a
+// ring); a busy screen fewer
+const MAX_SPARKS = 140
+const SPARK = 0.42 // s a spark lives
+const SPARK_COLORS = ['#fff6c2', '#ffd84a', '#ff9a3d', '#ffffff']
+// Mano hurt: the screen shakes a little (never with reduced motion)
+const SHAKE = 0.18 // s
+const SHAKE_PX = 3
+// Mano's own health bar under her feet (logical px)
+const HPBAR_W = 30
+const HPBAR_H = 4.5
 // the game's round font (survivor.css loads it; until it is in, the system's)
 const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif"
 const NUM_FONT = '12px ' + GAME_FONT
@@ -101,6 +119,12 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const mano = { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 }
   const fx = []
   const numbers = []
+  const sparks = []
+  const rings = [] // a bright ring where an elite or boss fell
+  let shakeT = 0
+  let shaken = false
+  const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  let glow = null // the soft light under an experience gem, made once
   let field = null // the ground, painted once per screen size
   const shade = new Map() // shadows wait here and go down together, one fill per darkness
   const small = new Map() // smoothed copies of frames drawn smaller than their pixels
@@ -902,9 +926,106 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     put(name, b.x, b.y - BALL_LIFT, s)
   }
 
+  // a soft cyan light, made once and drawn under each gem (not on a busy screen)
+  let gemGlow = null
+  function makeGlow() {
+    const c = document.createElement('canvas')
+    c.width = c.height = 32
+    const g = c.getContext('2d')
+    const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16)
+    gr.addColorStop(0, 'rgba(160, 255, 250, 0.75)')
+    gr.addColorStop(0.45, 'rgba(90, 220, 255, 0.3)')
+    gr.addColorStop(1, 'rgba(90, 220, 255, 0)')
+    g.fillStyle = gr
+    g.fillRect(0, 0, 32, 32)
+    return c
+  }
+
+  // Mano's health under her feet: a dark slot, green going yellow then red
+  function drawManoBar(run) {
+    const p = run.player
+    if (run.state !== 'play' && run.state !== 'levelup') return
+    const v = Math.max(0, Math.min(1, p.hp / p.maxHp))
+    const x = p.x - HPBAR_W / 2
+    const y = p.y + 6
+    world()
+    ctx.fillStyle = 'rgba(18, 15, 42, 0.85)'
+    ctx.fillRect(x - 1, y - 1, HPBAR_W + 2, HPBAR_H + 2)
+    ctx.fillStyle = v > 0.5 ? '#4fdc6a' : v > 0.3 ? '#ffc93c' : '#ff4d5a'
+    ctx.fillRect(x, y, HPBAR_W * v, HPBAR_H)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'
+    ctx.fillRect(x, y, HPBAR_W * v, 1.2)
+  }
+
+  function addSparks(x, y, n, speed) {
+    for (let i = 0; i < n && sparks.length < MAX_SPARKS; i++) {
+      const a = Math.random() * Math.PI * 2
+      const v = speed * (0.5 + Math.random() * 0.7)
+      sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * 0.35, t: 0, c: SPARK_COLORS[(Math.random() * SPARK_COLORS.length) | 0], s: 1.6 + Math.random() * 1.6 })
+    }
+  }
+
+  function drawSparks(dt) {
+    world()
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const k = sparks[i]
+      k.t += dt
+      if (k.t >= SPARK) {
+        sparks.splice(i, 1)
+        continue
+      }
+      k.x += k.vx * dt
+      k.y += k.vy * dt
+      k.vy += 260 * dt
+      k.vx *= 1 - 3 * dt
+      const f = 1 - k.t / SPARK
+      ctx.globalAlpha = f
+      ctx.fillStyle = k.c
+      const r = k.s * (0.5 + f * 0.5)
+      ctx.fillRect(k.x - r, k.y - r, r * 2, r * 2)
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const g = rings[i]
+      g.t += dt
+      if (g.t >= 0.35) {
+        rings.splice(i, 1)
+        continue
+      }
+      const f = g.t / 0.35
+      ctx.globalAlpha = 1 - f
+      ctx.strokeStyle = '#fff3b0'
+      ctx.lineWidth = 4 * (1 - f) + 1
+      ctx.beginPath()
+      ctx.arc(g.x, g.y, g.r * (0.4 + f), 0, Math.PI * 2)
+      ctx.stroke()
+    }
+    ctx.globalAlpha = 1
+  }
+
+  // the shake moves the whole picture (the canvas element), so the ground
+  // and everything on it go together
+  function shake(dt) {
+    if (shakeT > 0) {
+      shakeT = Math.max(0, shakeT - dt)
+      const a = (SHAKE_PX * shakeT) / SHAKE
+      if (canvas.style) canvas.style.transform = `translate(${((Math.random() - 0.5) * 2 * a).toFixed(1)}px, ${((Math.random() - 0.5) * 2 * a).toFixed(1)}px) scale(1.02)`
+      shaken = true
+    } else if (shaken) {
+      if (canvas.style) canvas.style.transform = ''
+      shaken = false
+    }
+  }
+
   function drawOrb(o, now) {
     const bob = Math.sin(now / 260 + o.x) * 1.2
-    if (o.kind === 'xp') put('xp_gem', o.x, o.y - 5 + bob, (9 + Math.min(5, Math.sqrt(o.v))) / 24)
+    if (o.kind === 'xp') {
+      if (gemGlow) {
+        const r = 7 + Math.min(4, Math.sqrt(o.v))
+        world()
+        ctx.drawImage(gemGlow, o.x - r, o.y - 9 + bob - r, r * 2, r * 2)
+      }
+      put('xp_gem', o.x, o.y - 5 + bob, (9 + Math.min(5, Math.sqrt(o.v))) / 24)
+    }
     else if (o.kind === 'coin') put('coin', o.x, o.y - 5 + bob, 10 / 24)
     else if (o.kind === 'heal') put('heal', o.x, o.y - 6 + bob, 13 / 24)
     else if (o.kind === 'pheal') drawPHeart(o, now, bob)
@@ -1126,6 +1247,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     xfx ??= createExtraFx({ ctx, world })
     xfx.under(run, now, busy)
     zfx.under(run, now)
+    gemGlow = busy || run.orbs.length > 160 ? null : (glow ??= makeGlow())
     for (const o of run.orbs) drawOrb(o, now)
     const list = []
     for (const e of run.enemies) list.push([e.y, 0, e])
@@ -1134,6 +1256,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const c of seen) list.push([c.y, 3, c])
     list.sort((a, b) => a[0] - b[0])
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : drawEnemy(run, o))
+    drawManoBar(run)
     for (const b of run.balls) drawBall(b, !busy)
     zfx.over(run, now, dt)
     drawHazardsOver(run)
@@ -1149,10 +1272,14 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (ev.type === 'hit') {
         // (a cat's scratch has its own claw marks, not the ball's impact)
         if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
-        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : '#2f2537', crit: ev.crit })
+        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : NUM_COLOR, crit: ev.crit })
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
         if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })
+        if (big > 1) {
+          addSparks(ev.x, ev.y - 14, 18, 150)
+          rings.push({ x: ev.x, y: ev.y - 10, r: 46, t: 0 })
+        } else addSparks(ev.x, ev.y - 8, busy ? 1 : 4, 90)
       } else if (ev.type === 'blast') {
         if (fx.length < MAX_FX) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: Math.max(0.7, ev.r / 28) })
       } else if (ev.type === 'phase') {
@@ -1166,22 +1293,23 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
           fx.push({ anim: 'dust', x: ev.x + Math.cos(a) * ev.r * 0.7, y: ev.y + Math.sin(a) * ev.r * 0.7, t: 0, s: 1.3 })
         }
       } else if (ev.type === 'hurt') {
-        if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: '#d9524a' })
+        if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: HURT_COLOR })
+        if (!calm) shakeT = SHAKE
       } else if (ev.type === 'catSlash') {
         // many cats on one monster: one set of claw marks there at a time
         const twin = slashes.some((o) => o.t < SLASH * 0.6 && Math.abs(o.x - ev.x) < ev.r * 0.6 && Math.abs(o.y - ev.y) < ev.r * 0.6)
         if (!twin && slashes.length < (busy ? MAX_SLASH / 3 : MAX_SLASH)) slashes.push({ ...ev, t: 0 })
       } else if (ev.type === 'catSummon') {
         fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.8 })
-        numbers.push({ x: ev.x, y: ev.y - 26, text: '냥!', t: 0, color: '#c93c86' })
+        numbers.push({ x: ev.x, y: ev.y - 26, text: '냥!', t: 0, color: CAT_COLOR })
       } else if (ev.type === 'catEat') {
-        numbers.push({ x: ev.x, y: ev.y - 30, text: '냠!', t: 0, color: '#c93c86' })
+        numbers.push({ x: ev.x, y: ev.y - 30, text: '냠!', t: 0, color: CAT_COLOR })
       } else if (ev.type === 'catSpit') {
         fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.5 })
       } else if (ev.type === 'bolt') {
         if (bolts.length < MAX_BOLTS) bolts.push({ ...ev, t: 0, j: [0, 1, 2].map(() => (Math.random() - 0.5) * 14) })
       } else if (ev.type === 'heal') {
-        numbers.push({ x: ev.x, y: ev.y - 52, text: `+${Math.round(ev.n)}`, t: 0, color: '#3f9d5a' })
+        numbers.push({ x: ev.x, y: ev.y - 52, text: `+${Math.round(ev.n)}`, t: 0, color: HEAL_COLOR })
       }
     }
     run.events.length = 0
@@ -1208,13 +1336,16 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       }
       put(f.frame || animFrame(f.anim, f.t * 1000, false), f.x, f.y, f.s, { alpha: f.frame ? Math.min(1, (d - f.t) * 4) : 1 })
     }
+    drawSparks(dt)
+    shake(dt)
     // damage and the like rising and fading; critical hits after the rest,
     // in red, a size larger, with a short pop (one font change for all of them)
     world()
     ctx.textAlign = 'center'
     ctx.font = NUM_FONT
     ctx.lineWidth = 3
-    ctx.strokeStyle = 'rgba(252, 235, 205, 0.9)'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = NUM_EDGE
     let crits = 0
     for (let i = numbers.length - 1; i >= 0; i--) {
       const n = numbers[i]
@@ -1261,6 +1392,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (xfx) xfx.reset()
       if (zfx) zfx.reset()
       Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
+      sparks.length = rings.length = 0
+      shakeT = 0
+      shake(0)
     },
   }
 }
