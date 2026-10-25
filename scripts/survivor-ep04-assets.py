@@ -62,8 +62,11 @@ def main(src):
     f = f'ep04/rewards/{rid}.webp'
     im.save(os.path.join(OUT, f), 'WEBP', quality=85, method=6)
     images.append({'source': name, 'width': box[2] - box[0], 'height': box[3] - box[1], 'sha256': sha(path), 'id': rid, 'kind': 'reward', 'region': None, 'body': list(box), 'name': title, 'file': f, 'out': list(size), 'bytes': os.path.getsize(os.path.join(OUT, f))})
+    # (the turret's frames, made by survivor-turret-assets.py, stay)
+    if os.path.exists(MAP):
+        images += [x for x in json.load(open(MAP, encoding='utf-8'))['images'] if x['id'] == 'turret']
     data = {
-        'note': 'MANO SURVIVOR chapter 20 clear package (MANO_CH20_CUTSCENES, built by scripts/survivor-ep04-assets.py). images: the same form as story-assets.json (merged into it by data.js).',
+        'note': 'MANO SURVIVOR chapter 20 clear package (MANO_CH20_CUTSCENES, built by scripts/survivor-ep04-assets.py; the turret\'s frames by scripts/survivor-turret-assets.py). images: the same form as story-assets.json (merged into it by data.js).',
         'package': 'MANO_CH20_CUTSCENES',
         'images': images,
     }

@@ -1102,3 +1102,129 @@
 .ms.ms--pc .ms-craft__list {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+/* the class change as sums: card + card = class (zyo_'s green; a recipe
+   that is complete, the class's violet) — level-up, lobby, rewards */
+.ms-guide {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 2px solid var(--edge);
+  border-radius: 12px;
+  background: #f1faf5;
+}
+
+.ms .ms-guide__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ms .ms-guide__more {
+  flex: none;
+  padding: 3px 9px;
+  border: 1.5px solid var(--edge);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ms-recipes {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-recipes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1.5px #1fa36b;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.ms-recipes li.is-ready {
+  box-shadow: inset 0 0 0 2px #8b5cf6;
+  background: #f4efff;
+}
+
+.ms-recipes small {
+  color: #1a7f55;
+  font-weight: 700;
+}
+
+.ms .ms-recipes__op {
+  margin: 0 3px;
+  color: #1fa36b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ms-recipes__cls {
+  font-weight: 700;
+  color: #6d3fd8;
+}
+
+.ms.ms--pc .ms-level > .ms-guide {
+  grid-column: 1 / -1;
+}
+
+.ms.ms--pc .ms-guide .ms-recipes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ms-bless .ms-recipes {
+  margin-top: 6px;
+}
+
+.ms .ms-bless .ms-recipes li {
+  /* (not the blessing rows' own look: greyed, spaced) */
+  gap: 0 4px;
+  align-items: baseline;
+  opacity: 1;
+  filter: none;
+  font-size: 12px;
+}
+
+.ms-cut__words .ms-recipes li {
+  font-size: 12px;
+}
+
+/* a pick that does nothing after the class change: free to make a turret of */
+.ms-craft__list li.is-free {
+  background: #f1faf5;
+}
+
+.ms-craft__name small em {
+  color: #1a7f55;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* the turret's picture from its frames' atlas (TurretIcon) */
+.ms-turreticon {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+}
+
+.ms-turretopt__art.ms-turreticon {
+  object-fit: initial;
+  background-color: #fff;
+}

@@ -1,5 +1,5 @@
 {
- "note": "MANO SURVIVOR chapter 20 clear package (MANO_CH20_CUTSCENES, built by scripts/survivor-ep04-assets.py). images: the same form as story-assets.json (merged into it by data.js).",
+ "note": "MANO SURVIVOR chapter 20 clear package (MANO_CH20_CUTSCENES, built by scripts/survivor-ep04-assets.py; the turret's frames by scripts/survivor-turret-assets.py). images: the same form as story-assets.json (merged into it by data.js).",
  "package": "MANO_CH20_CUTSCENES",
  "images": [
   {
@@ -103,6 +103,122 @@
     256
    ],
    "bytes": 19148
+  },
+  {
+   "source": "MANO_TURRET_SHEET.png",
+   "width": 1536,
+   "height": 1024,
+   "sha256": "48d4bc63f00759d739836cc2c80e960c552a4cad78823a4fd856697568af55a3",
+   "id": "turret",
+   "kind": "atlas",
+   "region": "desert",
+   "name": "포탑",
+   "file": "ep04/turret/turret.webp",
+   "out": [
+    834,
+    112
+   ],
+   "bytes": 47492,
+   "frames": {
+    "S": [
+     0,
+     0,
+     107,
+     112,
+     53.3,
+     111.6
+    ],
+    "SW": [
+     109,
+     0,
+     98,
+     111,
+     49.5,
+     110.5
+    ],
+    "W": [
+     209,
+     0,
+     104,
+     109,
+     54.7,
+     108.4
+    ],
+    "NW": [
+     315,
+     0,
+     103,
+     104,
+     52.7,
+     103.3
+    ],
+    "N": [
+     420,
+     0,
+     104,
+     108,
+     52.7,
+     107.6
+    ],
+    "NE": [
+     526,
+     0,
+     100,
+     104,
+     50.8,
+     103.3
+    ],
+    "E": [
+     628,
+     0,
+     104,
+     109,
+     49.3,
+     108.4
+    ],
+    "SE": [
+     734,
+     0,
+     98,
+     111,
+     48.4,
+     110.5
+    ]
+   },
+   "muzzle": {
+    "S": [
+     -6.1,
+     -49.0
+    ],
+    "SW": [
+     -37.3,
+     -54.7
+    ],
+    "W": [
+     -46.4,
+     -59.0
+    ],
+    "NW": [
+     -38.3,
+     -87.8
+    ],
+    "N": [
+     -2.0,
+     -98.6
+    ],
+    "NE": [
+     31.0,
+     -87.1
+    ],
+    "E": [
+     46.4,
+     -59.0
+    ],
+    "SE": [
+     37.3,
+     -54.7
+    ]
+   }
   }
  ]
 }
