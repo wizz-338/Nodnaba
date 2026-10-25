@@ -519,11 +519,39 @@
         "id": "desert_4",
         "chapter": 20,
         "when": "clear",
-        "reward": "desert",
         "cuts": [
           {
             "image": "cs_04_4",
             "text": "피닉스의 보석이다! 따뜻하고 반짝반짝해."
+          }
+        ],
+        "play": false
+      },
+      {
+        "id": "ep04_clear",
+        "chapter": 20,
+        "when": "clear",
+        "reward": "desert",
+        "cuts": [
+          {
+            "image": "ep04_clear_01",
+            "text": "흐음..."
+          },
+          {
+            "image": "ep04_clear_02",
+            "text": "에잇!"
+          },
+          {
+            "image": "ep04_clear_03",
+            "text": "어?"
+          },
+          {
+            "image": "ep04_clear_04",
+            "text": "오ㅋㅋㅋ 또 해봐!!"
+          },
+          {
+            "image": "ep04_clear_05",
+            "text": "좋아! {next} 가자!"
           }
         ]
       },
@@ -659,7 +687,7 @@
     ]
   },
   "rewards": {
-    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz / zyo: they join (zyo_: the class change of balance.json → zyo, for good); rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz / zyo: they join (zyo_: the class change of balance.json → zyo, for good); turret: the turret's making opens for good (balance.json → turret); rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
     "forest": {
       "chapter": 5,
       "ball": "S",
@@ -707,14 +735,18 @@
     },
     "desert": {
       "chapter": 20,
+      "turret": true,
+      "rerolls": 8,
       "blessing": "phoenix",
       "images": [
-        "gem_phoenix",
-        "phoenix"
+        "reward_turret",
+        "reward_reroll",
+        "gem_phoenix"
       ],
       "lines": [
-        "피닉스의 보석을 얻었어요!",
-        "탱탱볼에 맞은 몬스터가 일정 확률로 느려져요."
+        "포탑 제작 해금!",
+        "리롤 +2 (총 8회)",
+        "피닉스의 보석을 얻었어요! 탱탱볼에 맞은 몬스터가 일정 확률로 느려져요."
       ]
     },
     "snow": {
@@ -772,7 +804,7 @@
         "name": "강화 리롤",
         "image": "reward_reroll",
         "from": "forest",
-        "text": "강화 선택지를 새로 뽑을 수 있어요. 5장·10장·15장을 처음 깰 때마다 한 판에 2번씩 늘어나요."
+        "text": "강화 선택지를 새로 뽑을 수 있어요. 5장·10장·15장·20장을 처음 깰 때마다 한 판에 2번씩 늘어나요."
       },
       {
         "id": "tizzzz",
@@ -787,6 +819,13 @@
         "image": "reward_zyo",
         "from": "skulltown",
         "text": "16장부터 같은 계열 강화 두 가지를 7단계씩 모으면 전직 카드가 선택지에 섞여 나와요. 한 판에 한 번 거대 탱탱볼이나 닌자냥이로 전직할 수 있어요."
+      },
+      {
+        "id": "turret",
+        "name": "포탑 제작",
+        "image": "reward_turret",
+        "from": "desert",
+        "text": "21장부터 레벨업 때 이번 판에 고른 강화 2회분을 포탑 1개로 바꿀 수 있어요. 포탑은 맵에 저절로 설치되어 자동으로 공격해요."
       },
       {
         "id": "phoenix",

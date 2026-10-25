@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { D } from './data.js'
-import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
+import { createRun, step, choose, reroll, makeTurret, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
 import { isClassCard, classOf, classDps, firepower, recipes, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03 } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04 } from './progress.js'
 import { createRenderer, short } from './render.js'
+import { materials, canMake } from './turret.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
@@ -545,12 +546,13 @@ function Game({ exitHref }) {
     // (and a save that cleared chapter 5 before it brought the cats and the
     // rerolls: they come now, the S ball it already has)
     if (news.length) {
-      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02 && rid !== NEWS_EP03)
+      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02 && rid !== NEWS_EP03 && rid !== NEWS_EP04)
       setNotice(
         [
           news.includes(NEWS_EP01) && `5장 클리어 보상이 바뀌었어요: 단추·호두·모루 합류 · 강화 리롤 ${b.data.rerolls}회 (S급 탱탱볼은 이미 받았어요)`,
           news.includes(NEWS_EP02) && `Tizzzz는 이제 10장 클리어 보상이에요: ${D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요 · 강화 리롤 ${b.data.rerolls}회 (SS급 탱탱볼은 이미 받았어요)`,
           news.includes(NEWS_EP03) && `15장 클리어 보상에 ${D.zyo.name}가 합류했어요: ${D.balance.zyo.activeFromChapter}장부터 한 판에 한 번 전직할 수 있어요 · 강화 리롤 ${b.data.rerolls}회`,
+          news.includes(NEWS_EP04) && `20장 클리어 보상에 포탑 제작이 생겼어요: ${D.balance.turret.activeFromChapter}장부터 레벨업 때 강화 2회분을 포탑 1개로 바꿀 수 있어요 · 강화 리롤 ${b.data.rerolls}회`,
           told.length && `이미 깬 장의 이야기 보상을 받았어요: ${told.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`,
         ]
           .filter(Boolean)
@@ -615,7 +617,7 @@ function Game({ exitHref }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, turret: r.turret, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -1225,7 +1227,7 @@ function Gear({ save, equipped, onEquip, onFusion, onFuseAll, onChests }) {
 // greyed with the chapter that brings them
 function Blessings({ save }) {
   const owned = (b) =>
-    b.id === 'cats' ? save.cats.unlocked : b.id === 'reroll' ? save.rerolls > 0 : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'zyo' ? save.zyo.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
+    b.id === 'cats' ? save.cats.unlocked : b.id === 'reroll' ? save.rerolls > 0 : b.id === 'tizzzz' ? save.tizzzz.unlocked : b.id === 'zyo' ? save.zyo.unlocked : b.id === 'turret' ? save.turret.unlocked : b.id === 'spring' ? save.story.rewards.includes('snow') : !!save.blessings[b.id]
   return (
     <section className="ms-panel">
       <h3 className="ms-sub">축복과 보물</h3>
@@ -1589,12 +1591,74 @@ function Fusion({ save, onBack, onFuse }) {
 
 // ── battle ───────────────────────────────────────────────────────────────────
 
+// the turret's making (turret.js): this run's upgrades that can go into it,
+// how many picks of each are left, the cost picks chosen with − and +, what
+// is left after; 제작하기 takes them back and puts a turret on the field
+function TurretCraft({ run, pick, setPick, onCancel, onMake }) {
+  const cost = D.balance.turret.cost
+  const have = materials(run)
+  const ids = Object.keys(have).sort((a, b) => have[b] - have[a] || a.localeCompare(b))
+  const chosen = Object.values(pick).reduce((a, n) => a + n, 0)
+  const gone = run.cls ? D.balance.zyo.recipes[run.cls.k].mats : null
+  const set = (id, n) => {
+    const next = { ...pick, [id]: n }
+    if (!n) delete next[id]
+    setPick(next)
+  }
+  return (
+    <div className="ms-craft">
+      <h2 className="ms-h">{D.turret.craftTitle}</h2>
+      <p className="ms-sub ms-center">
+        {chosen}/{cost}회 골랐어요
+      </p>
+      <p className="ms-dim ms-center">{D.turret.craftHint}</p>
+      <ul className="ms-craft__list">
+        {ids.map((id) => {
+          const n = pick[id] || 0
+          const o = OPTIONS[id]
+          return (
+            <li key={id} className={n ? 'is-on' : ''}>
+              <span className="ms-card__icon ms-craft__icon">
+                <CardIcon o={o} size={28} />
+              </span>
+              <span className="ms-craft__name">
+                {optionName(run, id)}
+                <small>
+                  {have[id]}회{n ? ` → ${have[id] - n}회` : ''}
+                </small>
+              </span>
+              <button type="button" className="ms-btn ms-btn--small" aria-label={`${optionName(run, id)} 빼기`} disabled={!n} onClick={() => set(id, n - 1)}>
+                −
+              </button>
+              <b className="ms-craft__n">{n}</b>
+              <button type="button" className="ms-btn ms-btn--small" aria-label={`${optionName(run, id)} 더하기`} disabled={n >= have[id] || chosen >= cost} onClick={() => set(id, n + 1)}>
+                +
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      {gone && <p className="ms-dim ms-center">{gone.map((m) => OPTIONS[m].name).join('·')}: {D.turret.classMats}</p>}
+      <div className="ms-row ms-row--two">
+        <button type="button" className="ms-btn" onClick={onCancel}>
+          {D.turret.craftCancel}
+        </button>
+        <button type="button" className="ms-btn ms-btn--primary" disabled={chosen !== cost} onClick={() => onMake(Object.entries(pick).flatMap(([id, n]) => Array(n).fill(id)))}>
+          {D.turret.craftGo}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, onEquip, onChests, refresh, rerender }) {
   const pf = usePlatform()
   const [SW, SH] = pf.screen
   const stageRef = useRef(null)
   // the level-up's "my stats" box: stays open or shut across a run's level-ups
   const [showStats, setShowStats] = useState(false)
+  // the turret's making screen (turret.js), for the cards on show: { seq, pick: { id: n } }
+  const [craft, setCraft] = useState(null)
   const canvasRef = useRef(null)
   const joyRef = useRef(null)
   const knobRef = useRef(null)
@@ -1776,6 +1840,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         else if (ev.type === 'die') D.balance.enemies[ev.kind] && D.balance.enemies[ev.kind].rank ? (big = true) : kills++
         else if (ev.type === 'hurt') audio.sfx('hurt')
         else if (ev.type === 'skillHit') audio.sfx(ev.kind === 'ball' ? 'boom' : 'slash')
+        else if (ev.type === 'turretShot') audio.sfx('turret')
       }
       if (big) {
         audio.sfx('bigkill')
@@ -2013,12 +2078,36 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       {run.state === 'levelup' && run.choices && !modal && (
         <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="강화 선택">
           <div className={`ms-level${run.choices.length > 3 ? ' ms-level--four' : ''}`}>
-            <h2 className="ms-h">이번 판의 행운은?</h2>
-            <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
-            <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
-              {showStats ? '능력치 닫기' : '내 능력치 보기'}
-            </button>
-            {showStats && <RunStats run={run} />}
+            {/* (the turret's making screen has its own title) */}
+            {!(craft && craft.seq === run.choiceSeq) && (
+              <>
+                <h2 className="ms-h">이번 판의 행운은?</h2>
+                <p className="ms-dim ms-center">하나를 골라 주세요{run.pending > 1 ? ` (남은 선택 ${run.pending})` : ''}</p>
+                <button type="button" className="ms-btn ms-btn--small ms-runstats__toggle" aria-expanded={showStats} onClick={() => setShowStats((v) => !v)}>
+                  {showStats ? '능력치 닫기' : '내 능력치 보기'}
+                </button>
+                {showStats && <RunStats run={run} />}
+              </>
+            )}
+            {craft && craft.seq === run.choiceSeq ? (
+              <TurretCraft
+                run={run}
+                pick={craft.pick}
+                setPick={(pick) => setCraft({ ...craft, pick })}
+                onCancel={() => setCraft(null)}
+                onMake={(ids) => {
+                  const g = G.current
+                  if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
+                  if (makeTurret(run, ids, run.choiceSeq)) {
+                    audio.sfx('fuse')
+                    g.cardsAt = performance.now()
+                    setCraft(null)
+                    rerender()
+                  }
+                }}
+              />
+            ) : (
+            <>
             {run.choices.map((id) => {
               // (the class's growth card wears the class's own name and picture)
               const o = id === 'power' && run.cls ? { ...OPTIONS[id], ...OPTIONS['cls' + run.cls.k] } : OPTIONS[id]
@@ -2091,6 +2180,28 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                 </button>
               )
             })}
+            {/* the turret (chapter 20's reward): two picks of this run's upgrades become a turret */}
+            {canMake(run) && (
+              <button
+                type="button"
+                className="ms-turretopt"
+                onClick={() => {
+                  const g = G.current
+                  if (g.choosing || performance.now() - (g.cardsAt || 0) < TAP_GAP) return
+                  audio.sfx('tick')
+                  setCraft({ seq: run.choiceSeq, pick: {} })
+                }}
+              >
+                <Art id="reward_turret" className="ms-turretopt__art" />
+                <span className="ms-turretopt__body">
+                  <b>{D.turret.option}</b>
+                  <span>{D.turret.optionText}</span>
+                  <small>
+                    바꿀 수 있는 강화 {Object.values(materials(run)).reduce((a, n) => a + n, 0)}회{run.turrets.length ? ` · 설치된 포탑 ${run.turrets.length}개` : ''}
+                  </small>
+                </span>
+              </button>
+            )}
             {/* the rerolls (chapter 5's reward): three other cards, while any are left this run */}
             {(run.rerolls > 0 || run.stats.rerolls > 0) && (
               <button
@@ -2110,6 +2221,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                 <Art id="reward_reroll" className="ms-reroll__art" />
                 {run.rerolls > 0 ? `다시 뽑기 (${run.rerolls}회 남음)` : '다시 뽑기를 다 썼어요'}
               </button>
+            )}
+            </>
             )}
           </div>
         </div>
@@ -2187,7 +2300,8 @@ const REWARD_CAPTION = {
   ball_ss: (R) => `${R.ball}급 탱탱볼`,
   blessing_tizzzz: () => `${D.tizzzz.name} 선택지 수정`,
   reward_zyo: () => `${D.zyo.name} 전직`,
-  reward_reroll: (R) => (R.rerolls > 2 ? `리롤 +2 (누적 ${R.rerolls}회)` : `리롤 ${R.rerolls}회`),
+  reward_turret: () => D.turret.name,
+  reward_reroll: (R) => (R.rerolls > 2 ? `리롤 +2 (총 ${R.rerolls}회)` : `리롤 ${R.rerolls}회`),
 }
 
 const leftoverCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'clear' && save.firstCleared.includes(g.chapter) && !save.story.seen.includes(g.id))
@@ -2263,6 +2377,7 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
             {R.cats && <p className="ms-dim ms-center">{D.balance.cats.activeFromChapter}장부터 함께 다니며 코인과 경험치를 주워 와요. 강화 선택지에 친구냥이도 나와요.</p>}
             {R.rerolls && <p className="ms-dim ms-center">{D.balance.rerolls.fromChapter}장부터 한 판에 {R.rerolls}번, 강화 선택지를 새로 뽑을 수 있어요.</p>}
             {R.tizzzz && <p className="ms-dim ms-center">{D.balance.tizzzz.activeFromChapter}장부터 선택지를 고쳐 써 줘요.</p>}
+            {R.turret && <p className="ms-dim ms-center">{D.balance.turret.activeFromChapter}장부터 레벨업 때 이번 판 강화 {D.balance.turret.cost}회분으로 포탑을 만들 수 있어요.</p>}
             {R.zyo && <p className="ms-dim ms-center">{D.balance.zyo.activeFromChapter}장부터 같은 계열 강화 두 가지를 {D.balance.zyo.need}단계씩 모으면 한 판에 한 번 전직할 수 있어요.</p>}
             <button type="button" className="ms-btn ms-btn--primary" onClick={() => setI(i + 1)}>
               확인

@@ -1,14 +1,15 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, reroll, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, reroll, makeTurret, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
-import { growth, classLevel, zyoMarks, firepower } from '../src/survivor/zyo.js'
+import { growth, classLevel, zyoMarks, firepower, recipes } from '../src/survivor/zyo.js'
+import { materials, materialCount, canMake, turretHit, relocateTurrets } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 
 let fails = 0
@@ -793,7 +794,7 @@ const still = { x: 0, y: 0 }
   mem.setItem('nodnaba:colony:save', 'COLONY')
   const P = createProgress(D, mem)
   const b0 = P.boot()
-  ok(b0.supplied.length === 0 && b0.data.story.v === 4 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
+  ok(b0.supplied.length === 0 && b0.data.story.v === 5 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
   const clear = (ch) => {
     const r = P.startRun(ch)
     return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
@@ -806,7 +807,7 @@ const still = { x: 0, y: 0 }
   const chapters = Object.keys(got).map(Number)
   ok(chapters.join() === '5,10,15,20,25,30,35', `rewards come at the clears of ${chapters.join(', ')}, nowhere else`)
   ok(got[5].reward === 'forest' && got[5].item.grade === 'S' && got[10].reward === 'deepforest' && got[10].item.grade === 'SS' && got[15].reward === 'skulltown' && !got[15].item, '5: the cats, an S ball and rerolls; 10: Tizzzz, an SS ball and rerolls; 15: only rerolls (no ball, no one new)')
-  ok(P.get().cats.unlocked && P.get().tizzzz.unlocked && P.get().rerolls === 6, `rerolls: 2 at 5, 4 at 10, 6 at 15 (${P.get().rerolls})`)
+  ok(P.get().cats.unlocked && P.get().tizzzz.unlocked && P.get().turret.unlocked && P.get().rerolls === 8, `rerolls: 2 at 5, 4 at 10, 6 at 15, 8 at 20 (${P.get().rerolls}); 20 opens the turret`)
   const d = P.get()
   const balls = (g, tag) => d.inventory.filter((it) => it.grade === g && (tag ? it.tag === tag : !it.tag)).length
   ok(got[35].item.grade === 'EX' && got[35].item.tag === 'demon' && balls('SS') === 1, '5: the red ball grows to S; 10: to SS (one); 35: 마왕의 탱탱볼 (EX)')
@@ -814,7 +815,7 @@ const still = { x: 0, y: 0 }
   ok(d.equippedInstanceId === got[35].item.id, '마왕의 탱탱볼 is equipped (it beats the SS)')
   ok(d.story.rewards.length === 7 && d.story.seen.length === 0, 'the rewards are recorded apart from the cutscenes (none seen here: skipping or closing never costs a reward)')
   const before = JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')])
-  for (const ch of [5, 10, 15, 35]) ok(!clear(ch).story && P.get().rerolls === 6, `clearing chapter ${ch} again gives nothing more`)
+  for (const ch of [5, 10, 15, 20, 35]) ok(!clear(ch).story && P.get().rerolls === 8, `clearing chapter ${ch} again gives nothing more`)
   ok(JSON.stringify([balls('S'), balls('SS'), balls('EX', 'demon')]) === before, 'still one S, one SS, one 마왕의 탱탱볼 from the story')
   P.markSeen('ep01_clear')
   P.markSeen('ep01_clear')
@@ -824,7 +825,7 @@ const still = { x: 0, y: 0 }
   const s35 = again.startRun(35)
   ok(s35.cats && s35.tizzzz && s35.blessings.phoenix && s35.blessings.snow && s35.blessings.thunder && s35.blessings.final, 'a run started now brings the cats, Tizzzz and every blessing')
   const bk = parseBackup(D, again.exportText()).data
-  ok(bk.blessings.snow && bk.story.rewards.length === 7 && bk.rerolls === 6 && bk.inventory.some((it) => it.tag === 'demon'), 'a backup keeps the story, the blessings and 마왕의 탱탱볼')
+  ok(bk.blessings.snow && bk.story.rewards.length === 7 && bk.rerolls === 8 && bk.turret.unlocked && bk.inventory.some((it) => it.tag === 'demon'), 'a backup keeps the story, the blessings and 마왕의 탱탱볼')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "the other games' saves are untouched")
   ok(!canFuse(D, again.get(), again.get().inventory.filter((it) => it.grade === 'EX').slice(0, 3).map((it) => it.id)).ok, '마왕의 탱탱볼 never goes into a fusion')
 }
@@ -851,7 +852,7 @@ const still = { x: 0, y: 0 }
   ok(b.supplied.join() === 'skulltown,desert,snow' && n.story.news.join() === 'skulltown,desert,snow', `it is given what chapters 15, 20 and 25 now bring (${b.supplied.join(', ')}), and told so once`)
   ok(n.blessings.phoenix && n.blessings.snow && !n.blessings.thunder && !n.blessings.final, 'the phoenix gem and the snow blessing; not yet thunder (chapter 30)')
   ok(n.inventory.length === d.inventory.length && n.equippedInstanceId === 'w91', 'no ball given again (its S and SS came from the old stories); its equipped SS stays')
-  ok(n.cats.unlocked && n.tizzzz.unlocked && n.rerolls === 6 && n.story.rewards.includes('deepforest'), 'the cats and Tizzzz stay (its old Tizzzz event counts as chapter 10\'s reward); the rerolls of 5, 10 and 15 come')
+  ok(n.cats.unlocked && n.tizzzz.unlocked && n.turret.unlocked && n.rerolls === 8 && n.story.rewards.includes('deepforest'), 'the cats and Tizzzz stay (its old Tizzzz event counts as chapter 10\'s reward); the rerolls of 5, 10, 15 and 20 come, and the turret')
   ok(['prologue', 'ep01_clear', 'ep02_clear', 'desert_4', 'snow_3', 'sky_1', 'sky_2', 'sky_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('castle_1'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it')
   P2.clearNews()
   const third = createProgress(D, mem).boot()
@@ -1185,9 +1186,10 @@ const still = { x: 0, y: 0 }
   const A = D.storyAssets.images
   // (the soft lobby copies, Tizzzz's face and the PC game's wide grounds are
   // made from these originals, not originals of their own)
-  // (MANO_EP01's, MANO_CH10_CUTSCENES' and MANO_CH15_CUTSCENES' pictures,
-  // ep01/ep02/ep03-assets.json, are merged in: they are apart)
-  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/') && !x.file.startsWith('ep03/'))
+  // (MANO_EP01's, MANO_CH10_CUTSCENES', MANO_CH15_CUTSCENES' and
+  // MANO_CH20_CUTSCENES' pictures, ep01–ep04-assets.json, are merged in: they
+  // are apart)
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/') && !x.file.startsWith('ep03/') && !x.file.startsWith('ep04/'))
   const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
   ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
   ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
@@ -1197,9 +1199,9 @@ const still = { x: 0, y: 0 }
   const S = D.story
   const used = S.cutscenes.groups.flatMap((g) => g.cuts.map((c) => c.image))
   const kept = ['cs_01_3', 'cs_02_3', 'cs_02_4', 'cs_03_3']
-  ok(used.length === 40 && new Set(used).size === 40 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's, 10's and 15's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
+  ok(used.length === 45 && new Set(used).size === 45 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's, 10's, 15's and 20's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
   const per = S.regions.map((r) => S.cutscenes.groups.filter((g) => regionOf(D, g.chapter).id === r.id).reduce((n, g) => n + g.cuts.length, 0))
-  ok(per.join() === '9,7,7,4,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
+  ok(per.join() === '9,7,7,9,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
   ok(S.cutscenes.groups.every((g) => g.when !== 'time' || (g.at > 0 && g.at < 210)) && S.cutscenes.groups.every((g) => ['enter', 'time', 'boss', 'clear'].includes(g.when)), 'every cutscene has its moment: before the fight, a time in it, the boss, or the clear')
   const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
   ok(rr === '1-5,6-10,11-15,16-20,21-25,26-30,31-35' && S.regions.every((r) => ids.has(r.background) && A.find((x) => x.id === r.background).region === r.id), `7 regions of 5 chapters (${rr}), each with its own background`)
@@ -1681,7 +1683,7 @@ const still = { x: 0, y: 0 }
   ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep01_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7), 'the five pictures are wide (16:9), whole')
   ok(!S.cutscenes.groups.some((x) => x.id === 'deepforest_3') && !S.rewards.deepforest.cats && S.cutscenes.groups.filter((x) => x.chapter === 10).map((x) => x.id).join() === 'ep02_clear', "chapter 10: the old cat event is gone (its clear is now Tizzzz's)")
   const off = S.cutscenes.groups.filter((x) => x.play === false).map((x) => x.chapter)
-  ok(off.join() === '6,11,16,21,26,31' && S.cutscenes.groups.filter((x) => x.play === false).every((x) => x.when === 'enter' && x.cuts.length > 0), `the episodes' opening cutscenes are kept but never played (chapters ${off.join(', ')})`)
+  ok(off.join() === '6,11,16,20,21,26,31' && S.cutscenes.groups.filter((x) => x.play === false).every((x) => (x.when === 'enter' || x.id === 'desert_4') && !x.reward && x.cuts.length > 0), `the episodes' opening cutscenes, and chapter 20's old clear (the phoenix gem: its reward now comes with the new one), are kept but never played (chapters ${off.join(', ')})`)
   const R = S.rewards.forest
   ok(R.chapter === 5 && R.ball === 'S' && R.cats && R.rerolls === 2 && R.images.join() === 'reward_cats,reward_s_ball,reward_reroll', "chapter 5's reward: the cats, one S ball, 2 rerolls (one popup, three pictures)")
   // a new save through chapter 11
@@ -2493,6 +2495,160 @@ const still = { x: 0, y: 0 }
   for (let i = 0; i < 600; i++) step(run, FIXED, still)
   const ms = (performance.now() - t0) / 600
   ok(run.cls.units.length + run.cls.shield.length <= 5 && run.balls.length === 0 && ms < 2, `after the change (1024 balls a volley before): ${run.cls.units.length + run.cls.shield.length} giant balls, ${ms.toFixed(3)} ms a step with 140 monsters`)
+}
+
+// ── chapter 20: its clear cutscene, the turret's unlock, the turret ─────────
+{
+  const S = D.story
+  const g = S.cutscenes.groups.find((x) => x.id === 'ep04_clear')
+  ok(g && g.chapter === 20 && g.when === 'clear' && g.reward === 'desert' && g.play !== false && g.cuts.map((c) => c.image).join() === 'ep04_clear_01,ep04_clear_02,ep04_clear_03,ep04_clear_04,ep04_clear_05', "chapter 20's clear: the five new cuts in order, then its reward")
+  ok(g.cuts.map((c) => c.text).join('|') === '흐음...|에잇!|어?|오ㅋㅋㅋ 또 해봐!!|좋아! {next} 가자!' && S.regions[4].from === 21 && S.regions[4].name === '눈 덮인 산', `Mano's five lines; the last names the region of chapters 21–25 from the data (${S.regions[4].name})`)
+  ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep04_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7) && D.storyAssets.images.some((x) => x.id === 'reward_turret'), 'the five pictures are wide (16:9), whole; the turret\'s reward picture is there')
+  const R = S.rewards.desert
+  ok(R.turret && R.rerolls === 8 && R.blessing === 'phoenix' && R.lines[0] === '포탑 제작 해금!' && R.lines[1] === '리롤 +2 (총 8회)', 'the popup: 포탑 제작 해금! and 리롤 +2 (총 8회) (the phoenix gem stays chapter 20\'s)')
+  ok(S.cutscenes.groups.filter((x) => x.chapter === 21 && x.play !== false).length === 0, 'no cutscene at the start of chapter 21')
+  // a save: 15 cleared, then 20
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const clear = (ch) => {
+    const r = P.startRun(ch)
+    return P.finishRun(r.runId, ch, { cleared: true, time: 200, kills: 1, coins: 0, level: 10, elites: 2, bossLeft: 0 })
+  }
+  for (let ch = 1; ch <= 19; ch++) clear(ch)
+  const before = P.get()
+  ok(!before.turret.unlocked && before.rerolls === 6 && !P.startRun(20).turret, 'before chapter 20: no turret, 6 rerolls')
+  const c20 = clear(20)
+  const after = P.get()
+  ok(c20.story && c20.story.reward === 'desert' && after.turret.unlocked && after.rerolls === 8 && after.blessings.phoenix, "chapter 20's first clear: the turret, 8 rerolls, the phoenix gem")
+  ok(!clear(20).story && P.get().rerolls === 8, 'clearing chapter 20 again gives nothing more')
+  const s21 = P.startRun(21)
+  ok(s21.turret && s21.rerolls === 8, 'a run started now: the turret and 8 rerolls')
+  ok(createRun(D, { chapter: 21, weaponId: 'bouncy_ball', grade: 'SS', seed: 1, turret: true, rerolls: 8 }).turretOn && !createRun(D, { chapter: 20, weaponId: 'bouncy_ball', grade: 'SS', seed: 1, turret: true }).turretOn && createRun(D, { chapter: 21, weaponId: 'bouncy_ball', grade: 'SS', seed: 1, rerolls: 8 }).rerolls === 8, 'the turret from chapter 21, with it only; 8 rerolls a run')
+  // an older save (story v4) that cleared chapter 20 before: told once
+  const old = JSON.parse(JSON.stringify(before))
+  old.story.v = 4
+  old.story.rewards = [...old.story.rewards, 'desert']
+  old.firstCleared = [...old.firstCleared, 20]
+  old.blessings.phoenix = true
+  const got = migrateStory(D, old)
+  ok(old.turret.unlocked && old.rerolls === 8 && old.story.news.includes('ep04') && got.length === 0 && old.story.seen.includes('ep04_clear') && old.story.v === 5, 'a save that cleared chapter 20 before: the turret and 8 rerolls now, told once; its new cutscene counts as seen')
+  const young = JSON.parse(JSON.stringify(before))
+  young.story.v = 4
+  migrateStory(D, young)
+  ok(!young.turret.unlocked && young.rerolls === 6, 'one that has not: nothing')
+}
+// the turret: two picks of the run's upgrades taken back, one turret
+{
+  const T = B.turret
+  const fresh = (o = {}) => {
+    const run = newRun({ chapter: 21, grade: 'SS', turret: true, seed: 91, ...o })
+    run.player.hp = run.player.maxHp = 1e12
+    run.spawnT = -1e9
+    run.nextEvent = 1e9
+    return run
+  }
+  const give = (run, id, n) => {
+    for (let i = 0; i < n; i++) {
+      run.state = 'levelup'
+      run.pending = 1
+      run.choices = [id]
+      choose(run, id, run.choiceSeq)
+    }
+    run.state = 'play'
+  }
+  const atLevelUp = (run) => {
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = ['crit', 'move', 'luck']
+    run.choiceSeq++
+  }
+  const run = fresh()
+  const w0 = { ...run.weapon }
+  give(run, 'damage', 6)
+  give(run, 'interval', 4)
+  give(run, 'split', 4)
+  const E = B.upgrades.effects
+  ok(near(run.weapon.damage, w0.damage * E.damage.mul ** 6, 1e-6 * w0.damage * 20) && materialCount(run) === 14 && canMake(run), '공격 피해 ×6, 공격 주기 ×4, 쪼개지는 행운 ×4: 14 picks, a turret can be made')
+  ok(!makeTurret(run, ['damage'], run.choiceSeq) && !makeTurret(run, ['damage', 'damage'], run.choiceSeq), 'nothing outside a level-up, nor one pick')
+  atLevelUp(run)
+  ok(!makeTurret(run, ['damage', 'count'], run.choiceSeq) && run.state === 'levelup' && run.picks.damage === 6, 'never a pick the run does not have')
+  const plans = [['damage', 'damage'], ['damage', 'interval'], ['interval', 'interval'], ['split', 'split'], ['damage', 'split'], ['damage', 'interval'], ['damage', 'split']]
+  let exact = true
+  const spots = []
+  for (const ids of plans) {
+    atLevelUp(run)
+    const t = makeTurret(run, ids, run.choiceSeq)
+    if (!t || run.state !== 'play') exact = false
+    spots.push(t)
+    const want = {
+      damage: w0.damage * E.damage.mul ** (run.picks.damage || 0),
+      interval: w0.interval * E.interval.mul ** (run.picks.interval || 0),
+      splitChance: w0.splitChance + E.split.add * (run.picks.split || 0),
+    }
+    if (!near(run.weapon.damage, want.damage, want.damage * 1e-9) || !near(run.weapon.interval, want.interval, 1e-12) || !near(run.weapon.splitChance, want.splitChance, 1e-12)) exact = false
+  }
+  ok(exact && run.turrets.length === 7 && materialCount(run) === 0 && !canMake(run) && !run.picks.damage && !run.picks.interval && !run.picks.split, `14 picks → 7 turrets, each pair taken back exactly (damage, gap, split back to the start: ${run.weapon.damage.toFixed(1)} / ${w0.damage.toFixed(1)})`)
+  const [x0, y0, x1, y1] = run.arena.bounds
+  const apart = run.turrets.every((t, i) => run.turrets.every((u, j) => i === j || Math.hypot(t.x - u.x, t.y - u.y) >= T.place.apart * 0.5))
+  ok(run.turrets.every((t) => t.x >= x0 + T.place.margin - 1e-9 && t.x <= x1 - T.place.margin + 1e-9 && t.y >= y0 + T.place.margin - 1e-9 && t.y <= y1 - T.place.margin + 1e-9) && apart && new Set(run.turrets.map((t) => Object.keys(t).sort().join())).size === 1, 'every turret inside the field, apart from the others, all the same kind')
+  // it shoots the nearest monster in range; the field shrinks: they move in
+  const shot = fresh({ seed: 92 })
+  give(shot, 'move', 2)
+  atLevelUp(shot)
+  const t = makeTurret(shot, ['move', 'move'], shot.choiceSeq)
+  const m = spawnAt(shot, 'slime', { x: t.x + 60, y: t.y })
+  m.hp = m.maxHp = 1e30
+  m.speed = 0
+  let shots = 0
+  for (let i = 0; i < 60 * 3; i++) {
+    step(shot, FIXED, still)
+    shots += shot.events.filter((e) => e.type === 'turretShot').length
+    shot.events.length = 0
+  }
+  const by = shot.stats.by.turret
+  ok(shots >= 3 && by && by.hits === shots && near(by.raw / by.hits, turretHit(shot), turretHit(shot) * 1e-6), `a turret shoots the monster near it (${shots} shots in 3 s, each ${turretHit(shot).toExponential(2)})`)
+  shot.extra = { box: [100, 100, 260, 300] }
+  for (const u of shot.turrets) (u.x = 900), (u.y = 900)
+  relocateTurrets(shot)
+  ok(shot.turrets.every((u) => u.x >= 100 && u.x <= 260 && u.y >= 100 && u.y <= 300), 'an extra special boss\'s fight area: the turrets are put inside it, at random')
+  const bare = fresh({ seed: 93, perma: { hp: 66, damage: 68, interval: 68, crit: 40, move: 10, coins: 8 }, cats: true, tizzzz: true, zyo: true, blessings: { phoenix: true, snow: true } })
+  ok(bare.turrets.length === 0 && materialCount(bare) === 0 && !canMake(bare), 'a new run starts with none, and nothing to make one of: the lobby\'s stats, the weapon, the blessings are never material')
+  // the class: its recipe cards are gone; the others stay material
+  const z = fresh({ zyo: true, seed: 94 })
+  give(z, 'size', B.zyo.need)
+  give(z, 'count', B.zyo.need)
+  give(z, 'damage', 3)
+  give(z, 'clsA', 1)
+  const mz = materials(z)
+  ok(z.cls && !mz.size && !mz.count && mz.damage === 3 && !mz.clsA, 'after the class change its recipe cards are no turret material; the other picks are')
+  give(z, 'power', 2)
+  const dmg0 = z.cls.dmg
+  atLevelUp(z)
+  makeTurret(z, ['power', 'damage'], z.choiceSeq)
+  ok(z.cls && z.cls.k === 'A' && z.picks.power === 1 && z.cls.dmg < dmg0 && z.turrets.length === 1, 'a turret of the class\'s growth card and a damage pick: the class stays, one growth level less')
+  // before it: a turret of a recipe card puts the class card off again
+  const y = fresh({ zyo: true, seed: 95 })
+  give(y, 'size', B.zyo.need)
+  give(y, 'count', B.zyo.need)
+  const ready = drawChoices(y).length >= 0 && recipes(y).find((r) => r.k === 'A').ready
+  atLevelUp(y)
+  makeTurret(y, ['size', 'count'], y.choiceSeq)
+  ok(ready && !recipes(y).find((r) => r.k === 'A').ready && !y.cls, 'a turret of recipe cards before the change: the recipe is short again (the class card waits)')
+  // many turrets stay cheap
+  const many = fresh({ seed: 96 })
+  give(many, 'move', 80)
+  for (let i = 0; i < 40; i++) {
+    atLevelUp(many)
+    makeTurret(many, ['move', 'move'], many.choiceSeq)
+  }
+  for (let i = 0; i < 140; i++) spawnAt(many, i % 2 ? 'imp' : 'slime', { x: 30 + ((i * 37) % 300), y: 120 + ((i * 53) % 480) })
+  for (const e of many.enemies) e.hp = e.maxHp = 1e30
+  for (let i = 0; i < 60; i++) step(many, FIXED, still)
+  const t0 = performance.now()
+  for (let i = 0; i < 600; i++) step(many, FIXED, still), (many.events.length = 0)
+  const ms = (performance.now() - t0) / 600
+  ok(many.turrets.length === 40 && ms < 2, `40 turrets and 140 monsters: ${ms.toFixed(3)} ms a step`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
