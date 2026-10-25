@@ -1,0 +1,129 @@
+{
+ "note": "MANO SURVIVOR chapter 15 clear package (MANO_CH15_CUTSCENES, built by scripts/survivor-ep03-assets.py). images: the same form as story-assets.json (merged into it by data.js).",
+ "package": "MANO_CH15_CUTSCENES",
+ "images": [
+  {
+   "source": "ep03_clear_01_zyo_arrives.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "5aae5579117fd98b5e701a488e4bc9e63a0ce424eb2ab904b3fb97ab3e80caf3",
+   "id": "ep03_clear_01",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "zyo_ 등장",
+   "file": "ep03/cutscenes/ep03_clear_01.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 201476
+  },
+  {
+   "source": "ep03_clear_02_examine_ball.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "ae9ca131507304a4b9e1472c7584af2672958d9bed7e961f4bb2753ce4fdb2b0",
+   "id": "ep03_clear_02",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "탱탱볼 살펴보기",
+   "file": "ep03/cutscenes/ep03_clear_02.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 187156
+  },
+  {
+   "source": "ep03_clear_03_fusion.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "e0322b7991b7a84809580eb0d67d32d47f49fdd5ab351b60ce30cea75c59c78b",
+   "id": "ep03_clear_03",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "강화 합성",
+   "file": "ep03/cutscenes/ep03_clear_03.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 198850
+  },
+  {
+   "source": "ep03_clear_04_big_ball.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "0bdc94e9b4156568fce37ea63d885c313bc18ec96fd876719fe9ca3e753ce14b",
+   "id": "ep03_clear_04",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "거대 탱탱볼",
+   "file": "ep03/cutscenes/ep03_clear_04.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 187568
+  },
+  {
+   "source": "ep03_clear_05_departure.png",
+   "width": 1672,
+   "height": 941,
+   "sha256": "558557382f3b60d93df25f4e74fbd6790322f2f013b9223f1669d00c0e386efd",
+   "id": "ep03_clear_05",
+   "kind": "cutscene",
+   "region": "skulltown",
+   "name": "다음 모험",
+   "file": "ep03/cutscenes/ep03_clear_05.webp",
+   "out": [
+    1440,
+    810
+   ],
+   "bytes": 199576
+  },
+  {
+   "source": "ep03_clear_03_fusion.png",
+   "width": 380,
+   "height": 380,
+   "sha256": "e0322b7991b7a84809580eb0d67d32d47f49fdd5ab351b60ce30cea75c59c78b",
+   "id": "reward_zyo",
+   "kind": "reward",
+   "region": null,
+   "body": [
+    800,
+    400,
+    1180,
+    780
+   ],
+   "name": "zyo_ 전직",
+   "file": "ep03/rewards/reward_zyo.webp",
+   "out": [
+    256,
+    256
+   ],
+   "bytes": 18602
+  },
+  {
+   "id": "zyo_face",
+   "kind": "portrait",
+   "region": "skulltown",
+   "source": "ep03_clear_01_zyo_arrives.png",
+   "crop": [
+    1100,
+    100,
+    1420,
+    420
+   ],
+   "name": "zyo_",
+   "file": "ep03/rewards/zyo_face.webp",
+   "out": [
+    160,
+    160
+   ],
+   "bytes": 9098,
+   "width": 1672,
+   "height": 941
+  }
+ ]
+}

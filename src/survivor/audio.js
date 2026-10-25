@@ -292,6 +292,29 @@ const SOUNDS = {
   deny: [0.1, (t) => tone(t, { type: 'square', f0: 150, f1: 120, glide: 0.06, peak: 0.035, len: 0.09, lowpass: 600 })],
   // Tizzzz's pen across a card
   scribble: [0.22, (t) => noise(t, { len: 0.22, freq: 3200, q: 1.4, peak: 0.09, wobble: 90 })],
+  // zyo_'s class change: a quick rising run of notes (C E G C E G) that the
+  // notes on screen follow, then a soft shimmer as they meet (made here, no file)
+  transform: [
+    1.1,
+    (t) => {
+      const run = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568]
+      run.forEach((f, i) => tone(t, { f0: f, peak: 0.06, len: 0.22, at: i * 0.09 }))
+      tone(t, { type: 'sine', f0: 2093, peak: 0.035, len: 0.5, at: 0.6 })
+      tone(t, { type: 'sine', f0: 1568, peak: 0.03, len: 0.55, at: 0.62 })
+      noise(t, { len: 0.35, freq: 5200, q: 0.8, peak: 0.03, at: 0.62 })
+    },
+  ],
+  // a warp hole: a short rising whoosh
+  warp: [0.3, (t) => (noise(t, { len: 0.25, freq: 1400, q: 1.1, peak: 0.07 }), tone(t, { type: 'sine', f0: 320, f1: 1280, glide: 0.22, peak: 0.05, len: 0.26 }))],
+  // 최후의 반격: a deep boom and a bright chord on top
+  revive: [
+    0.9,
+    (t) => {
+      tone(t, { type: 'sine', f0: 130, f1: 42, glide: 0.4, peak: 0.16, len: 0.6 })
+      noise(t, { len: 0.5, freq: 380, q: 0.7, peak: 0.14 })
+      for (const [f, at] of [[523.25, 0.12], [659.25, 0.16], [783.99, 0.2]]) tone(t, { f0: f, peak: 0.05, len: 0.5, at })
+    },
+  ],
 }
 
 export function sfx(name) {

@@ -10,6 +10,8 @@
 // ep01-assets.json: chapter 5's clear package (MANO_EP01): its pictures,
 // merged into the story pictures, and the friend cat's frames.
 // ep02-assets.json: chapter 10's clear cutscenes (MANO_CH10_CUTSCENES), merged in too.
+// ep03-assets.json: chapter 15's (MANO_CH15_CUTSCENES) with zyo_'s pictures;
+// zyo.json: the artist zyo_ and her class changes' names and words.
 import balance from './data/balance.json'
 import weapons from './data/weapons.json'
 import upgrades from './data/upgrades.json'
@@ -24,9 +26,11 @@ import motionBase from './data/motion.json'
 import extraMotion from './data/extra-motion.json'
 import ep01 from './data/ep01-assets.json'
 import ep02 from './data/ep02-assets.json'
+import ep03 from './data/ep03-assets.json'
+import zyo from './data/zyo.json'
 
 const motion = { ...motionBase, characters: { ...motionBase.characters, ...extraMotion.characters } }
 
-const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images, ...ep02.images] }
+const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images, ...ep02.images, ...ep03.images] }
 
-export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, story, storyAssets, motion, friendCat: ep01.friendCat }
+export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, zyo, story, storyAssets, motion, friendCat: ep01.friendCat }

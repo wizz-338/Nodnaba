@@ -451,6 +451,36 @@
         ]
       },
       {
+        "id": "ep03_clear",
+        "chapter": 15,
+        "when": "clear",
+        "reward": "skulltown",
+        "cuts": [
+          {
+            "image": "ep03_clear_01",
+            "banner": "아티스트 zyo_가 나타났다!",
+            "text": "어!! zyo_!!"
+          },
+          {
+            "image": "ep03_clear_02",
+            "text": "어? 그거 내 건데?"
+          },
+          {
+            "image": "ep03_clear_03",
+            "layout": "split",
+            "text": "어어어??"
+          },
+          {
+            "image": "ep03_clear_04",
+            "text": "우와!! 엄청 커!!"
+          },
+          {
+            "image": "ep03_clear_05",
+            "text": "좋아! 이번엔 {next} 가볼까!"
+          }
+        ]
+      },
+      {
         "id": "desert_1",
         "chapter": 16,
         "when": "enter",
@@ -629,7 +659,7 @@
     ]
   },
   "rewards": {
-    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz: they join; rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz / zyo: they join (zyo_: the class change of balance.json → zyo, for good); rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
     "forest": {
       "chapter": 5,
       "ball": "S",
@@ -664,12 +694,15 @@
     },
     "skulltown": {
       "chapter": 15,
+      "zyo": true,
       "rerolls": 6,
       "images": [
+        "reward_zyo",
         "reward_reroll"
       ],
       "lines": [
-        "강화 리롤 +2회 (누적 6회)"
+        "zyo_ 전직 해금!",
+        "리롤 +2 (총 6회)"
       ]
     },
     "desert": {
@@ -747,6 +780,13 @@
         "image": "blessing_tizzzz",
         "from": "deepforest",
         "text": "레벨업마다 선택지 하나를 더 강하게 고쳐 써 줘요."
+      },
+      {
+        "id": "zyo",
+        "name": "zyo_의 전직",
+        "image": "reward_zyo",
+        "from": "skulltown",
+        "text": "16장부터 같은 계열 강화 두 가지를 10단계씩 모으면, 한 판에 한 번 거대 탱탱볼이나 닌자냥이로 전직할 수 있어요."
       },
       {
         "id": "phoenix",

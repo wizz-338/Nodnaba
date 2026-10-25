@@ -66,6 +66,8 @@ export const catReach = (run) => run.D.balance.friendCats.reach * run.cat.range
 
 // the cats on the field follow the count (a new one comes out next to Mano)
 export function syncFriends(run) {
+  // (after zyo_'s class change the fighting cats are gone for the run)
+  if (run.cls) return
   const F = run.D.balance.friendCats
   const p = run.player
   while (run.friends.length < run.cat.n) {

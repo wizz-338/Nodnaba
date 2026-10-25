@@ -22,6 +22,15 @@ only in its platform-specific part.
 
 ## What is shared (change once, both get it)
 
+- `zyo.js` — zyo_'s class change (chapter 15's reward, from chapter 16):
+  the recipes, her card beside the three drawn, the class cards, the giant
+  balls and the ninja cats that replace the ball and the fighting cats, the
+  four specials (shield, revive, lifesteal, warp holes) and the 전투력 card.
+  Drawn by `render-zyo.js` (the notes of the change, the units, the holes);
+  its sounds are made in `audio.js` (no file). Numbers: `balance.json →
+  zyo`; names and words: `zyo.json`. The warp holes sit at shares of the
+  field, so on the PC they are far apart off screen and on the phone both
+  are on it.
 - `friends.js` — 친구냥이, the fighting cats (cards, AI, damage), and the
   rerolls (`reroll` in game.js): the same on both. Their leash
   (`friendCats.leash`) is in field px, so on the PC (a wider view) they
@@ -45,7 +54,9 @@ only in its platform-specific part.
   `ep01-assets.json` (chapter 5's clear package MANO_EP01: its five 16:9
   cutscenes, rewards, cat card icons, scratches and the friend cat's atlas,
   made by `scripts/survivor-ep01-assets.py`), `ep02-assets.json` (chapter
-  10's clear cutscenes, MANO_CH10_CUTSCENES: `scripts/survivor-ep02-assets.py`).
+  10's clear cutscenes, MANO_CH10_CUTSCENES: `scripts/survivor-ep02-assets.py`),
+  `ep03-assets.json` (chapter 15's, MANO_CH15_CUTSCENES, with zyo_'s reward
+  picture and face: `scripts/survivor-ep03-assets.py`).
 - `render.js` — the drawing; it takes the platform's logical screen and
   which background to draw.
 - `audio.js`, `sprites.js`, `story-art.js`, the pictures in `assets/`.

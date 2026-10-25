@@ -515,11 +515,26 @@
           }
         ]
       },
-      "catSummon": { "add": 1 },
-      "catSize": { "mul": 1.12, "rangeMul": 1.4 },
-      "catSpeed": { "mul": 1.25 },
-      "catRate": { "mul": 0.7 },
-      "catClaw": { "mul": 2 }
+      "catSummon": {
+        "add": 1
+      },
+      "catSize": {
+        "mul": 1.12,
+        "rangeMul": 1.4
+      },
+      "catSpeed": {
+        "mul": 1.25
+      },
+      "catRate": {
+        "mul": 0.7
+      },
+      "catClaw": {
+        "mul": 2
+      },
+      "power": {
+        "damageMul": 1.4,
+        "rateMul": 1.15
+      }
     },
     "note": "in-run only, reset after every run; no cap and no hidden slow-down. The core four: balls per volley ×2, gap between volleys ×0.7, damage ×1.5, bounce limit ×2",
     "catSwap": {
@@ -563,7 +578,16 @@
     "swipe": 20,
     "leash": 230,
     "seekEvery": 0.2,
-    "aim": { "edge": 0, "near": 0.5, "covered": 1, "coming": 0.4, "crowd": 0.15, "clump": 0.06, "clumpMax": 4, "switchMargin": 0.3 },
+    "aim": {
+      "edge": 0,
+      "near": 0.5,
+      "covered": 1,
+      "coming": 0.4,
+      "crowd": 0.15,
+      "clump": 0.06,
+      "clumpMax": 4,
+      "switchMargin": 0.3
+    },
     "attackSeconds": 0.3,
     "minAttackSeconds": 0.12,
     "strikeAt": 0.5,
@@ -677,10 +701,32 @@
   },
   "bossTypes": {
     "note": "the ordinary bosses (the 145 s mid-boss and the 210 s boss of every chapter; the extra special bosses that come after the boss in some chapters fight their own way: extraBosses): each gets ONE of these when it comes, from a shuffled bag of the four (the next four come in a new shuffle), and keeps it until it falls. A: walks, stops, shows the path and charges along it (its own windup, charge speed and charge hit). B: walks at Mano weaving left and right (weave: the most it turns off her direction, radians; period: s for one weave). C: walks, stops, shows three lanes for aim s, then shoots three shots along them (a fan of spread degrees; each hits like its charge). D: walks; then, shown for warn s (it shakes, a ring round it), runs at mul x its speed for seconds s, turning at most turn rad/s, then walks again. Its HP, hits, reward and when it comes do not change.",
-    "order": ["A", "B", "C", "D"],
-    "B": { "weave": 0.6, "period": 1.8 },
-    "C": { "aim": 0.85, "count": 3, "spread": 34, "speed": 140, "r": 6, "ttl": 5, "look": "bone", "show": 110 },
-    "D": { "warn": 0.6, "mul": 2.6, "seconds": 0.9, "turn": 1.8 }
+    "order": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "B": {
+      "weave": 0.6,
+      "period": 1.8
+    },
+    "C": {
+      "aim": 0.85,
+      "count": 3,
+      "spread": 34,
+      "speed": 140,
+      "r": 6,
+      "ttl": 5,
+      "look": "bone",
+      "show": 110
+    },
+    "D": {
+      "warn": 0.6,
+      "mul": 2.6,
+      "seconds": 0.9,
+      "turn": 1.8
+    }
   },
   "extraBosses": {
     "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (2.5: a special boss is tougher than the chapter's boss; it was 0.8, and fell in a third of the boss's time), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart). walk: s between attacks; recover: s after one. phases: the last boss's attack lists by HP share left (above).",
@@ -1065,6 +1111,111 @@
           }
         ]
       }
+    }
+  },
+  "zyo": {
+    "note": "zyo_'s class change (zyo.js; her names and words: zyo.json). From activeFromChapter on, in a run with her (chapter 15's reward), each recipe's two cards picked `need` times each (run.picks: a card Tizzzz rewrote counts its times) offer its class card (zyo_'s own card beside the three drawn, at every level-up until taken; before that her card is the recipe furthest along's card with fewer picks). Once a run. The change ends the ball and the fighting cats; base = the ball's damage × count ÷ gap + one cat's scratch × cats ÷ its gap (no crit) is what the class starts from: on one target with all of it there it deals bonus × base a second (× the recipe's own bonus: B and C, whose ×0.7 gaps add far less than A's and D's ×2 counts and claws, would otherwise change into a class many times weaker; bots: with it, runs that changed class clear about as often whichever it was) × the 전투력 card (damage × damageMul, rate × rateMul each; the rate past rateCap turns into damage). Each unit group deals `share` of that, split over its count, one hit each hitGap (÷ rate). ball: the giant balls that chase (speed px/s, roll: rad/s round their target, radius px); shield (A): giant balls circling Mano at orbit px, spin rad/s, pushing the monsters they touch out by push px, and every monster (not a boss) inside their ring out at pushSpeed px/s; ninja: dash speed, reach px from a target's edge, slashR: the slash's circle round the target; leash: how far from Mano they go (on screen only); the first half of the units (rounded up) go for a boss or an elite anywhere on screen while there is one. revive (B): once a run (times), the blast hits within radius px with `seconds` of the class's one-target damage, a boss at most bossCap of its HP (through a guard), then full HP and inv s safe. lifesteal (C): a monster's whole HP taken heals mob (a boss's, an elite's: boss) × Mano's full HP; never more than perSecond of it a second. warp (D): holes at `at` (shares of the field; the extra boss's area during its fight), radius px; after a warp she must leave the exit hole and cooldown s pass; clear px round the exit cleared of monsters; inv s safe. keep: the cards left after the change (with 전투력). fxSeconds: the notes' moment (she cannot be hurt; the new attack starts after it).",
+    "activeFromChapter": 16,
+    "need": 10,
+    "recipes": {
+      "A": {
+        "form": "ball",
+        "mats": [
+          "size",
+          "count"
+        ]
+      },
+      "B": {
+        "form": "ball",
+        "mats": [
+          "interval",
+          "ballSpeed"
+        ],
+        "bonus": 8
+      },
+      "C": {
+        "form": "ninja",
+        "mats": [
+          "catSize",
+          "catRate"
+        ],
+        "bonus": 8
+      },
+      "D": {
+        "form": "ninja",
+        "mats": [
+          "catSpeed",
+          "catClaw"
+        ]
+      }
+    },
+    "keep": [
+      "maxHp",
+      "armor",
+      "regen",
+      "move",
+      "luck",
+      "xpGain",
+      "crit",
+      "critDamage"
+    ],
+    "bonus": 2.5,
+    "rateCap": 2.5,
+    "leash": 240,
+    "fxSeconds": 1.4,
+    "ball": {
+      "count": 2,
+      "share": 1,
+      "hitGap": 0.2,
+      "radius": 26,
+      "speed": 420,
+      "roll": 7
+    },
+    "shield": {
+      "count": 3,
+      "share": 0.5,
+      "hitGap": 0.25,
+      "radius": 20,
+      "orbit": 74,
+      "spin": 3.2,
+      "push": 6,
+      "pushSpeed": 260
+    },
+    "ninja": {
+      "count": 3,
+      "share": 1,
+      "hitGap": 0.24,
+      "speed": 560,
+      "reach": 18,
+      "slashR": 44
+    },
+    "revive": {
+      "times": 1,
+      "seconds": 15,
+      "radius": 230,
+      "bossCap": 0.3,
+      "inv": 2
+    },
+    "lifesteal": {
+      "mob": 0.01,
+      "boss": 1.2,
+      "perSecond": 0.06
+    },
+    "warp": {
+      "at": [
+        [
+          0.2,
+          0.28
+        ],
+        [
+          0.8,
+          0.72
+        ]
+      ],
+      "radius": 20,
+      "cooldown": 0.8,
+      "clear": 70,
+      "inv": 0.6
     }
   }
 }

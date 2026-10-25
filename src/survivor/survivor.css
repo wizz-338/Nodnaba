@@ -1344,6 +1344,39 @@
   line-height: 1.6;
 }
 
+/* zyo_'s card beside the three drawn: a green edge and her badge; a class
+   card glows a little more */
+.ms-card.is-zyo {
+  position: relative;
+  border-color: #1f8f6e;
+  box-shadow: 0 0 0 2px #bdecd9 inset;
+  background: #f0fbf6;
+}
+
+.ms-card.is-class {
+  background: linear-gradient(135deg, #fff6df, #eafbf3 60%, #f3ecff);
+  box-shadow: 0 0 0 2px #bdecd9 inset, 0 0 14px rgba(120, 90, 255, 0.35);
+}
+
+.ms-card__badge--zyo {
+  background: #1f8f6e;
+}
+
+/* (the name clear of the badge) */
+.ms-card.is-zyo .ms-card__name {
+  padding-right: 64px;
+}
+
+.ms--pc .ms-level .ms-card.is-zyo .ms-card__name {
+  padding: 0 0 0 0;
+  margin-top: 10px;
+}
+
+.ms-card.is-edited .ms-card__badge--zyo {
+  top: auto;
+  bottom: 6px;
+}
+
 .ms-card__old {
   color: var(--muted);
   text-decoration-color: transparent;
@@ -2165,6 +2198,13 @@
   padding: 22px 24px;
 }
 
+/* zyo_'s card makes four */
+.ms--pc .ms-level.ms-level--four {
+  width: min(100%, 1180px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .ms--pc .ms-level > :not(.ms-card) {
   grid-column: 1 / -1;
 }
@@ -2474,6 +2514,9 @@
   height: 236px;
   overflow: hidden;
   touch-action: pan-y;
+  /* its cards' z-index (up to 10) stays inside it: a cutscene or a modal
+     over the lobby is never under them */
+  isolation: isolate;
 }
 
 .ms-eps__track {
