@@ -731,7 +731,7 @@
     }
   },
   "extraBosses": {
-    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (2.5: a special boss is tougher than the chapter's boss; it was 0.8, and fell in a third of the boss's time), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart). walk: s between attacks; recover: s after one. phases: the last boss's attack lists by HP share left (above).",
+    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (15: six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart). walk: s between attacks; recover: s after one. phases: the last boss's attack lists by HP share left (above). Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4, combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
     "chapters": {
       "3": "x_snail",
       "5": "x_moth",
@@ -753,15 +753,15 @@
       "warn": 1.7,
       "appear": 0.6
     },
-    "minWarn": 1.1,
+    "minWarn": 0.8,
     "blowCap": 0.34,
     "blowCapNote": "no single blow of an extra boss (its warned shapes or its body) takes more than this share of Mano's full HP (the last boss: its own blowCap), so one mistake is never the end, however strong the chapter's monsters hit",
-    "walk": 1.8,
-    "recover": 1.1,
-    "speed": 24,
+    "walk": 0.9,
+    "recover": 0.55,
+    "speed": 36,
     "radius": 30,
     "size": 128,
-    "hpMul": 2.5,
+    "hpMul": 15.0,
     "downSeconds": 1.7,
     "bosses": {
       "x_snail": {
@@ -770,8 +770,8 @@
         "attacks": [
           {
             "type": "ringwave",
-            "warn": 1.5,
-            "speed": 150,
+            "warn": 0.975,
+            "speed": 210,
             "width": 30,
             "gaps": 2,
             "gapDeg": 58,
@@ -785,12 +785,12 @@
         "attacks": [
           {
             "type": "bloom",
-            "warn": 1.3,
+            "warn": 0.845,
             "petals": 6,
             "petalDeg": 46,
             "skip": 2,
             "inner": 34,
-            "step": 0.22,
+            "step": 0.132,
             "damage": 24
           }
         ]
@@ -801,10 +801,10 @@
         "attacks": [
           {
             "type": "spores",
-            "warn": 1.4,
+            "warn": 0.91,
             "count": 6,
             "r": 48,
-            "step": 0.24,
+            "step": 0.144,
             "damage": 22
           }
         ]
@@ -815,11 +815,11 @@
         "attacks": [
           {
             "type": "web",
-            "warn": 1.4,
+            "warn": 0.91,
             "threads": 6,
             "fire": 3,
             "width": 30,
-            "step": 0.3,
+            "step": 0.18,
             "damage": 24
           }
         ]
@@ -830,9 +830,9 @@
         "attacks": [
           {
             "type": "sweep",
-            "warn": 1.4,
+            "warn": 0.91,
             "width": 64,
-            "speed": 230,
+            "speed": 322,
             "gaps": 1,
             "gap": 130,
             "damage": 24
@@ -845,7 +845,7 @@
         "attacks": [
           {
             "type": "rows",
-            "warn": 1.4,
+            "warn": 0.91,
             "rows": 6,
             "damage": 24
           }
@@ -857,8 +857,8 @@
         "attacks": [
           {
             "type": "ringwave",
-            "warn": 1.5,
-            "speed": 170,
+            "warn": 0.975,
+            "speed": 238,
             "width": 36,
             "gaps": 1,
             "gapDeg": 84,
@@ -872,9 +872,9 @@
         "attacks": [
           {
             "type": "sweep",
-            "warn": 1.4,
+            "warn": 0.91,
             "width": 84,
-            "speed": 200,
+            "speed": 280,
             "gaps": 2,
             "gap": 110,
             "damage": 24
@@ -887,7 +887,7 @@
         "attacks": [
           {
             "type": "branches",
-            "warn": 1.4,
+            "warn": 0.91,
             "count": 6,
             "branchDeg": 26,
             "damage": 24
@@ -900,12 +900,12 @@
         "attacks": [
           {
             "type": "pillars",
-            "warn": 1.3,
+            "warn": 0.845,
             "rays": 5,
             "spreadDeg": 110,
             "perRay": 4,
             "r": 28,
-            "step": 0.18,
+            "step": 0.108,
             "damage": 24
           }
         ]
@@ -916,9 +916,9 @@
         "attacks": [
           {
             "type": "sweep",
-            "warn": 1.4,
+            "warn": 0.91,
             "width": 80,
-            "speed": 230,
+            "speed": 322,
             "gaps": 1,
             "gap": 140,
             "push": 55,
@@ -932,11 +932,11 @@
         "attacks": [
           {
             "type": "clock",
-            "warn": 1.3,
+            "warn": 0.845,
             "sectors": 12,
             "lit": 4,
             "inner": 40,
-            "step": 0.3,
+            "step": 0.18,
             "damage": 24
           }
         ]
@@ -947,7 +947,7 @@
         "attacks": [
           {
             "type": "chess",
-            "warn": 1.5,
+            "warn": 0.975,
             "cols": 6,
             "rows": 5,
             "lines": 3,
@@ -962,7 +962,7 @@
         "blowCap": 0.45,
         "size": 168,
         "radius": 38,
-        "hpMul": 3.6,
+        "hpMul": 21.6,
         "downSeconds": 2.3,
         "intro": {
           "calm": 0.9,
@@ -972,12 +972,12 @@
         "phases": [
           {
             "above": 0.65,
-            "walk": 1.6,
+            "walk": 0.8,
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 1.3,
-                "speed": 190,
+                "warn": 0.845,
+                "speed": 266,
                 "width": 34,
                 "gaps": 1,
                 "gapDeg": 72,
@@ -985,9 +985,9 @@
               },
               {
                 "type": "sweep",
-                "warn": 1.3,
+                "warn": 0.845,
                 "width": 80,
-                "speed": 260,
+                "speed": 364,
                 "gaps": 1,
                 "gap": 120,
                 "damage": 30
@@ -996,18 +996,18 @@
           },
           {
             "above": 0.3,
-            "walk": 1.4,
+            "walk": 0.7,
             "attacks": [
               {
                 "type": "combo",
                 "after": [
-                  1.4
+                  0.91
                 ],
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 1.2,
-                    "speed": 190,
+                    "warn": 0.8,
+                    "speed": 266,
                     "width": 34,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -1015,9 +1015,9 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 1.2,
+                    "warn": 0.8,
                     "width": 80,
-                    "speed": 260,
+                    "speed": 364,
                     "gaps": 1,
                     "gap": 120,
                     "damage": 30
@@ -1027,22 +1027,22 @@
               {
                 "type": "combo",
                 "after": [
-                  1.4
+                  0.91
                 ],
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 1.2,
+                    "warn": 0.8,
                     "width": 80,
-                    "speed": 260,
+                    "speed": 364,
                     "gaps": 1,
                     "gap": 120,
                     "damage": 30
                   },
                   {
                     "type": "ringwave",
-                    "warn": 1.2,
-                    "speed": 190,
+                    "warn": 0.8,
+                    "speed": 266,
                     "width": 34,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -1054,19 +1054,19 @@
           },
           {
             "above": 0,
-            "walk": 1.1,
+            "walk": 0.55,
             "core": true,
             "attacks": [
               {
                 "type": "combo",
                 "after": [
-                  1.0
+                  0.65
                 ],
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 1.1,
-                    "speed": 210,
+                    "warn": 0.8,
+                    "speed": 294,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 66,
@@ -1074,9 +1074,9 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 1.1,
+                    "warn": 0.8,
                     "width": 84,
-                    "speed": 280,
+                    "speed": 392,
                     "gaps": 1,
                     "gap": 115,
                     "damage": 32
@@ -1086,22 +1086,22 @@
               {
                 "type": "combo",
                 "after": [
-                  1.0
+                  0.65
                 ],
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 1.1,
+                    "warn": 0.8,
                     "width": 84,
-                    "speed": 280,
+                    "speed": 392,
                     "gaps": 1,
                     "gap": 115,
                     "damage": 32
                   },
                   {
                     "type": "ringwave",
-                    "warn": 1.1,
-                    "speed": 210,
+                    "warn": 0.8,
+                    "speed": 294,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 66,
