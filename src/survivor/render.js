@@ -60,9 +60,14 @@ const CAT_COLOR = '#ff7cc4'
 const MAX_SPARKS = 140
 const SPARK = 0.42 // s a spark lives
 const SPARK_COLORS = ['#fff6c2', '#ffd84a', '#ff9a3d', '#ffffff']
-// Mano hurt: the screen shakes a little (never with reduced motion)
-const SHAKE = 0.18 // s
-const SHAKE_PX = 3
+// the screen shakes (never with reduced motion): Mano hurt, a meteor
+// landing, an elite or a boss falling — px and s of each
+const KICK = { hurt: [3, 0.18], meteor: [3.5, 0.16], slash: [1.6, 0.1], big: [7, 0.32] }
+// a monster hit jolts: it swells a little, squashed, and is pushed a few px
+// away from Mano, for its hit flash's 0.12 s
+const PUNCH = 0.12
+const PUNCH_SCALE = 0.16
+const PUNCH_PX = 3
 // Mano's own health bar under her feet (logical px)
 const HPBAR_W = 30
 const HPBAR_H = 4.5
@@ -71,6 +76,8 @@ const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-
 const NUM_FONT = '12px ' + GAME_FONT
 const CRIT_FONT = '14px ' + GAME_FONT // about 17% larger
 // a critical number's size over time: in quickly a little large, settles, stays
+// how far a number has risen t s in: 26 px, quickly at first
+const rise = (t) => 26 * (1 - (1 - Math.min(1, t / 0.6)) ** 3)
 const critPop = (t) => (t < 0.08 ? 0.75 + (t / 0.08) * 0.5 : t < 0.18 ? 1.25 - ((t - 0.08) / 0.1) * 0.25 : 1)
 const ENEMY_DIE = 0.28
 const BOLT = 0.18 // s a lightning stroke stays
@@ -122,6 +129,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const sparks = []
   const rings = [] // a bright ring where an elite or boss fell
   let shakeT = 0
+  let shakeDur = 1
+  let shakeAmp = 0
   let shaken = false
   const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
   let glow = null // the soft light under an experience gem, made once
@@ -491,8 +500,10 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     const flip = meta.faces === 'right' && e.face < 0
-    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx - cam.x) * K, (e.y + 3 + bob - cam.y) * K)
+    const pu = punch(run, e)
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx + pu.ox - cam.x) * K, (e.y + 3 + bob + pu.oy - cam.y) * K)
     if (rot) ctx.rotate(flip ? -rot : rot)
+    if (pu !== still) ctx.scale(pu.sx, pu.sy)
     ctx.imageSmoothingEnabled = true
     ctx.globalAlpha = alpha
     ctx.drawImage(set.base, -w / 2, -h, w, h)
@@ -607,7 +618,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const K = kd()
     const pad = s / q // one canvas px, in logical px
     const flip = e.face < 0 // the art faces right
-    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x - cam.x) * K, (e.y + 3 - set.lift - cam.y) * K)
+    const pu = punch(run, e)
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + pu.ox - cam.x) * K, (e.y + 3 - set.lift + pu.oy - cam.y) * K)
+    if (pu !== still) ctx.scale(pu.sx, pu.sy)
     ctx.imageSmoothingEnabled = true
     const x = -px * s - pad
     const y = -py * s - pad
@@ -650,8 +663,9 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (e.state === 'die') (alpha = Math.max(0, 1 - e.t / ENEMY_DIE)), (flash = 0.9)
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     // frozen (snow blessing): a pale blue cast
+    const pu = punch(run, e)
     if (e.freezeT > 0 && !flash) put(name, e.x, e.y, s, { flip, alpha, flash: 0.5, flashColor: '#bfeaff' })
-    else put(name, e.x, e.y, s, { flip, alpha, flash })
+    else put(name, e.x + pu.ox, e.y + pu.oy, s * pu.sx, { flip, alpha, flash })
   }
 
   // a stroke of lightning: a few jagged steps from above the hit to the one struck
@@ -1002,12 +1016,29 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     ctx.globalAlpha = 1
   }
 
+  // a shake, the stronger of it and the one going on
+  function kick([px, secs]) {
+    if (calm) return
+    if (shakeT <= 0 || (shakeAmp * shakeT) / shakeDur < px) (shakeAmp = px), (shakeT = shakeDur = secs)
+  }
+
+  // a monster's jolt now: { sx, sy, ox, oy } (1, 1, 0, 0 when not hit)
+  const still = { sx: 1, sy: 1, ox: 0, oy: 0 }
+  function punch(run, e) {
+    if (!(e.hitT > 0) || e.state !== 'live') return still
+    const k = Math.min(1, e.hitT / PUNCH)
+    const p = run.player
+    const d = Math.hypot(e.x - p.x, e.y - p.y) || 1
+    const push = (e.behavior === 'boss' || e.behavior === 'extra' ? PUNCH_PX / 3 : PUNCH_PX) * k
+    return { sx: 1 + PUNCH_SCALE * k, sy: 1 - PUNCH_SCALE * 0.5 * k, ox: ((e.x - p.x) / d) * push, oy: ((e.y - p.y) / d) * push * 0.6 }
+  }
+
   // the shake moves the whole picture (the canvas element), so the ground
   // and everything on it go together
   function shake(dt) {
     if (shakeT > 0) {
       shakeT = Math.max(0, shakeT - dt)
-      const a = (SHAKE_PX * shakeT) / SHAKE
+      const a = (shakeAmp * shakeT) / shakeDur
       if (canvas.style) canvas.style.transform = `translate(${((Math.random() - 0.5) * 2 * a).toFixed(1)}px, ${((Math.random() - 0.5) * 2 * a).toFixed(1)}px) scale(1.02)`
       shaken = true
     } else if (shaken) {
@@ -1269,17 +1300,20 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const ev of run.events) {
       xfx.event(run, ev)
       zfx.event(run, ev)
+      if (ev.type === 'skillHit') kick(ev.kind === 'ball' ? KICK.meteor : KICK.slash)
       if (ev.type === 'hit') {
         // (a cat's scratch has its own claw marks, not the ball's impact)
-        if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: 0.6 })
-        if (numbers.length < maxNumbers) numbers.push({ x: ev.x, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : NUM_COLOR, crit: ev.crit })
+        if (ev.by !== 'cat' && fx.length < maxFx) fx.push({ anim: 'impact', x: ev.x, y: ev.y - BALL_LIFT, t: 0, s: ev.crit ? 0.95 : 0.75 })
+        if (ev.crit && !busy && rings.length < 24) rings.push({ x: ev.x, y: ev.y - BALL_LIFT, r: 18, t: 0 })
+        if (numbers.length < maxNumbers) numbers.push({ x: ev.x + (Math.random() - 0.5) * 12, y: ev.y - 18, text: short(ev.n), t: 0, color: ev.crit ? CRIT_COLOR : NUM_COLOR, crit: ev.crit })
       } else if (ev.type === 'die') {
         const big = E[ev.kind].rank ? 2.2 : 1
         if (fx.length < MAX_FX || big > 1) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: 0.9 * big })
         if (big > 1) {
-          addSparks(ev.x, ev.y - 14, 18, 150)
-          rings.push({ x: ev.x, y: ev.y - 10, r: 46, t: 0 })
-        } else addSparks(ev.x, ev.y - 8, busy ? 1 : 4, 90)
+          addSparks(ev.x, ev.y - 14, 22, 190)
+          rings.push({ x: ev.x, y: ev.y - 10, r: 56, t: 0 })
+          kick(KICK.big)
+        } else addSparks(ev.x, ev.y - 8, busy ? 2 : 5, 120)
       } else if (ev.type === 'blast') {
         if (fx.length < MAX_FX) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: Math.max(0.7, ev.r / 28) })
       } else if (ev.type === 'phase') {
@@ -1294,7 +1328,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         }
       } else if (ev.type === 'hurt') {
         if (numbers.length < MAX_NUMBERS) numbers.push({ x: ev.x, y: ev.y - 52, text: `-${Math.round(ev.n)}`, t: 0, color: HURT_COLOR })
-        if (!calm) shakeT = SHAKE
+        kick(KICK.hurt)
       } else if (ev.type === 'catSlash') {
         // many cats on one monster: one set of claw marks there at a time
         const twin = slashes.some((o) => o.t < SLASH * 0.6 && Math.abs(o.x - ev.x) < ev.r * 0.6 && Math.abs(o.y - ev.y) < ev.r * 0.6)
@@ -1358,8 +1392,19 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         crits++
         continue
       }
-      const y = n.y - n.t * 22
+      // up fast, then slowing; a quick pop as it comes
+      const y = n.y - rise(n.t)
+      const ps = n.t < 0.09 ? 1.35 - (n.t / 0.09) * 0.35 : 1
       ctx.globalAlpha = Math.min(1, (0.6 - n.t) * 4)
+      if (ps !== 1) {
+        const K = kd()
+        ctx.setTransform(K * ps, 0, 0, K * ps, (n.x - cam.x) * K, (y - cam.y) * K)
+        ctx.strokeText(n.text, 0, 0)
+        ctx.fillStyle = n.color
+        ctx.fillText(n.text, 0, 0)
+        world()
+        continue
+      }
       ctx.strokeText(n.text, n.x, y)
       ctx.fillStyle = n.color
       ctx.fillText(n.text, n.x, y)
@@ -1372,7 +1417,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       const K = kd()
       for (const n of numbers) {
         if (!n.crit) continue
-        const y = n.y - n.t * 22
+        const y = n.y - rise(n.t)
         const s = critPop(n.t)
         ctx.globalAlpha = Math.min(1, (0.6 - n.t) * 4)
         ctx.setTransform(K * s, 0, 0, K * s, (n.x - cam.x) * K, (y - cam.y) * K)
@@ -1393,7 +1438,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       if (zfx) zfx.reset()
       Object.assign(mano, { dir: 'S', phase: 0, idleT: 0, hitT: 0, downT: 0, prevHit: 0 })
       sparks.length = rings.length = 0
-      shakeT = 0
+      shakeT = shakeAmp = 0
       shake(0)
     },
   }

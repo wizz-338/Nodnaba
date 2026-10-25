@@ -923,6 +923,8 @@ const chapterBoss = (region, ch) => {
 const MAX_BARS = 4
 // below this share of health the screen's edges pulse red
 const LOW_HP = 0.3
+// an elite or a boss falling holds the fight this long (the hit-stop)
+const HIT_STOP_MS = 90
 // the ordinary bosses' types still to come, kept from one run to the next
 // while the game is open (so in a row they go round all four)
 const BOSS_BAG = { order: [] }
@@ -1756,7 +1758,9 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       const run = g.run
       const paused = modalRef.current && modalRef.current.kind !== 'result' && modalRef.current.kind !== 'chest'
       const w0 = performance.now()
-      if (!paused && run.state !== 'over') step(run, dt, g.input)
+      // (a hit-stop: an elite or a boss just fell, the fight holds a moment)
+      const held = now < (g.holdUntil || 0)
+      if (!paused && !held && run.state !== 'over') step(run, dt, g.input)
       // an elite or the boss fell: its reward is saved now, once
       while (g.saved < run.awards.length) {
         const key = run.awards[g.saved++]
@@ -1769,6 +1773,23 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         }
         refresh()
       }
+      // the fight's sounds: one of each kind a frame at most
+      let hits = 0
+      let crits = 0
+      let kills = 0
+      let big = false
+      for (const ev of run.events) {
+        if (ev.type === 'hit') ev.crit ? crits++ : hits++
+        else if (ev.type === 'die') D.balance.enemies[ev.kind] && D.balance.enemies[ev.kind].rank ? (big = true) : kills++
+        else if (ev.type === 'hurt') audio.sfx('hurt')
+        else if (ev.type === 'skillHit') audio.sfx(ev.kind === 'ball' ? 'boom' : 'slash')
+      }
+      if (big) {
+        audio.sfx('bigkill')
+        g.holdUntil = now + HIT_STOP_MS
+      } else if (crits) audio.sfx('crit')
+      else if (hits) audio.sfx('hit')
+      if (kills) audio.sfx('kill')
       for (const ev of run.events) {
         // the extra special boss's turn: the music hushes, then WARNING!
         // with its name and line and the siren, then the fight
@@ -1792,7 +1813,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         g.overtimeSaid = true
         say('보스전 연장! 몬스터가 점점 많아지고 빨라져요')
       }
-      R.draw(run, paused || run.state === 'levelup' ? 0 : dt)
+      R.draw(run, paused || held || run.state === 'levelup' ? 0 : dt)
       // telemetry: how long this frame's work took (simulation + drawing)
       if (run.state === 'play') {
         const ms = performance.now() - w0

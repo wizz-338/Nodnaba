@@ -39,6 +39,13 @@ function tierColor(L, now) {
   if (L >= 3) return [240, 150, 30]
   return [255, 92, 70]
 }
+// 탱탱 메테오: seen falling only for its last FALL s (the mark shows the
+// whole wait), from FALL_H px up and FALL_DX px to the right; a scorch stays
+// SCORCH s
+const FALL = 0.16
+const FALL_H = 420
+const FALL_DX = 150
+const SCORCH = 0.9
 const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
 
 export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font }) {
@@ -49,6 +56,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   const meteors = [] // { x, y, r, t, land }
   const clones = [] // { x, y, r, t, land, face }
   const flashes = [] // { x, y, r, t, life }
+  const scorches = [] // { x, y, r, t } where a meteor landed
   const trails = new Map() // a giant ball's last places
   let impacts = 0
   let budget = 1
@@ -209,14 +217,26 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     if (!C) return
     if (C.k === 'D') drawWarps(run, now)
     world()
-    // a meteor's mark: a ring that closes in, a cross in it
+    // where meteors fell: a dark scorch, fading
+    for (let i = scorches.length - 1; i >= 0; i--) {
+      const sc = scorches[i]
+      if (sc.t >= SCORCH) {
+        scorches.splice(i, 1)
+        continue
+      }
+      ctx.fillStyle = `rgba(40, 20, 10, ${0.32 * (1 - sc.t / SCORCH)})`
+      ctx.beginPath()
+      ctx.ellipse(sc.x, sc.y, sc.r * 0.9, sc.r * 0.5, 0, 0, TAU)
+      ctx.fill()
+    }
+    // a meteor's mark: a ring that closes in fast, a cross in it
     for (const m of meteors) {
       const k = Math.min(1, m.t / m.land)
-      const rr = m.r * (1.6 - 0.6 * k)
-      ctx.strokeStyle = `rgba(255, 70, 50, ${0.35 + 0.5 * k})`
-      ctx.lineWidth = 2.5
+      const rr = m.r * (1.5 - 0.5 * k * k)
+      ctx.strokeStyle = `rgba(255, 70, 50, ${0.4 + 0.5 * k})`
+      ctx.lineWidth = 2 + 1.5 * k
       ctx.setLineDash([6, 5])
-      ctx.lineDashOffset = -now / 30
+      ctx.lineDashOffset = -now / 16
       ctx.beginPath()
       ctx.ellipse(m.x, m.y, rr, rr * 0.55, 0, 0, TAU)
       ctx.stroke()
@@ -282,6 +302,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   function over(run, now, dt) {
     budget = run.balls.length > 0 || run.enemies.length > 120 ? 0.6 : 1
     flashT = Math.max(0, flashT - dt)
+    for (const sc of scorches) sc.t += dt
     const C = run.cls
     if (C) {
       const Z = run.D.balance.zyo
@@ -353,30 +374,35 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     for (let i = meteors.length - 1; i >= 0; i--) {
       const m = meteors[i]
       m.t += dt
-      if (m.t >= m.land + 0.05) {
+      if (m.t >= m.land) {
         meteors.splice(i, 1)
         continue
       }
-      if (m.t < 0) continue
-      const k = Math.min(1, m.t / m.land)
-      const h = 300 * (1 - k)
-      const x = m.x + 60 * (1 - k)
-      const y = m.y - h - lift
-      const tail = ctx.createLinearGradient(x, y, x + 50, y - 90)
-      tail.addColorStop(0, 'rgba(255, 220, 120, 0.9)')
-      tail.addColorStop(1, 'rgba(255, 80, 40, 0)')
+      // it shows only for its last FALL s, from high up and steeply,
+      // faster and faster (k²), with a streak as long as it is fast
+      const t0 = m.land - FALL
+      if (m.t < t0) continue
+      const k = Math.min(1, (m.t - t0) / FALL) ** 2
+      const x = m.x + FALL_DX * (1 - k)
+      const y = m.y - lift - FALL_H * (1 - k)
+      const len = 40 + 260 * Math.min(1, (m.t - t0) / FALL)
+      const ux = FALL_DX / Math.hypot(FALL_DX, FALL_H)
+      const uy = FALL_H / Math.hypot(FALL_DX, FALL_H)
+      const tail = ctx.createLinearGradient(x, y, x + ux * len, y - uy * len)
+      tail.addColorStop(0, 'rgba(255, 255, 230, 0.95)')
+      tail.addColorStop(0.25, 'rgba(255, 170, 70, 0.8)')
+      tail.addColorStop(1, 'rgba(255, 70, 40, 0)')
       ctx.strokeStyle = tail
-      ctx.lineWidth = m.r * 0.7
+      ctx.lineWidth = m.r * 0.85
       ctx.lineCap = 'round'
       ctx.beginPath()
       ctx.moveTo(x, y)
-      ctx.lineTo(x + 50, y - 90)
+      ctx.lineTo(x + ux * len, y - uy * len)
       ctx.stroke()
       ctx.lineCap = 'butt'
-      glow(x, y, m.r * 1.3, [255, 140, 60], 0.6)
-      put('ball', x, y, (m.r * 1.1) / 24)
+      glow(x, y, m.r * 1.6, [255, 200, 120], 0.75)
+      put('ball', x, y, (m.r * 1.15) / 24)
       world()
-      if (Math.random() < 0.5 * budget) spark(x + 10, y - 14, 30, -40, 0.35, 2.5, [255, 160, 60], 0)
     }
     // the shadow ninjas: out of a puff beside the monster, a moment there
     for (let i = clones.length - 1; i >= 0; i--) {
@@ -526,10 +552,14 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       words.push({ x: ev.x, y: ev.y - 58, text: run.D.zyo.skills[ev.kind], t: 0, life: 0.9, c: ev.kind === 'ball' ? '#d2452a' : '#7a3fd1' })
     } else if (ev.type === 'skillHit') {
       if (ev.kind === 'ball') {
-        flashes.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, life: 0.35, kind: 'blast' })
-        rings.push({ x: ev.x, y: ev.y - 4, r: ev.r * 1.6, t: 0, life: 0.4, c: 'rgba(255, 150, 60, 0.95)', w: 10 })
-        burst(ev.x, ev.y - 6, 12, 220, [255, 170, 70], 0.5, 3)
-        burst(ev.x, ev.y - 6, 6, 120, [120, 90, 80], 0.6, 3)
+        // the landing: a white-hot flash, a fast shock ring and a wider
+        // faint one, sparks and grit thrown out, a scorch left behind
+        flashes.push({ x: ev.x, y: ev.y, r: ev.r * 1.25, t: 0, life: 0.22, kind: 'blast' })
+        rings.push({ x: ev.x, y: ev.y - 4, r: ev.r * 2, t: 0, life: 0.22, c: 'rgba(255, 245, 210, 1)', w: 9 })
+        rings.push({ x: ev.x, y: ev.y - 4, r: ev.r * 2.8, t: 0, life: 0.38, c: 'rgba(255, 130, 50, 0.7)', w: 5 })
+        burst(ev.x, ev.y - 6, 14, 340, [255, 200, 90], 0.32, 3)
+        burst(ev.x, ev.y - 6, 7, 180, [110, 80, 70], 0.45, 3.5)
+        if (scorches.length < 24) scorches.push({ x: ev.x, y: ev.y, r: ev.r, t: 0 })
       } else {
         flashes.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, life: 0.32, kind: 'x' })
         burst(ev.x, ev.y - 8, 10, 200, [190, 140, 255], 0.4, 2.5)
@@ -561,7 +591,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   }
 
   const reset = () => {
-    for (const a of [slashes, rings, words, parts, meteors, clones, flashes]) a.length = 0
+    for (const a of [slashes, rings, words, parts, meteors, clones, flashes, scorches]) a.length = 0
     trails.clear()
   }
   return { shadows, under, over, event, reset }

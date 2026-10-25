@@ -210,13 +210,23 @@ if (typeof document !== 'undefined')
 
 const last = {}
 let voices = 0
-function voice(name, secs, make) {
+// the fight's own small sounds (hits, kills …) come often: they have their
+// own few voices and a gap each, so they never crowd out the others
+let fightVoices = 0
+const FIGHT_VOICES = 3
+function voice(name, secs, make, gap = 0) {
   if (!ctx || !sfxOn || prefs.sfx <= 0 || ctx.state !== 'running') return
   const t = performance.now()
-  if (t - (last[name] || 0) < 45 || voices >= 4) return
+  if (gap) {
+    if (t - (last[name] || 0) < gap || fightVoices >= FIGHT_VOICES) return
+    fightVoices++
+    setTimeout(() => fightVoices--, secs * 1000 + 30)
+  } else {
+    if (t - (last[name] || 0) < 45 || voices >= 4) return
+    voices++
+    setTimeout(() => voices--, secs * 1000 + 30)
+  }
   last[name] = t
-  voices++
-  setTimeout(() => voices--, secs * 1000 + 30)
   if (import.meta.env && import.meta.env.DEV && typeof window !== 'undefined') (window.__survivorSfx ||= []).push(name)
   try {
     make(now())
@@ -247,12 +257,26 @@ function tone(t, { type = 'triangle', f0, f1 = f0, glide = 0.05, peak, len, at =
   o.stop(t + at + len + 0.02)
 }
 
-// a burst of soft noise through a band (the pen's scratch, the fusion's pop)
+// a burst of soft noise through a band (the pen's scratch, the fusion's pop);
+// plain noise is one second made once, played from a random place
+let white = null
 function noise(t, { len, freq, q, peak, at = 0, wobble = 0 }) {
-  const n = Math.floor(ctx.sampleRate * len)
-  const buf = ctx.createBuffer(1, n, ctx.sampleRate)
-  const d = buf.getChannelData(0)
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (wobble ? 0.6 + 0.4 * Math.sin(i / wobble) : 1)
+  let buf
+  let from = 0
+  if (wobble) {
+    const n = Math.floor(ctx.sampleRate * len)
+    buf = ctx.createBuffer(1, n, ctx.sampleRate)
+    const d = buf.getChannelData(0)
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (0.6 + 0.4 * Math.sin(i / wobble))
+  } else {
+    if (!white || white.sampleRate !== ctx.sampleRate) {
+      white = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
+      const d = white.getChannelData(0)
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+    }
+    buf = white
+    from = Math.random() * Math.max(0, 1 - len)
+  }
   const s = ctx.createBufferSource()
   s.buffer = buf
   const f = ctx.createBiquadFilter()
@@ -264,7 +288,7 @@ function noise(t, { len, freq, q, peak, at = 0, wobble = 0 }) {
   g.gain.exponentialRampToValueAtTime(peak, t + at + Math.min(0.03, len / 4))
   g.gain.exponentialRampToValueAtTime(0.0001, t + at + len)
   s.connect(f).connect(g).connect(sfxBus)
-  s.start(t + at)
+  s.start(t + at, from, len + 0.02)
 }
 
 const SOUNDS = {
@@ -304,19 +328,10 @@ const SOUNDS = {
       noise(t, { len: 0.35, freq: 5200, q: 0.8, peak: 0.03, at: 0.62 })
     },
   ],
-  // 탱탱 메테오: a falling whistle, then the booms as they land
-  meteor: [
-    0.9,
-    (t) => {
-      tone(t, { type: 'sine', f0: 1500, f1: 300, glide: 0.42, peak: 0.04, len: 0.45 })
-      for (const at of [0.45, 0.55, 0.66]) {
-        noise(t, { len: 0.22, freq: 420, q: 0.8, peak: 0.1, at })
-        tone(t, { type: 'sine', f0: 140, f1: 50, glide: 0.2, peak: 0.1, len: 0.25, at })
-      }
-    },
-  ],
-  // 그림자 분신: a quick swish and two bright cuts
-  shadow: [0.55, (t) => (noise(t, { len: 0.18, freq: 2600, q: 1.2, peak: 0.07 }), noise(t, { len: 0.08, freq: 5200, q: 2, peak: 0.08, at: 0.42 }), tone(t, { type: 'sine', f0: 2400, f1: 1600, glide: 0.08, peak: 0.03, len: 0.1, at: 0.44 }))],
+  // 탱탱 메테오: a short falling whistle (each landing has its own boom)
+  meteor: [0.3, (t) => tone(t, { type: 'sine', f0: 1900, f1: 500, glide: 0.26, peak: 0.04, len: 0.28 })],
+  // 그림자 분신: a quick swish (each cut has its own slash)
+  shadow: [0.2, (t) => noise(t, { len: 0.18, freq: 2600, q: 1.2, peak: 0.07 })],
   // a 전투력 level: a bright rising chime
   powerup: [0.5, (t) => [659.25, 987.77, 1318.5, 1975.5].forEach((f, i) => tone(t, { f0: f, peak: 0.055, len: 0.2, at: i * 0.06 }))],
   // a warp hole: a short rising whoosh
@@ -332,9 +347,33 @@ const SOUNDS = {
   ],
 }
 
+// the fight: [length, make, gap between two of it (ms)]
+const FIGHT = {
+  // a hit: a short, soft knock
+  hit: [0.07, (t) => (noise(t, { len: 0.045, freq: 1900, q: 1, peak: 0.05 }), tone(t, { type: 'sine', f0: 320, f1: 130, glide: 0.05, peak: 0.06, len: 0.06 })), 55],
+  // a critical hit: brighter and sharper
+  crit: [0.09, (t) => (noise(t, { len: 0.06, freq: 3600, q: 1.5, peak: 0.07 }), tone(t, { f0: 950, f1: 420, glide: 0.07, peak: 0.05, len: 0.08 })), 70],
+  // a monster down: a little pop
+  kill: [0.1, (t) => (tone(t, { type: 'sine', f0: 560, f1: 190, glide: 0.08, peak: 0.06, len: 0.1 }), noise(t, { len: 0.05, freq: 1300, q: 0.9, peak: 0.04 })), 60],
+  // an elite or a boss down: a deep boom with a bright note on top
+  bigkill: [
+    0.55,
+    (t) => (tone(t, { type: 'sine', f0: 130, f1: 38, glide: 0.35, peak: 0.18, len: 0.5 }), noise(t, { len: 0.4, freq: 320, q: 0.7, peak: 0.15 }), tone(t, { f0: 784, peak: 0.04, len: 0.3, at: 0.05 })),
+    300,
+  ],
+  // Mano hurt: a dull thud
+  hurt: [0.13, (t) => (tone(t, { type: 'square', f0: 210, f1: 100, glide: 0.1, peak: 0.06, len: 0.12, lowpass: 900 }), noise(t, { len: 0.08, freq: 650, q: 0.8, peak: 0.06 })), 140],
+  // a meteor landing
+  boom: [0.3, (t) => (tone(t, { type: 'sine', f0: 160, f1: 45, glide: 0.2, peak: 0.14, len: 0.28 }), noise(t, { len: 0.2, freq: 520, q: 0.8, peak: 0.12 })), 50],
+  // a shadow ninja's cut
+  slash: [0.1, (t) => (noise(t, { len: 0.07, freq: 4400, q: 2, peak: 0.08 }), tone(t, { type: 'sine', f0: 2300, f1: 1400, glide: 0.07, peak: 0.03, len: 0.08 })), 50],
+}
+
 export function sfx(name) {
   const s = SOUNDS[name]
-  if (s) voice(name, s[0], s[1])
+  if (s) return voice(name, s[0], s[1])
+  const f = FIGHT[name]
+  if (f) voice(name, f[0], f[1], f[2])
 }
 
 // the extra special boss's alarm: "삐이— 삐이—", two falling square-wave
