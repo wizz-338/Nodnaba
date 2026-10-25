@@ -8,6 +8,7 @@ import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
+import { growth, classLevel, zyoMarks } from '../src/survivor/zyo.js'
 import { migrateStory } from '../src/survivor/progress.js'
 
 let fails = 0
@@ -2339,6 +2340,70 @@ const still = { x: 0, y: 0 }
   pw.edit = { id: 'power', seq: pw.choiceSeq }
   choose(pw, 'power', pw.choiceSeq)
   ok(near(pw.cls.dmg, E.damageMul ** 2) && near(pw.cls.rate, E.rateMul ** 2) && pw.cls.units.length === n0, `전투력 (Tizzzz: twice): damage ×${E.damageMul}², rate ×${E.rateMul}²; still ${n0} giant balls`)
+}
+// the skill over the screen, and what 전투력 levels change (never more units)
+{
+  for (const k of ['A', 'C']) {
+    const run = newRun({ chapter: 16, grade: 'SS', cats: true, zyo: true, seed: 81 })
+    run.player.hp = run.player.maxHp = 1e12
+    run.spawnT = -1e9
+    run.nextEvent = 1e9
+    if (k === 'C') (run.cat.n = 3), (run.picks.catSummon = 3)
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = ['cls' + k]
+    choose(run, 'cls' + k, run.choiceSeq)
+    // monsters far apart over the screen, out of the units' reach
+    const [vx0, vy0, vx1, vy1] = run.view
+    const far = [[vx0 + 30, vy0 + 30], [vx1 - 30, vy0 + 30], [vx0 + 30, vy1 - 30], [vx1 - 30, vy1 - 30]].map(([x, y]) => {
+      const e = spawnAt(run, 'imp', { x, y })
+      e.hp = e.maxHp = 1e30
+      e.speed = 0
+      return e
+    })
+    let casts = 0
+    let hits = 0
+    const struck = new Set()
+    for (let i = 0; i < 60 * 8; i++) {
+      step(run, FIXED, still)
+      for (const ev of run.events) {
+        casts += ev.type === 'skillCast'
+        if (ev.type !== 'skillHit') continue
+        hits++
+        for (const e of far) if (Math.hypot(e.x - ev.x, e.y - ev.y) < 12) struck.add(e.id)
+      }
+      run.events.length = 0
+      for (const e of far) e.hp = e.maxHp
+    }
+    // (the four corners, far from the units: every one struck)
+    ok(casts >= 2 && hits >= (casts - 1) * B.zyo.skill.count && run.stats.by.skill.eff > 0 && struck.size === 4, `${B.zyo.recipes[k].form === 'ball' ? '탱탱 메테오' : '그림자 분신'}: ${casts} casts in 8 s, ${hits} strikes on monsters all over the screen`)
+  }
+  const run = newRun({ chapter: 16, grade: 'SS', cats: true, zyo: true, tizzzz: true, seed: 82 })
+  run.state = 'levelup'
+  run.pending = 1
+  run.choices = ['clsB']
+  choose(run, 'clsB', run.choiceSeq)
+  for (let i = 0; i < 60 * 2; i++) step(run, FIXED, still)
+  const g0 = growth(run)
+  const n0 = run.cls.units.length
+  for (let i = 0; i < 6; i++) {
+    run.state = 'levelup'
+    run.pending = 1
+    run.choices = ['power']
+    choose(run, 'power', run.choiceSeq)
+  }
+  ok(classLevel(run) === 6 && near(growth(run), 1 + 6 * B.zyo.growth.perLevel) && growth(run) > g0 && run.cls.units.length === n0, `전투력 Lv.6: the giant balls and their hit areas ×${growth(run).toFixed(2)}, still ${n0} of them`)
+  // zyo_ marks the drawn cards of her recipe too, beside her own
+  const z = newRun({ chapter: 16, cats: true, zyo: true, seed: 83 })
+  z.picks.catSummon = 1
+  z.cat.n = 1
+  z.picks.catSize = 2
+  z.picks.catRate = 1
+  z.state = 'levelup'
+  z.choices = ['catRate', 'crit', 'bounce', 'catSize']
+  z.choiceSeq++
+  const marks = zyoMarks(z, ['catSize'])
+  ok(marks.includes('catRate') && marks.includes('catSize') && !marks.includes('crit'), 'zyo_ marks a drawn card of her recipe as well as her own')
 }
 // saves: chapter 15 cleared before zyo_ came (story v3), and older
 {

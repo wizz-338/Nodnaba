@@ -29,6 +29,11 @@
 // away; B a blast and full HP once a run when Mano falls; C healing from the
 // share of monsters' HP the ninjas took (overkill counts nothing); D two
 // linked warp holes far apart that Mano walks into.
+// Every few seconds the class also casts its skill over the screen, on
+// monsters wherever they are: 탱탱 메테오 (giant balls falling on them) or
+// 그림자 분신 (shadow ninjas cutting them), a share of its damage (skill).
+// Each 전투력 picked (its level) makes the units and their hit areas bigger
+// and the skill cast more at once (never more units): growth, skill.
 // After it the cards are the eight that are not attacks and 전투력, and no
 // recipe or class card comes again that run.
 
@@ -48,6 +53,23 @@ export function recipes(run) {
   })
 }
 
+// the recipe the player is going for: both its cards picked counts first
+// (the fewer of the two), then all its picks — one card picked often for its
+// own sake (a ball's count) does not make its recipe the one. null: none yet
+export function zyoTarget(run) {
+  if (!run.zyo || run.cls) return null
+  const Z = run.D.balance.zyo
+  let best = null
+  for (const r of recipes(run)) {
+    if (!r.mats.every((m) => run.pool.includes(m))) continue
+    const got = r.picks.map((n) => Math.min(Z.need, n))
+    const sum = got[0] + got[1]
+    const score = Math.min(got[0], got[1]) * 100 + sum
+    if (sum > 0 && (!best || score > best.score)) best = { r, score }
+  }
+  return best && best.r
+}
+
 // zyo_'s cards for this level-up beside the three drawn (`shown`): the class
 // cards of the recipes complete, else one card of the recipe furthest along
 // (by the fewer picks of its two, then by all of them; one this run can pick
@@ -58,20 +80,19 @@ export function zyoCards(run, shown, open) {
   const R = recipes(run).filter((r) => r.mats.every((m) => run.pool.includes(m)))
   const ready = R.filter((r) => r.ready)
   if (ready.length) return ready.map((r) => CLASS_CARDS[r.k])
-  // the recipe the player is going for: both its cards picked counts first
-  // (the fewer of the two), then all its picks — one card picked often for
-  // its own sake (a ball's count) does not make its recipe the one
-  let best = null
-  for (const r of R) {
-    const got = r.picks.map((n) => Math.min(Z.need, n))
-    const sum = got[0] + got[1]
-    const score = Math.min(got[0], got[1]) * 100 + sum
-    if (sum > 0 && (!best || score > best.score)) best = { r, score }
-  }
+  const best = zyoTarget(run)
   if (!best) return []
-  const left = best.r.mats.filter((m, i) => best.r.picks[i] < Z.need && open(m) && !shown.includes(m))
+  const left = best.mats.filter((m, i) => best.picks[i] < Z.need && open(m) && !shown.includes(m))
   left.sort((a, b) => (run.picks[a] || 0) - (run.picks[b] || 0))
   return left.length ? [left[0]] : []
+}
+
+// the cards on show zyo_ marks: hers, and the drawn ones of her recipe
+export function zyoMarks(run, extra) {
+  const r = zyoTarget(run)
+  const need = run.D.balance.zyo.need
+  const mine = r ? run.choices.filter((id) => r.mats.includes(id) && (run.picks[id] || 0) < need) : []
+  return [...new Set([...extra, ...mine])]
 }
 
 // the strength of the attacks there are now, one number a second (see above)
@@ -84,6 +105,11 @@ export function firepower(run) {
 
 // the class attack's numbers now: one hit of a unit, the gap between its hits
 // (the rate past rateCap turns into damage, so hits never come too thick)
+// the class's level: the 전투력 picked (a rewritten one counts twice)
+export const classLevel = (run) => run.picks.power || 0
+// how much bigger its units and hit areas are at that level
+export const growth = (run) => 1 + run.D.balance.zyo.growth.perLevel * Math.min(classLevel(run), run.D.balance.zyo.growth.maxLevels)
+
 function hitOf(run, unit) {
   const Z = run.D.balance.zyo
   const C = run.cls
@@ -126,6 +152,9 @@ export function startClass(run, k) {
     warpLock: null,
     warpCd: 0,
     blasts: 0,
+    skillT: Z.skill.first, // till its first skill
+    casts: [], // the skill's strikes on their way: { x, y, r, dmg, at }
+    skills: 0,
   }
   run.balls = []
   run.friends = []
@@ -216,6 +245,7 @@ export function updateClass(run, dt) {
   if (!C.units.length) deploy(run)
   if (C.form === 'ball') updateGiants(run, dt)
   else updateNinjas(run, dt)
+  updateSkill(run, dt)
   if (C.k === 'A') updateShield(run, dt)
   if (C.k === 'C') C.heal = Math.min(run.D.balance.zyo.lifesteal.perSecond * run.player.maxHp, C.heal + run.D.balance.zyo.lifesteal.perSecond * run.player.maxHp * dt)
   if (C.k === 'D') updateWarps(run, dt)
@@ -255,7 +285,7 @@ function updateGiants(run, dt) {
     if (d > 0) (u.x += (dx / d) * step), (u.y += (dy / d) * step)
     u.vx = d > 0 ? (dx / d) * G.speed : 0
     u.vy = d > 0 ? (dy / d) * G.speed : 0
-    touch(run, u, G.radius, dmg, gap, 'giant', 0)
+    touch(run, u, G.radius * growth(run), dmg, gap, 'giant', 0)
   }
 }
 
@@ -293,7 +323,7 @@ function updateShield(run, dt) {
     s.a += S.spin * dt
     s.x = p.x + Math.cos(s.a) * S.orbit
     s.y = p.y + Math.sin(s.a) * S.orbit
-    touch(run, s, S.radius, dmg, gap, 'shield', S.push)
+    touch(run, s, S.radius * growth(run), dmg, gap, 'shield', S.push)
   }
   const R = S.orbit + S.radius
   run.grid.near(p.x, p.y, R + 60, (e) => {
@@ -357,21 +387,74 @@ function updateNinjas(run, dt) {
     u.slash = 0.16
     u.spin += Math.PI * (0.7 + run.rng() * 0.6)
     u.face = e.x > u.x ? 1 : -1
-    run.events.push({ type: 'slash', x: e.x, y: e.y, r: N.slashR })
+    const sr = N.slashR * growth(run)
+    run.events.push({ type: 'slash', x: e.x, y: e.y, r: sr })
     let took = 0
-    run.grid.near(e.x, e.y, N.slashR + 60, (o) => {
+    run.grid.near(e.x, e.y, sr + 60, (o) => {
       if (o.state !== 'live' || o.under) return
-      const rr = N.slashR + o.r
+      const rr = sr + o.r
       if ((o.x - e.x) ** 2 + (o.y - e.y) ** 2 >= rr * rr) return
       const eff = strike(run, o, dmg, o.x, o.y - 4, 'ninja')
-      if (C.k === 'C' && eff > 0) {
-        // C: the share of its HP taken, as healing (a boss's whole HP heals more)
-        const L = Z.lifesteal
-        took += (eff / o.maxHp) * (o.rank ? L.boss : L.mob)
-      }
+      if (C.k === 'C' && eff > 0) took += drained(run, o, eff)
     })
     if (took > 0) lifesteal(run, took)
   }
+}
+
+// C: the share of a monster's HP taken, as healing (a boss's whole HP heals more)
+function drained(run, o, eff) {
+  const L = run.D.balance.zyo.lifesteal
+  return (eff / o.maxHp) * (o.rank ? L.boss : L.mob)
+}
+
+// ── the skill: every few seconds, over the whole screen ────────────────────
+// 탱탱 메테오 (giant balls) / 그림자 분신 (ninjas): `count` (more with the
+// level, up to max) strikes on monsters on screen, a boss first when there is
+// one, each landing `delay` s later and hitting every monster within its
+// radius (bigger with the level). Together they deal `share` of the class's
+// one-target damage a second, so the skill is part of the class, not on top
+// of it without end.
+function updateSkill(run, dt) {
+  const Z = run.D.balance.zyo
+  const K = Z.skill
+  const C = run.cls
+  C.skillT -= dt
+  // what was cast lands
+  for (let i = C.casts.length - 1; i >= 0; i--) {
+    const c = C.casts[i]
+    if (run.t < c.at) continue
+    C.casts.splice(i, 1)
+    let took = 0
+    run.grid.near(c.x, c.y, c.r + 60, (o) => {
+      if (o.state !== 'live' || o.under) return
+      const rr = c.r + o.r
+      if ((o.x - c.x) ** 2 + (o.y - c.y) ** 2 >= rr * rr) return
+      const eff = strike(run, o, c.dmg, o.x, o.y - 6, 'skill')
+      if (C.k === 'C' && eff > 0) took += drained(run, o, eff)
+    })
+    if (took > 0) lifesteal(run, took)
+    run.events.push({ type: 'skillHit', kind: C.form, x: c.x, y: c.y, r: c.r })
+  }
+  if (C.skillT > 0) return
+  const every = K.every / Math.min(C.rate, Z.rateCap)
+  C.skillT = every
+  // the monsters on screen, a boss or an elite first
+  const [vx0, vy0, vx1, vy1] = run.view
+  const live = run.enemies.filter((e) => e.state === 'live' && !e.under && e.x > vx0 && e.x < vx1 && e.y > vy0 && e.y < vy1)
+  if (!live.length) return
+  const n = Math.min(K.max, K.count + Math.floor(classLevel(run) / K.perLevels))
+  const big = live.filter((e) => e.rank)
+  const picked = []
+  for (const e of big) if (picked.length < n) picked.push(e)
+  const rest = live.filter((e) => !e.rank)
+  while (picked.length < n && rest.length) picked.push(rest.splice(Math.floor(run.rng() * rest.length), 1)[0])
+  while (picked.length < n) picked.push(live[Math.floor(run.rng() * live.length)])
+  const dmg = (classDps(run) * K.share * every) / n
+  const r = K.radius * growth(run)
+  const list = picked.map((e, i) => ({ x: e.x + (run.rng() - 0.5) * 10, y: e.y + (run.rng() - 0.5) * 10, r, dmg, at: run.t + K.delay + i * K.stagger }))
+  C.casts.push(...list)
+  C.skills++
+  run.events.push({ type: 'skillCast', kind: C.form, list: list.map((c) => ({ x: c.x, y: c.y, r: c.r, at: c.at - run.t })), x: run.player.x, y: run.player.y })
 }
 
 // C: 흡혈 — heal Mano by `share` × her full HP, never past it, never more than

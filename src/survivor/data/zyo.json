@@ -1,5 +1,5 @@
 {
-  "note": "The artist zyo_ (the underscore is part of her name): she joins for good with the reward of chapter 15's first clear (story.json → rewards.skulltown, with 2 more rerolls). From balance.json → zyo.activeFromChapter on she joins two upgrades into a class change (balance.json → zyo; game.js). Her story is the chapter-15 clear cutscene (story.json → ep03_clear). classes: each class card's name, its form and its special, and the lines the run stats and the card show.",
+  "note": "The artist zyo_ (the underscore is part of her name): she joins for good with the reward of chapter 15's first clear (story.json → rewards.skulltown, with 2 more rerolls). From balance.json → zyo.activeFromChapter on she joins two upgrades into a class change (balance.json → zyo; game.js). Her story is the chapter-15 clear cutscene (story.json → ep03_clear). classes: each class card's name, its form and its special, and the lines the run stats and the card show. skills: the words shown when the class casts its skill.",
   "name": "zyo_",
   "badge": "zyo_ 추천",
   "classBadge": "zyo_ 전직",
@@ -9,9 +9,25 @@
     "ninja": "닌자냥이"
   },
   "classes": {
-    "A": { "special": "회전 방어막", "text": "거대 탱탱볼 3개가 마노 주위를 돌며 부딪힌 적을 밀쳐내요" },
-    "B": { "special": "최후의 반격", "text": "쓰러질 때 한 번, 큰 폭발과 함께 체력을 모두 채우고 일어나요" },
-    "C": { "special": "흡혈", "text": "닌자냥이가 깎은 적 체력만큼 마노가 회복해요" },
-    "D": { "special": "쌍둥이 워프홀", "text": "워프홀에 들어가면 반대쪽 워프홀로 순간이동해요" }
+    "A": {
+      "special": "회전 방어막",
+      "text": "거대 탱탱볼 3개가 마노 주위를 돌며 부딪힌 적을 밀쳐내요"
+    },
+    "B": {
+      "special": "최후의 반격",
+      "text": "쓰러질 때 한 번, 큰 폭발과 함께 체력을 모두 채우고 일어나요"
+    },
+    "C": {
+      "special": "흡혈",
+      "text": "닌자냥이가 깎은 적 체력만큼 마노가 회복해요"
+    },
+    "D": {
+      "special": "쌍둥이 워프홀",
+      "text": "워프홀에 들어가면 반대쪽 워프홀로 순간이동해요"
+    }
+  },
+  "skills": {
+    "ball": "탱탱 메테오!",
+    "ninja": "그림자 분신!"
   }
 }

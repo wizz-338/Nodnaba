@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
-import { isClassCard, classOf, classDps, firepower, recipes, bonusOf } from './zyo.js'
+import { isClassCard, classOf, classDps, firepower, recipes, bonusOf, classLevel } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03 } from './progress.js'
 import { createRenderer, short } from './render.js'
@@ -150,14 +150,14 @@ const BALL_ONLY = new Set(['count', 'interval', 'damage', 'bounce', 'ballSpeed',
 // them, as friends.js counts it
 function cardHint(run, id) {
   if (run.cls && (id === 'crit' || id === 'critDamage')) return '전직 공격에도 같이 적용돼요'
-  if (run.cls && id === 'power') return `${D.zyo.forms[run.cls.form]} 공격이 더 세고 더 자주 때려요 (개수는 그대로)`
+  if (run.cls && id === 'power') return `Lv.${classLevel(run)} → ${classLevel(run) + 1} · 더 세고 자주, 더 크게 · ${D.zyo.skills[run.cls.form].replace('!', '')} ${Math.min(D.balance.zyo.skill.max, D.balance.zyo.skill.count + Math.floor((classLevel(run) + 1) / D.balance.zyo.skill.perLevels))}발`
   if (isClassCard(id)) return `${D.zyo.classes[classOf(id)].text} · 한 판에 한 번`
   const zr = run.zyo && !run.cls && recipes(run).find((r) => r.mats.includes(id))
   if (zr) {
     const i = zr.mats.indexOf(id)
     const other = zr.mats[1 - i]
     const need = D.balance.zyo.need
-    return `${D.zyo.name} 전직 재료 ${Math.min(need, zr.picks[i])}/${need} · ${OPTIONS[other].name} ${Math.min(need, zr.picks[1 - i])}/${need} → ${D.zyo.forms[zr.form]}`
+    return `${OPTIONS['cls' + zr.k].name} 재료 ${Math.min(need, zr.picks[i])}/${need} · ${OPTIONS[other].name} ${Math.min(need, zr.picks[1 - i])}/${need}`
   }
   if (!hasCats(run)) return null
   if (id === 'crit' || id === 'critDamage') return '친구냥이 할퀴기에도 같이 적용돼요'
@@ -199,7 +199,7 @@ function RunStats({ run }) {
   if (run.nyang > 0) rows.push(['냥냥 연금술', `Lv.${run.nyang}`])
   if (run.cls) {
     const C = run.cls
-    rows.push(['전직', `${D.zyo.forms[C.form]} · ${D.zyo.classes[C.k].special}`], ['전직 초당 피해', big(classDps(run))], ['전투력', `공격 ×${fmt(C.dmg, 2)} · 빈도 ×${fmt(C.rate, 2)}`])
+    rows.push(['전직', OPTIONS['cls' + C.k].name], ['전직 초당 피해', big(classDps(run))], ['전투력', `Lv.${classLevel(run)} · 공격 ×${fmt(C.dmg, 2)} · 빈도 ×${fmt(C.rate, 2)}`])
     if (C.k === 'B') rows.push(['최후의 반격', `${C.revives}회 남음`])
     if (C.k === 'C') rows.push(['흡혈로 회복', big(C.healed)])
   } else if (run.zyo) for (const r of recipes(run)) if (r.mats.every((m) => run.pool.includes(m))) rows.push([`전직 ${D.zyo.classes[r.k].special}`, r.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(D.balance.zyo.need, r.picks[i])}`).join(' · ')])
@@ -1727,8 +1727,10 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         } else if (ev.type === 'extraAppear') audio.duck(false)
         // zyo_'s class change (its notes are drawn by render-zyo.js)
         else if (ev.type === 'classChange') audio.sfx('transform')
-        else if (ev.type === 'classReady') say(`${D.zyo.forms[ev.form]} · ${D.zyo.classes[ev.k].special} 전직 완료!`)
+        else if (ev.type === 'classReady') say(`${OPTIONS['cls' + ev.k].name} 전직 완료!`)
         else if (ev.type === 'warp') audio.sfx('warp')
+        else if (ev.type === 'skillCast') audio.sfx(ev.kind === 'ball' ? 'meteor' : 'shadow')
+        else if (ev.type === 'powerUp') audio.sfx('powerup')
         else if (ev.type === 'revive') audio.sfx('revive'), say(`${D.zyo.classes.B.special}! 체력을 모두 채우고 일어났어요`)
         if (ev.type === 'elite') say(`${ev.name} 등장!`)
         else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
