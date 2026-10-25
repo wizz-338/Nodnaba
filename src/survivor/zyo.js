@@ -60,22 +60,28 @@ export function recipes(run) {
   })
 }
 
-// the recipe the player is going for: both its cards picked counts first
+// the recipes the player is going for: both its cards picked counts first
 // (the fewer of the two), then all its picks — one card picked often for its
-// own sake (a ball's count) does not make its recipe the one. null: none yet
-export function zyoTarget(run) {
-  if (!run.zyo || run.cls) return null
+// own sake (a ball's count) does not make its recipe the one. All of those
+// level at the top (5/7 + 5/7 and 5/7 + 5/7: both); [] none yet
+export function zyoTargets(run) {
+  if (!run.zyo || run.cls) return []
   const Z = run.D.balance.zyo
-  let best = null
+  let best = []
+  let top = -1
   for (const r of recipes(run)) {
     if (!r.mats.every((m) => run.pool.includes(m))) continue
     const got = r.picks.map((n) => Math.min(Z.need, n))
     const sum = got[0] + got[1]
     const score = Math.min(got[0], got[1]) * 100 + sum
-    if (sum > 0 && (!best || score > best.score)) best = { r, score }
+    if (sum === 0 || score < top) continue
+    if (score > top) (best = []), (top = score)
+    best.push(r)
   }
-  return best && best.r
+  return best
 }
+// the first of them, or null
+export const zyoTarget = (run) => zyoTargets(run)[0] || null
 
 // zyo_ adds no card of her own: the cards come at random as any other, and
 // she marks those of hers that came. Her cards in the draw (beside the
@@ -109,14 +115,21 @@ export function zyoCards(run, shown, open) {
   return [id]
 }
 
-// the cards on show zyo_ marks: a class card; the recipe she is going for's
-// cards it still needs; after the change, the class's growth card
+// the cards on show zyo_ marks: a class card; the cards the recipes she is
+// going for (all those level at the top) still need; after the change, the
+// class's growth card
 export function zyoMarks(run) {
   if (run.cls) return run.choices.filter((id) => id === 'power')
   if (!run.zyo) return []
-  const r = zyoTarget(run)
+  const rs = zyoTargets(run)
   const need = run.D.balance.zyo.need
-  return run.choices.filter((id) => isClassCard(id) || (r && r.mats.includes(id) && (run.picks[id] || 0) < need))
+  return run.choices.filter((id) => isClassCard(id) || rs.some((r) => r.mats.includes(id) && (run.picks[id] || 0) < need))
+}
+
+// a recipe just complete: its class card comes for sure at the next level-up,
+// once (run.sure: those that came so); after that at random, as before
+export function zyoSure(run) {
+  return zyoPool(run).filter((id) => !run.sure.includes(id))
 }
 
 // the strength of the attacks there are now, one number a second (see above)

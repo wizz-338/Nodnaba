@@ -435,7 +435,6 @@
       "ballSpeed",
       "size",
       "pickup",
-      "split",
       "luck",
       "regen",
       "armor",
@@ -478,7 +477,8 @@
         "mul": 1.25
       },
       "split": {
-        "add": 0.25
+        "add": 0.25,
+        "note": "쪼개지는 행운: out of the pool (taken out at the player's wish); kept so its numbers still read"
       },
       "luck": {
         "mul": 1.2

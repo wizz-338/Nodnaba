@@ -1228,3 +1228,17 @@
   object-fit: initial;
   background-color: #fff;
 }
+
+/* a card's words: what it does in plain words, then the number it changes
+   (its name on one line, before → after on the next), then the recipe */
+.ms .ms-card__what {
+  display: block;
+  color: var(--ink);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ms .ms-card__num,
+.ms .ms-card__hint {
+  white-space: pre-line;
+}

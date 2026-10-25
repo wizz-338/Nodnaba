@@ -1,102 +1,125 @@
 {
-  "note": "names and icons of the in-run upgrades (numbers live in balance.json → upgrades); art: a picture of the story package (story-assets.json / ep01-assets.json) shown instead of the sprite icon",
+  "note": "names and icons of the in-run upgrades (numbers live in balance.json → upgrades); art: a picture of the story package (story-assets.json / ep01-assets.json) shown instead of the sprite icon. text: what the card does, in plain words (the first line under its name).",
   "options": {
     "count": {
       "name": "탱탱볼 개수",
+      "text": "탱탱볼이 한 번에 더 많이 나가요",
       "icon": "upgrade_double"
     },
     "interval": {
       "name": "공격 주기",
+      "text": "탱탱볼을 더 자주 던져요",
       "icon": "upgrade_cooldown"
     },
     "damage": {
       "name": "공격 피해",
+      "text": "탱탱볼 한 방이 더 아파요",
       "icon": "upgrade_damage"
     },
     "bounce": {
       "name": "최대 반사",
+      "text": "탱탱볼이 더 많이 튕겨 다녀요",
       "icon": "upgrade_bounce"
     },
     "maxHp": {
       "name": "폭신한 잠옷",
+      "text": "최대 체력이 늘어요",
       "icon": "upgrade_hp"
     },
     "move": {
       "name": "우다다 발걸음",
+      "text": "마노가 더 빨리 걸어요",
       "icon": "upgrade_move"
     },
     "crit": {
       "name": "치명타 확률",
+      "text": "치명타가 더 자주 터져요",
       "icon": "upgrade_luck"
     },
     "critDamage": {
       "name": "치명타 피해",
+      "text": "치명타가 더 세게 터져요",
       "icon": "impact_1"
     },
     "ballSpeed": {
       "name": "투사체 속도",
+      "text": "탱탱볼이 더 빨리 날아가요",
       "icon": "trail"
     },
     "size": {
       "name": "왕 탱탱볼",
+      "text": "탱탱볼이 더 커져요",
       "icon": "upgrade_size"
     },
     "pickup": {
       "name": "주머니 자석",
+      "text": "떨어진 것을 더 멀리서 끌어와요",
       "icon": "upgrade_pickup"
     },
     "split": {
       "name": "쪼개지는 행운",
+      "text": "탱탱볼이 맞힐 때 쪼개질 수 있어요",
       "icon": "upgrade_split"
     },
     "luck": {
       "name": "반짝 코인",
+      "text": "코인을 더 많이 주워요",
       "icon": "coin"
     },
     "regen": {
       "name": "쌔근쌔근 회복",
+      "text": "체력이 저절로 더 빨리 차요",
       "icon": "heal"
     },
     "armor": {
       "name": "단단한 후드",
+      "text": "받는 피해가 줄어요",
       "icon": "weapon_slot"
     },
     "xpGain": {
       "name": "반짝 원석",
+      "text": "경험치를 더 많이 얻어요",
       "icon": "xp_gem"
     },
     "nyang": {
       "name": "냥냥 연금술",
+      "text": "고양이가 하트를 회복 하트로 바꿔요",
       "icon": "cat_hodu_l_0",
       "note": "only in runs with the cats; texts per level are built from balance.json → upgrades.effects.nyang"
     },
     "catSummon": {
       "name": "친구냥이",
+      "text": "싸우는 친구냥이가 1마리 늘어요",
       "icon": "cat_hodu_r_0",
       "art": "skill_cat_summon"
     },
     "catSize": {
       "name": "뚱냥이",
+      "text": "친구냥이가 더 넓게 할퀴어요",
       "icon": "cat_hodu_r_0",
       "art": "skill_cat_size"
     },
     "catSpeed": {
       "name": "스피드냥이",
+      "text": "친구냥이가 더 빨리 달려요",
       "icon": "cat_hodu_r_0",
       "art": "skill_cat_speed"
     },
     "catRate": {
       "name": "빠르게 할퀴기",
+      "text": "친구냥이가 더 자주 할퀴어요",
       "icon": "cat_hodu_r_0",
       "art": "skill_cat_attack_rate"
     },
     "catClaw": {
       "name": "발톱 갈기",
+      "text": "친구냥이 할퀴기가 더 아파요",
       "icon": "cat_hodu_r_0",
       "art": "skill_cat_damage"
     },
     "power": {
       "name": "전투력",
+      "text": "전직 공격이 더 세고 더 자주 나가요",
       "icon": "upgrade_damage",
       "note": "after zyo_'s class change only: the class attack's damage and rate (balance.json → upgrades.effects.power)"
     },

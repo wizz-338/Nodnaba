@@ -16,7 +16,7 @@ import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { snap, recordPick, takeBack, fits, placeTurret, relocateTurrets, updateTurrets } from './turret.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
-import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, powerPreview, optionName, firepower } from './zyo.js'
+import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, zyoSure, powerPreview, optionName, firepower } from './zyo.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -201,6 +201,7 @@ export function createRun(D, opts) {
     turretId: 1,
     applied: {},
     zyoPick: null, // { ids, seq }: zyo_'s cards among those on show
+    sure: [], // the class cards that came for sure once their recipe was complete (zyo.js → zyoSure)
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
     region: regionOf(D, chapter), // where the chapter is: its monsters' looks and mix
     bless: blessingsFor(D, opts.blessings),
@@ -1360,6 +1361,15 @@ function openChoice(run, not) {
   run.state = 'levelup'
   run.choices = drawChoices(run, not)
   run.choiceSeq++
+  // a recipe just complete: its class card is among them this once, in the
+  // place of a card that is not one
+  for (const id of zyoSure(run)) {
+    run.sure.push(id)
+    if (run.choices.includes(id)) continue
+    const free = run.choices.map((c, i) => (isClassCard(c) ? -1 : i)).filter((i) => i >= 0)
+    if (free.length) run.choices[free[Math.floor(run.rng() * free.length)]] = id
+    else run.choices.push(id)
+  }
   // zyo_'s own card beside them, some of the time (zyo.js)
   run.choices.push(...zyoCards(run, run.choices, (id) => catCardOpen(run, id)))
   // she marks hers among them, if any came
