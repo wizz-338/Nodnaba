@@ -103,8 +103,12 @@ and its field (1620 × 810) is larger still: the camera follows Mano over it
 on screen and then live in the field, not the view (`monsterBox` in
 game.js): the ones Mano walks away from stay where they are, out of sight,
 and come after her at their own pace (an elite or a boss off screen gets an
-arrow at the edge). Balls keep to the view and bounce off it, so only what
-is on screen is hit. Mano walks the whole field. On the phone the view is
+arrow at the edge). The attacks keep to the field too, not the screen: the
+balls fly on past the screen's edge and bounce off the field's (or off the
+extra special boss's fight area during it), and the friend cats and a
+class's units go after monsters anywhere on the field within their leash of
+Mano (a class's skill still strikes what is on screen). Mano walks the whole
+field. On the phone the view is
 the field and never moves, so nothing there changed.
 
 Because the PC view is about 3.4× the phone field's area, the PC field has a

@@ -1344,12 +1344,14 @@ const still = { x: 0, y: 0 }
   }
   ok(r.player.x > px1 - 20 && r.player.y < py0 + 20 && r.view[2] === px1 && r.view[1] === py0, `held up-right: she stops in the field's corner (${r.player.x.toFixed(1)}, ${r.player.y.toFixed(1)}), the view stops at its edges`)
   // monsters come in near her (the spawn box) and keep to the field (they may
-  // be left out of sight); the balls bounce off the view
+  // be left out of sight); the balls bounce off the field's edges, not the
+  // screen's (they fly on past it as the monsters stand there)
   const r2 = newRun({ arena: PC, seed: 8 })
   r2.player.hp = r2.player.maxHp = 1e9
   let far = 0
   let outField = 0
   let ballsOut = 0
+  let ballsPastView = 0
   const seen = new Set()
   for (let i = 0; i < 60 * 40; i++) {
     step(r2, FIXED, { x: Math.sin(i / 200), y: Math.cos(i / 300) })
@@ -1361,11 +1363,14 @@ const still = { x: 0, y: 0 }
       }
       if (e.state === 'live' && (e.x < px0 + e.r - 0.01 || e.x > px1 - e.r + 0.01 || e.y < py0 + e.r - 0.01 || e.y > py1 - e.r + 0.01)) outField++
     }
-    for (const b of r2.balls) if (b.x < vx0 - 0.01 || b.x > vx1 + 0.01 || b.y < vy0 - 0.01 || b.y > vy1 + 0.01) ballsOut++
+    for (const b of r2.balls) {
+      if (b.x < px0 - 0.01 || b.x > px1 + 0.01 || b.y < py0 - 0.01 || b.y > py1 + 0.01) ballsOut++
+      if (b.x < vx0 - 0.01 || b.x > vx1 + 0.01 || b.y < vy0 - 0.01 || b.y > vy1 + 0.01) ballsPastView++
+    }
     if (r2.state === 'levelup') choose(r2, r2.choices[0], r2.choiceSeq)
   }
   ok(seen.size > 20 && far === 0, `40 s walking about the PC field: ${seen.size} monsters came in, ${PC.spawnBox ? `all within the ${PC.spawnBox.join(' × ')} spawn box around Mano` : 'all at the view'}${far ? ` (${far} farther)` : ''}`)
-  ok(outField === 0 && ballsOut === 0, `no monster ever left the field, no ball the view${outField || ballsOut ? ` (${outField} monster-steps, ${ballsOut} ball-steps)` : ''}`)
+  ok(outField === 0 && ballsOut === 0 && ballsPastView > 0, `no monster and no ball ever left the field; balls flew on past the screen's edge (${ballsPastView} ball-steps), not bounced off it${outField || ballsOut ? ` (${outField} monster-steps, ${ballsOut} ball-steps out)` : ''}`)
   // walking away, the monsters stay where they are in the field (they used
   // to be held in the view, so the camera dragged them after her)
   const r3 = newRun({ arena: PC, seed: 3 })

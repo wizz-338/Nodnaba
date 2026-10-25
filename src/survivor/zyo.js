@@ -217,19 +217,26 @@ function deploy(run) {
   run.events.push({ type: 'classReady', k: C.k, form: C.form, x: p.x, y: p.y })
 }
 
-// ── a target near Mano, on screen (as the cats: never far off) ─────────────
-// The first half of the units (rounded up) go for a boss or an elite on
-// screen, wherever it is, while there is one: the giant balls and the ninjas
+// ── a target near Mano, on the field (as the cats: never far off) ──────────
+// The first half of the units (rounded up) go for a boss or an elite within
+// HUNT leashes of Mano, while there is one: the giant balls and the ninjas
 // never leave the chapter's boss alone while Mano keeps away from it.
 
 const hunter = (run, u) => u.id < Math.ceil(run.cls.units.length / 2)
+// where the units may go after monsters: the whole field (the extra special
+// boss's fight area during it), within their leash of Mano
+const field = (run) => (run.extra && run.extra.box) || run.arena.bounds
+const HUNT = 2.5
 function bigOne(run, x, y) {
-  const [vx0, vy0, vx1, vy1] = run.view
+  const [vx0, vy0, vx1, vy1] = field(run)
+  const p = run.player
+  const far = (run.D.balance.zyo.leash * HUNT) ** 2
   let best = null
   let bd = Infinity
   for (const e of run.enemies) {
     if (!e.rank || e.state !== 'live' || e.under) continue
     if (e.x < vx0 || e.x > vx1 || e.y < vy0 || e.y > vy1) continue
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > far) continue
     const d = (e.x - x) ** 2 + (e.y - y) ** 2
     if (d < bd) (bd = d), (best = e)
   }
@@ -243,7 +250,7 @@ function findTarget(run, x, y, u) {
   }
   const Z = run.D.balance.zyo
   const p = run.player
-  const [vx0, vy0, vx1, vy1] = run.view
+  const [vx0, vy0, vx1, vy1] = field(run)
   const L2 = Z.leash * Z.leash
   let best = null
   let bd = Infinity
