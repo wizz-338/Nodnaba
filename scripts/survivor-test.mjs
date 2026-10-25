@@ -2625,6 +2625,16 @@ const still = { x: 0, y: 0 }
   give(z, 'clsA', 1)
   const mz = materials(z)
   ok(z.cls && !mz.size && !mz.count && mz.damage === 5 && mz.armor === 1 && !mz.clsA, 'after the class change its recipe cards are no turret material; the other picks are')
+  // an 8th pick of a recipe card: the change used 7, the 8th is material
+  const z8 = fresh({ zyo: true, seed: 98 })
+  give(z8, 'size', B.zyo.need + 1)
+  give(z8, 'count', B.zyo.need)
+  give(z8, 'clsA', 1)
+  const m8 = materials(z8)
+  ok(m8.size === 1 && !m8.count && sunk(z8, 'size'), `a recipe card picked ${B.zyo.need + 1} times: after the change ${B.zyo.need} went to the class, 1 is left as turret material (and costs nothing: the ball is gone)`)
+  give(z8, 'move', 1)
+  atLevelUp(z8)
+  ok(makeTurret(z8, ['size', 'move'], z8.choiceSeq) && z8.picks.size === B.zyo.need && !materials(z8).size && z8.cls.k === 'A', 'a turret of it: 7 left, the class stays')
   give(z, 'power', 2)
   // the ball is gone: its picks do nothing now (a turret of them costs nothing)
   const zc = z.cls.base * z.cls.dmg * z.cls.rate
