@@ -39,13 +39,17 @@ function tierColor(L, now) {
   if (L >= 3) return [240, 150, 30]
   return [255, 92, 70]
 }
-// 탱탱 메테오: seen falling only for its last FALL s (the mark shows the
-// whole wait), from FALL_H px up and FALL_DX px to the right; a scorch stays
-// SCORCH s
-const FALL = 0.16
-const FALL_H = 420
-const FALL_DX = 150
+// 탱탱 메테오, like a spin dash: the ball shows FALL_H px up and FALL_DX px
+// to the right SPINUP s before it falls, spinning in place (SPIN rad/s) as it
+// swells, then shoots down in FALL s (the mark shows the whole wait); where
+// it lands the ground cracks (glowing a moment) and a scorch stays SCORCH s
+const SPINUP = 0.1
+const FALL = 0.09
+const FALL_H = 300
+const FALL_DX = 110
+const SPIN = 70
 const SCORCH = 0.9
+const CRACK_GLOW = 0.3
 const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
 
 export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font }) {
@@ -56,7 +60,8 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   const meteors = [] // { x, y, r, t, land }
   const clones = [] // { x, y, r, t, land, face }
   const flashes = [] // { x, y, r, t, life }
-  const scorches = [] // { x, y, r, t } where a meteor landed
+  const scorches = [] // { x, y, r, t, cracks } where a meteor landed
+  const puffs = [] // { x, y, vx, vy, r, t, life } dust off the ground
   const trails = new Map() // a giant ball's last places
   let impacts = 0
   let budget = 1
@@ -71,6 +76,25 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       const v = speed * (0.4 + Math.random() * 0.8)
       spark(x, y, Math.cos(a) * v, Math.sin(a) * v - speed * 0.2, life * (0.6 + Math.random() * 0.6), s * (0.6 + Math.random() * 0.8), c, 120)
     }
+  }
+
+  // the cracks a meteor leaves: jagged lines out of the middle, flattened to
+  // the ground ([x, y] points from its middle)
+  const cracks = (r) => {
+    const out = []
+    const n = 6 + Math.floor(Math.random() * 3)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + (Math.random() - 0.5) * 0.5
+      const len = r * (1.1 + Math.random() * 0.9)
+      const line = []
+      for (let j = 1; j <= 3; j++) {
+        const d = (len * j) / 3
+        const w = (Math.random() - 0.5) * r * 0.35
+        line.push([Math.cos(a) * d - Math.sin(a) * w, (Math.sin(a) * d + Math.cos(a) * w) * 0.5])
+      }
+      out.push(line)
+    }
+    return out
   }
 
   // a note: a head, a stem and a flag (two heads joined for ♫)
@@ -224,10 +248,27 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
         scorches.splice(i, 1)
         continue
       }
-      ctx.fillStyle = `rgba(40, 20, 10, ${0.32 * (1 - sc.t / SCORCH)})`
+      const fade = 1 - sc.t / SCORCH
+      ctx.fillStyle = `rgba(40, 20, 10, ${0.32 * fade})`
       ctx.beginPath()
       ctx.ellipse(sc.x, sc.y, sc.r * 0.9, sc.r * 0.5, 0, 0, TAU)
       ctx.fill()
+      // the cracks out of it, glowing hot a moment
+      ctx.lineJoin = 'round'
+      for (const [col, w, a] of [
+        ['60, 28, 12', 3, 0.75 * fade],
+        ['255, 170, 60', 1.6, Math.max(0, 1 - sc.t / CRACK_GLOW)],
+      ]) {
+        if (a <= 0) continue
+        ctx.strokeStyle = `rgba(${col}, ${a})`
+        ctx.lineWidth = w
+        ctx.beginPath()
+        for (const line of sc.cracks) {
+          ctx.moveTo(sc.x, sc.y)
+          for (const [x, y] of line) ctx.lineTo(sc.x + x, sc.y + y)
+        }
+        ctx.stroke()
+      }
     }
     // a meteor's mark: a ring that closes in fast, a cross in it
     for (const m of meteors) {
@@ -378,31 +419,60 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
         meteors.splice(i, 1)
         continue
       }
-      // it shows only for its last FALL s, from high up and steeply,
-      // faster and faster (k²), with a streak as long as it is fast
+      // up high it spins in place, swelling, then it shoots down steeply,
+      // faster and faster, with a streak as long as it is fast
       const t0 = m.land - FALL
-      if (m.t < t0) continue
-      const k = Math.min(1, (m.t - t0) / FALL) ** 2
+      if (m.t < t0 - SPINUP) continue
+      const up = m.t < t0
+      const f = up ? 0 : Math.min(1, (m.t - t0) / FALL)
+      const k = f ** 1.6
+      const swell = up ? 0.55 + 0.45 * ((m.t - (t0 - SPINUP)) / SPINUP) : 1
       const x = m.x + FALL_DX * (1 - k)
       const y = m.y - lift - FALL_H * (1 - k)
-      const len = 40 + 260 * Math.min(1, (m.t - t0) / FALL)
+      const len = up ? 0 : 40 + 220 * f
       const ux = FALL_DX / Math.hypot(FALL_DX, FALL_H)
       const uy = FALL_H / Math.hypot(FALL_DX, FALL_H)
-      const tail = ctx.createLinearGradient(x, y, x + ux * len, y - uy * len)
+      const tail = ctx.createLinearGradient(x, y, x + ux * (len || 1), y - uy * (len || 1))
       tail.addColorStop(0, 'rgba(255, 255, 230, 0.95)')
       tail.addColorStop(0.25, 'rgba(255, 170, 70, 0.8)')
       tail.addColorStop(1, 'rgba(255, 70, 40, 0)')
       ctx.strokeStyle = tail
       ctx.lineWidth = m.r * 0.85
       ctx.lineCap = 'round'
+      if (len) {
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + ux * len, y - uy * len)
+        ctx.stroke()
+      }
+      ctx.lineCap = 'butt'
+      const R = m.r * swell
+      glow(x, y, R * 1.6, [255, 200, 120], 0.75)
+      // afterimages along the way it came
+      if (!up)
+        for (let j = 3; j >= 1; j--) {
+          const back = j * m.r * 0.9 * (0.4 + k)
+          put('ball', x + ux * back, y - uy * back, (m.r * 1.15) / 24, { alpha: 0.4 - j * 0.1 })
+        }
+      put('ball', x, y, (R * 1.15) / 24)
+      world()
+      // the spin: bright arcs whirling round it, and inside it
+      const spin = m.t * SPIN + m.x
+      ctx.lineCap = 'round'
+      for (let j = 0; j < 3; j++) {
+        const a0 = spin + (j * TAU) / 3
+        ctx.strokeStyle = j ? 'rgba(255, 210, 120, 0.85)' : 'rgba(255, 255, 255, 0.95)'
+        ctx.lineWidth = 3.5
+        ctx.beginPath()
+        ctx.arc(x, y, R * 1.35, a0, a0 + 1.6)
+        ctx.stroke()
+      }
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'
+      ctx.lineWidth = 2.5
       ctx.beginPath()
-      ctx.moveTo(x, y)
-      ctx.lineTo(x + ux * len, y - uy * len)
+      ctx.arc(x, y, R * 0.6, -spin, -spin + 2.2)
       ctx.stroke()
       ctx.lineCap = 'butt'
-      glow(x, y, m.r * 1.6, [255, 200, 120], 0.75)
-      put('ball', x, y, (m.r * 1.15) / 24)
-      world()
     }
     // the shadow ninjas: out of a puff beside the monster, a moment there
     for (let i = clones.length - 1; i >= 0; i--) {
@@ -502,10 +572,32 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       ctx.strokeStyle = r.c
       ctx.lineWidth = (r.w || 8) * (1 - k) + 2
       ctx.beginPath()
-      ctx.arc(r.x, r.y, r.r * (0.15 + 0.85 * Math.sqrt(k)), 0, TAU)
+      const rr = r.r * (0.15 + 0.85 * Math.sqrt(k))
+      if (r.ground) ctx.ellipse(r.x, r.y, rr, rr * 0.45, 0, 0, TAU)
+      else ctx.arc(r.x, r.y, rr, 0, TAU)
       ctx.stroke()
     }
     impacts = rings.length
+    // dust off the ground: soft puffs rolling out, swelling, fading
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const q = puffs[i]
+      q.t += dt
+      if (q.t >= q.life) {
+        puffs.splice(i, 1)
+        continue
+      }
+      const k = q.t / q.life
+      q.x += q.vx * dt
+      q.y += q.vy * dt
+      q.vx *= 1 - 4 * dt
+      q.vy *= 1 - 4 * dt
+      ctx.globalAlpha = 0.55 * (1 - k)
+      ctx.fillStyle = '#b39a7f'
+      ctx.beginPath()
+      ctx.arc(q.x, q.y - 4, q.r * (1 + k * 1.4), 0, TAU)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
     ctx.textAlign = 'center'
     for (let i = words.length - 1; i >= 0; i--) {
       const w = words[i]
@@ -559,7 +651,15 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
         rings.push({ x: ev.x, y: ev.y - 4, r: ev.r * 2.8, t: 0, life: 0.38, c: 'rgba(255, 130, 50, 0.7)', w: 5 })
         burst(ev.x, ev.y - 6, 14, 340, [255, 200, 90], 0.32, 3)
         burst(ev.x, ev.y - 6, 7, 180, [110, 80, 70], 0.45, 3.5)
-        if (scorches.length < 24) scorches.push({ x: ev.x, y: ev.y, r: ev.r, t: 0 })
+        // on the ground: flattened shock rings, cracks, dust rolling out
+        rings.push({ x: ev.x, y: ev.y, r: ev.r * 3.2, t: 0, life: 0.32, c: 'rgba(255, 235, 190, 0.95)', w: 7, ground: true })
+        rings.push({ x: ev.x, y: ev.y, r: ev.r * 2.2, t: 0, life: 0.5, c: 'rgba(150, 110, 80, 0.8)', w: 10, ground: true })
+        if (scorches.length < 24) scorches.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, cracks: cracks(ev.r) })
+        for (let j = 0; j < 9 && puffs.length < 90; j++) {
+          const a = (j / 9) * TAU + Math.random() * 0.4
+          const v = 90 + Math.random() * 80
+          puffs.push({ x: ev.x + Math.cos(a) * ev.r * 0.6, y: ev.y + Math.sin(a) * ev.r * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45 - 20, r: 5 + Math.random() * 5, t: 0, life: 0.5 + Math.random() * 0.2 })
+        }
       } else {
         flashes.push({ x: ev.x, y: ev.y, r: ev.r, t: 0, life: 0.32, kind: 'x' })
         burst(ev.x, ev.y - 8, 10, 200, [190, 140, 255], 0.4, 2.5)
@@ -591,7 +691,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   }
 
   const reset = () => {
-    for (const a of [slashes, rings, words, parts, meteors, clones, flashes, scorches]) a.length = 0
+    for (const a of [slashes, rings, words, parts, meteors, clones, flashes, scorches, puffs]) a.length = 0
     trails.clear()
   }
   return { shadows, under, over, event, reset }
