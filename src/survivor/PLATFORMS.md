@@ -83,8 +83,8 @@ only in its platform-specific part.
 - `survivor-theme.css` — the look of both (loaded after `survivor.css`, which
   keeps the layout): clean and light — a warm off-white page, white cards
   with soft shadows and a thin dark outline, flat buttons in one accent (Mano's red),
-  tabs as a segmented control, level-up cards tinted by what they do
-  (`data-kind`), the battle bar's colours and the low-health red edge. A look
+  tabs as a segmented control, level-up cards all alike (only Tizzzz's,
+  zyo_'s and a class card have their own colour), the battle bar's colours and the low-health red edge. A look
   change goes here, for both platforms at once.
 - Backgrounds: phone `bg_<region>` (portrait), PC `bg_<region>_wide`, which
   covers the whole PC field (`assets/s84/backgrounds/`, made by
