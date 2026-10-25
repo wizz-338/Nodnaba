@@ -8,7 +8,7 @@ import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
-import { growth, classLevel, zyoMarks, firepower, recipes } from '../src/survivor/zyo.js'
+import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '../src/survivor/zyo.js'
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 
@@ -138,7 +138,7 @@ const still = { x: 0, y: 0 }
   ok(w.count === 1024 && near(w.interval, 0.7 ** 40), `no cap: 1024 balls a volley, a volley every ${w.interval.toExponential(2)} s`)
   const seen = new Set()
   for (let i = 0; i < 400; i++) for (const id of drawChoices(run)) seen.add(id)
-  ok(seen.size === 16, `after all that every one of the 16 cards still comes up (${seen.size})`)
+  ok(seen.size === 15, `after all that every one of the 15 cards still comes up (${seen.size})`)
   // the log formula of the plan
   const n = { count: 10, interval: 40, damage: 3, bounce: 4 }
   ok(w.count === BASE.count * 2 ** n.count && near(w.interval, BASE.interval * 0.7 ** n.interval) && near(w.damage, BASE.damage * 1.5 ** n.damage) && w.bounces === BASE.bounces * 2 ** n.bounce, 'every value = base × factor ^ times chosen')
@@ -209,7 +209,7 @@ const still = { x: 0, y: 0 }
 // ── the card draw: 16 cards, same chance, three different each time ─────────
 {
   const run = newRun({ seed: 5 })
-  ok(run.pool.length === 16 && new Set(run.pool).size === 16 && run.pool.slice(0, 4).join() === D.weapons.registry[0].core.join(), `16 cards: the weapon's core four (${run.pool.slice(0, 4).join(', ')}) and 12 general ones`)
+  ok(run.pool.length === 15 && new Set(run.pool).size === 15 && !run.pool.includes('split') && run.pool.slice(0, 4).join() === D.weapons.registry[0].core.join(), `15 cards: the weapon's core four (${run.pool.slice(0, 4).join(', ')}) and 11 general ones (쪼개지는 행운 taken out)`)
   const N = 60000
   const seen = Object.fromEntries(run.pool.map((id) => [id, 0]))
   let distinct = true
@@ -222,10 +222,10 @@ const still = { x: 0, y: 0 }
     if (last && c.includes(last)) back++
     last = c[0]
   }
-  const exp = (N * 3) / 16
+  const exp = (N * 3) / 15
   const worst = Math.max(...Object.values(seen).map((n) => Math.abs(n / exp - 1)))
   ok(distinct, 'every level offers three different cards')
-  ok(worst < 0.03, `each card comes up 3/16 of the time (largest gap from that: ${(worst * 100).toFixed(1)}%)`)
+  ok(worst < 0.03, `each card comes up 3/15 of the time (largest gap from that: ${(worst * 100).toFixed(1)}%)`)
   ok(back / N > 0.15, `a card taken last level shows up again (${((back / N) * 100).toFixed(1)}% of levels, 3/16 = 18.75%)`)
   // the same seed gives the same cards
   const a = newRun({ seed: 42 })
@@ -2569,13 +2569,13 @@ const still = { x: 0, y: 0 }
   const w0 = { ...run.weapon }
   give(run, 'damage', 6)
   give(run, 'interval', 4)
-  give(run, 'split', 4)
+  give(run, 'bounce', 4)
   const E = B.upgrades.effects
-  ok(near(run.weapon.damage, w0.damage * E.damage.mul ** 6, 1e-6 * w0.damage * 20) && materialCount(run) === 14 && canMake(run), '공격 피해 ×6, 공격 주기 ×4, 쪼개지는 행운 ×4: 14 picks, a turret can be made')
+  ok(near(run.weapon.damage, w0.damage * E.damage.mul ** 6, 1e-6 * w0.damage * 20) && materialCount(run) === 14 && canMake(run), '공격 피해 ×6, 공격 주기 ×4, 최대 반사 ×4: 14 picks, a turret can be made')
   ok(!makeTurret(run, ['damage'], run.choiceSeq) && !makeTurret(run, ['damage', 'damage'], run.choiceSeq), 'nothing outside a level-up, nor one pick')
   atLevelUp(run)
   ok(!makeTurret(run, ['damage', 'count'], run.choiceSeq) && run.state === 'levelup' && run.picks.damage === 6, 'never a pick the run does not have')
-  const plans = [['damage', 'damage'], ['damage', 'interval'], ['interval', 'interval'], ['split', 'split'], ['damage', 'split'], ['damage', 'interval'], ['damage', 'split']]
+  const plans = [['damage', 'damage'], ['damage', 'interval'], ['interval', 'interval'], ['bounce', 'bounce'], ['damage', 'bounce'], ['damage', 'interval'], ['damage', 'bounce']]
   let exact = true
   const spots = []
   for (const ids of plans) {
@@ -2586,11 +2586,11 @@ const still = { x: 0, y: 0 }
     const want = {
       damage: w0.damage * E.damage.mul ** (run.picks.damage || 0),
       interval: w0.interval * E.interval.mul ** (run.picks.interval || 0),
-      splitChance: w0.splitChance + E.split.add * (run.picks.split || 0),
+      bounces: Math.round(w0.bounces * E.bounce.mul ** (run.picks.bounce || 0)),
     }
-    if (!near(run.weapon.damage, want.damage, want.damage * 1e-9) || !near(run.weapon.interval, want.interval, 1e-12) || !near(run.weapon.splitChance, want.splitChance, 1e-12)) exact = false
+    if (!near(run.weapon.damage, want.damage, want.damage * 1e-9) || !near(run.weapon.interval, want.interval, 1e-12) || run.weapon.bounces !== want.bounces) exact = false
   }
-  ok(exact && run.turrets.length === 7 && materialCount(run) === 0 && !canMake(run) && !run.picks.damage && !run.picks.interval && !run.picks.split, `14 picks → 7 turrets, each pair taken back exactly (damage, gap, split back to the start: ${run.weapon.damage.toFixed(1)} / ${w0.damage.toFixed(1)})`)
+  ok(exact && run.turrets.length === 7 && materialCount(run) === 0 && !canMake(run) && !run.picks.damage && !run.picks.interval && !run.picks.bounce, `14 picks → 7 turrets, each pair taken back exactly (damage, gap, bounces back to the start: ${run.weapon.damage.toFixed(1)} / ${w0.damage.toFixed(1)})`)
   const [x0, y0, x1, y1] = run.arena.bounds
   const apart = run.turrets.every((t, i) => run.turrets.every((u, j) => i === j || Math.hypot(t.x - u.x, t.y - u.y) >= T.place.apart * 0.5))
   ok(run.turrets.every((t) => t.x >= x0 + T.place.margin - 1e-9 && t.x <= x1 - T.place.margin + 1e-9 && t.y >= y0 + T.place.margin - 1e-9 && t.y <= y1 - T.place.margin + 1e-9) && apart && new Set(run.turrets.map((t) => Object.keys(t).sort().join())).size === 1, 'every turret inside the field, apart from the others, all the same kind')
@@ -2661,6 +2661,41 @@ const still = { x: 0, y: 0 }
   for (let i = 0; i < 600; i++) step(many, FIXED, still), (many.events.length = 0)
   const ms = (performance.now() - t0) / 600
   ok(many.turrets.length === 40 && ms < 2, `40 turrets and 140 monsters: ${ms.toFixed(3)} ms a step`)
+}
+
+// ── a recipe just complete: its class card for sure, once; ties both marked ──
+{
+  const N = B.zyo.need
+  let sureFirst = 0
+  let laterAll = 0
+  const TRIES = 20
+  for (let seed = 1; seed <= TRIES; seed++) {
+    const run = newRun({ chapter: 16, grade: 'SS', zyo: true, seed: 300 + seed })
+    run.rerolls = 100
+    run.picks.size = N
+    run.picks.count = N
+    run.state = 'levelup'
+    run.choices = ['crit', 'move', 'luck']
+    reroll(run, run.choiceSeq) // (a level-up's draw: openChoice)
+    if (run.choices.includes('clsA') && run.choices.length === 3) sureFirst++
+    let all = true
+    for (let i = 0; i < 6; i++) {
+      reroll(run, run.choiceSeq)
+      if (!run.choices.includes('clsA')) all = false
+    }
+    if (all) laterAll++
+  }
+  ok(sureFirst === TRIES && laterAll < TRIES / 2, `a recipe just complete: the next level-up has its class card for sure (${sureFirst}/${TRIES}), still three cards; after that at random again (always there after: ${laterAll}/${TRIES})`)
+  const t = newRun({ chapter: 16, grade: 'SS', zyo: true, seed: 330 })
+  t.picks.size = t.picks.count = 5
+  t.picks.interval = t.picks.ballSpeed = 5
+  t.state = 'levelup'
+  t.choices = ['size', 'ballSpeed', 'crit']
+  t.choiceSeq++
+  const tm = zyoMarks(t)
+  ok(zyoTargets(t).map((r) => r.k).join() === 'A,B' && tm.includes('size') && tm.includes('ballSpeed') && !tm.includes('crit'), 'two recipes level (5/7 + 5/7 and 5/7 + 5/7): zyo_ marks the cards of both')
+  t.picks.interval = 6
+  ok(zyoTargets(t).map((r) => r.k).join() === 'B', 'one ahead (6/7 + 5/7): only that one')
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────

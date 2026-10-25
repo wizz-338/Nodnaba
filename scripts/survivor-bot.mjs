@@ -27,10 +27,10 @@ export const POLICIES = {
   survival: ['maxHp', 'armor', 'regen', 'move', 'pickup'],
   // how a person played chapter 28 (a screenshot of the picks at the boss):
   // damage first and most, then count, then crit / HP / hood / coins / XP,
-  // then the rest; pickup, split and move only when nothing else is there
+  // then the rest; pickup and move only when nothing else is there
   human: ['power', 'damage', 'count', 'crit', 'maxHp', 'armor', 'luck', 'xpGain', 'interval', 'regen', 'bounce', 'nyang', 'critDamage', 'ballSpeed', 'size'],
   natural: [],
-  ballFocus: ['count', 'damage', 'interval', 'bounce', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'split', 'size', 'ballSpeed', 'move', 'nyang'],
+  ballFocus: ['count', 'damage', 'interval', 'bounce', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'size', 'ballSpeed', 'move', 'nyang'],
   catFocus: ['catSummon', 'catClaw', 'catRate', 'catSize', 'catSpeed', 'crit', 'critDamage', 'maxHp', 'armor', 'regen', 'move', 'nyang'],
   unlucky: [],
   // both lines taken turn about (survivor-cats-dps.mjs: does mixing blow up?)

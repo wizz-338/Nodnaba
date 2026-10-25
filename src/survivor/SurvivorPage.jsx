@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { D } from './data.js'
 import { createRun, step, choose, reroll, makeTurret, previewTimes, isEdited, buildSummary, weaponDef, overtime, regionOf, enemyName, monsterName, lastChapter } from './game.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
-import { isClassCard, classOf, classDps, firepower, recipes, zyoTarget, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
+import { isClassCard, classOf, classDps, firepower, recipes, zyoTargets, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
 import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04 } from './progress.js'
 import { createRenderer, short } from './render.js'
@@ -79,12 +79,16 @@ const effectTag = (id, n = 1, run = null) => {
     return `화력 ×${fmt(m, 2)}`
   }
   if (id === 'crit' || id === 'split') return `+${fmt(e.add * n * 100)}%p`
+  // a shorter gap: how much more often (+43%), never "×0.7"
+  if (id === 'interval' || id === 'catRate') return `+${fmt((e.mul ** -n - 1) * 100, 0)}%`
   if (id === 'regen') return `최대 체력의 +${fmt(e.addMaxHpShare * n * 100)}%/초`
   if (id === 'nyang') return n > 1 ? `고양이 Lv.+${n}` : '고양이'
   if (id === 'critDamage') return `+${fmt(e.add * n)}배`
   if (id === 'catSummon') return `+${e.add * n}마리`
-  if (id === 'catSize') return `범위 ×${fmt(e.rangeMul ** n, 2)}`
-  return `×${fmt(e.mul ** n, 4)}`
+  if (id === 'catSize') return `범위 +${fmt((e.rangeMul ** n - 1) * 100, 0)}%`
+  // ×2 and more as it is; a little more or less as a percent
+  const m = e.mul ** n
+  return m >= 2 ? `×${fmt(m, 2)}` : m > 1 ? `+${fmt((m - 1) * 100, 0)}%` : `-${fmt((1 - m) * 100, 0)}%`
 }
 // coins: whole, with separators up to 99,999, then short (123K, 4.5M …)
 const money = (n) => (n < 1e5 ? Math.floor(n).toLocaleString('ko-KR') : short(n))
@@ -101,6 +105,8 @@ function Pips({ n }) {
     </span>
   )
 }
+// a gap as how many times a second (more is better: never "0.25초마다")
+const perSec = (gap) => fmt(1 / gap, 1)
 const big = (n) => (n >= 1e6 ? n.toExponential(2).replace('+', '') : Math.round(n).toLocaleString('ko-KR'))
 function change(run, id, times = 1) {
   if (isClassCard(id)) return classText(run, classOf(id))
@@ -109,56 +115,56 @@ function change(run, id, times = 1) {
   const n = previewTimes(run, id, times)
   switch (id) {
     case 'count':
-      return `한 번에 ${big(w.count)}개 → ${big(n.count)}개`
+      return `한 번에 던지는 개수\n${big(w.count)}개 → ${big(n.count)}개`
     case 'interval':
-      return `${fmt(w.interval, 4)}초마다 → ${fmt(n.interval, 4)}초마다`
+      return `1초에 던지는 횟수\n${perSec(w.interval)}번 → ${perSec(n.interval)}번`
     case 'damage':
-      return `피해 ${big(w.damage)} → ${big(n.damage)}`
+      return `한 방 피해\n${big(w.damage)} → ${big(n.damage)}`
     case 'bounce':
-      return `반사 ${big(w.bounces)}회 → ${big(n.bounces)}회`
+      return `튕기는 횟수\n${big(w.bounces)}번 → ${big(n.bounces)}번`
     case 'maxHp':
-      return `최대 체력 ${Math.round(p.maxHp)} → ${Math.round(n.maxHp)} · 체력 +${Math.round(n.hp - p.hp)}`
+      return `최대 체력\n${big(p.maxHp)} → ${big(n.maxHp)}\n지금 체력 +${big(n.hp - p.hp)}`
     case 'move':
-      return `이동 속도 ${Math.round(p.speed)} → ${Math.round(n.speed)}`
+      return `걷는 속도\n${Math.round(p.speed)} → ${Math.round(n.speed)}`
     case 'crit':
-      return `치명타 ${pctOf(w.critChance)} → ${pctOf(n.critChance)}`
+      return `치명타 확률\n${pctOf(w.critChance)} → ${pctOf(n.critChance)}`
     case 'critDamage':
-      return `치명타 피해 ×${fmt(w.critMul)} → ×${fmt(n.critMul)}`
+      return `치명타 한 방\n보통의 ${fmt(w.critMul)}배 → ${fmt(n.critMul)}배`
     case 'ballSpeed':
-      return `공 속도 ${Math.round(w.speed)} → ${Math.round(n.ballSpeed)}`
+      return `날아가는 속도\n${Math.round(w.speed)} → ${Math.round(n.ballSpeed)}`
     case 'size':
-      return `공 지름 ${fmt(w.radius * 2)} → ${fmt(n.radius * 2)}`
+      return `탱탱볼 크기\n${fmt(w.radius * 2)} → ${fmt(n.radius * 2)}`
     case 'pickup':
-      return `획득 반경 ${Math.round(p.pickupR)} → ${Math.round(n.pickupR)}`
+      return `끌어오는 거리\n${Math.round(p.pickupR)} → ${Math.round(n.pickupR)}`
     case 'split':
       return `분열 ${pctOf(w.splitChance)} → ${pctOf(n.splitChance)}`
     case 'luck':
-      return `코인 획득 ×${fmt(p.coinMul, 2)} → ×${fmt(n.coinMul, 2)}`
+      return `코인\n${fmt(p.coinMul, 2)}배 → ${fmt(n.coinMul, 2)}배`
     case 'regen':
-      return `초당 최대 체력의 ${pctOf(p.regen)} → ${pctOf(n.regen)} (${big(p.regen * p.maxHp)} → ${big(n.regen * p.maxHp)})`
+      return `1초에 차는 체력\n${big(p.regen * p.maxHp)} → ${big(n.regen * p.maxHp)} (최대 체력의 ${pctOf(n.regen)})`
     case 'armor':
-      return `받는 피해 ${pctOf(p.armor)} → ${pctOf(n.armor)}`
+      return `받는 피해 (적게 받을수록 좋아요)\n${pctOf(p.armor)} → ${pctOf(n.armor)}`
     case 'xpGain':
-      return `경험치 ×${fmt(p.xpMul, 2)} → ×${fmt(n.xpMul, 2)}`
+      return `경험치\n${fmt(p.xpMul, 2)}배 → ${fmt(n.xpMul, 2)}배`
     case 'nyang':
       return times > 1 ? nyangJump(run.nyang, run.nyang + times) : nyangText(run.nyang + 1)
     case 'power':
-      return run.cls ? `초당 피해 ${big(classDps(run))} → ${big(classDps(run, n.cls))} (공격 ×${fmt(n.cls.dmg / run.cls.dmg, 2)}, 빈도 ×${fmt(n.cls.rate / run.cls.rate, 2)})` : ''
+      return run.cls ? `1초 피해\n${big(classDps(run))} → ${big(classDps(run, n.cls))}\n한 방 +${fmt((n.cls.dmg / run.cls.dmg - 1) * 100, 0)}% · 횟수 +${fmt((n.cls.rate / run.cls.rate - 1) * 100, 0)}%` : ''
     // the friend cats: what one cat does now → after (catNow: the same
     // numbers friends.js fights with)
     case 'catSummon': {
       const a = catNow(run)
       const b = catNow({ ...run, cat: n.cat })
-      return `친구냥이 ${run.cat.n}마리 → ${n.cat.n}마리 · ${run.cat.n ? `할퀴기 ${big(a.dmg)} → ${big(b.dmg)}` : `할퀴기 ${big(b.dmg)}, ${fmt(b.gap, 2)}초마다`}`
+      return `친구냥이\n${run.cat.n}마리 → ${n.cat.n}마리\n${run.cat.n ? `할퀴기 한 방 ${big(a.dmg)} → ${big(b.dmg)}` : `할퀴기 한 방 ${big(b.dmg)} · 1초에 ${perSec(b.gap)}번`}`
     }
     case 'catSize':
-      return `할퀴기 범위 ${fmt(catNow(run).swipe * 2)} → ${fmt(catNow({ ...run, cat: n.cat }).swipe * 2)} · 몸집 ×${fmt(n.cat.size, 2)}`
+      return `할퀴는 넓이\n${fmt(catNow(run).swipe * 2)} → ${fmt(catNow({ ...run, cat: n.cat }).swipe * 2)}`
     case 'catSpeed':
-      return `달리기 ${Math.round(catNow(run).speed)} → ${Math.round(catNow({ ...run, cat: n.cat }).speed)}`
+      return `달리는 속도\n${Math.round(catNow(run).speed)} → ${Math.round(catNow({ ...run, cat: n.cat }).speed)}`
     case 'catRate':
-      return `${fmt(catNow(run).gap, 3)}초마다 → ${fmt(catNow({ ...run, cat: n.cat }).gap, 3)}초마다`
+      return `1초에 할퀴는 횟수\n${perSec(catNow(run).gap)}번 → ${perSec(catNow({ ...run, cat: n.cat }).gap)}번`
     case 'catClaw':
-      return `할퀴기 ${big(catNow(run).dmg)} → ${big(catNow({ ...run, cat: n.cat }).dmg)}`
+      return `할퀴기 한 방\n${big(catNow(run).dmg)} → ${big(catNow({ ...run, cat: n.cat }).dmg)}`
     default:
       return ''
   }
@@ -172,7 +178,7 @@ const catNow = (run) => ({ dmg: catDamage(run), gap: catInterval(run), speed: ca
 function classText(run, k) {
   const R = D.balance.zyo.recipes[k]
   const now = firepower(run)
-  return `탱탱볼·냥이 공격 → ${D.zyo.forms[R.form]} · 초당 피해 ${big(now)} → ${big(now * bonusOf(D, k))}`
+  return `탱탱볼·냥이 대신 ${D.zyo.forms[R.form]}\n1초 피해 ${big(now)} → ${big(now * bonusOf(D, k))}`
 }
 
 // a run that has the friend cats among its cards
@@ -189,7 +195,7 @@ function cardHint(run, id) {
   if (zr) {
     // (as a sum: 왕 탱탱볼 3/7 + 탱탱볼 개수 5/7 = 거대 탱탱볼▪회전 방어막)
     const need = D.balance.zyo.need
-    return `${zr.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(need, zr.picks[i])}/${need}`).join(' + ')} = ${OPTIONS['cls' + zr.k].name}`
+    return `전직 재료: ${zr.mats.map((m, i) => `${OPTIONS[m].name} ${Math.min(need, zr.picks[i])}/${need}`).join(' + ')}\n= ${OPTIONS['cls' + zr.k].name}`
   }
   if (!hasCats(run)) return null
   if (id === 'crit' || id === 'critDamage') return '친구냥이 할퀴기에도 같이 적용돼요'
@@ -1645,17 +1651,22 @@ function RecipeGuide({ run }) {
   const pf = usePlatform()
   const [all, setAll] = useState(pf.id === 'pc')
   const need = D.balance.zyo.need
-  const ready = recipes(run).find((r) => r.ready)
-  const near = ready || zyoTarget(run)
+  const ready = recipes(run).filter((r) => r.ready)
+  // (all those level at the top: 5/7 + 5/7 and 5/7 + 5/7 both)
+  const near = ready.length ? ready : zyoTargets(run)
   return (
     <div className="ms-guide">
       <p className="ms-guide__title">
-        {ready ? `전직 준비 끝! ${OPTIONS['cls' + ready.k].name} 카드가 나오면 고르세요` : `전직: 같은 계열 강화 2종을 ${need}번씩 모으면 전직 카드가 나와요`}
+        {ready.some((r) => run.choices && run.choices.includes('cls' + r.k))
+          ? '전직 카드가 나왔어요! 고르면 전직해요'
+          : ready.length
+            ? '전직 준비 끝! 전직 카드가 나오면 고르세요'
+            : `전직: 같은 계열 강화 2종을 ${need}번씩 모으면 전직 카드가 나와요 (다 모으면 다음 레벨업에 꼭 나와요)`}
         <button type="button" className="ms-guide__more" onClick={() => setAll((v) => !v)}>
           {all ? '접기' : '레시피 전체'}
         </button>
       </p>
-      {(all || near) && <RecipeList run={run} only={all ? null : [near.k]} />}
+      {(all || near.length > 0) && <RecipeList run={run} only={all ? null : near.map((r) => r.k)} />}
     </div>
   )
 }
@@ -2225,6 +2236,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                   <span className="ms-card__body">
                     <span className="ms-card__name">{optionName(run, id)}</span>
                     {!isClassCard(id) && id !== 'power' && <Pips n={run.picks[id] || 0} />}
+                    {o.text && <span className="ms-card__what">{o.text}</span>}
                     {ed ? (
                       <span className="ms-card__num">
                         <s className="ms-card__old">{effectTag(id, 1, run)}</s> <b className="ms-card__new">{effectTag(id, T, run)}</b>{' '}
