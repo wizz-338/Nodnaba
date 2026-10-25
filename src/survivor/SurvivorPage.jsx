@@ -559,8 +559,9 @@ function Game({ exitHref }) {
       P.current.clearNews()
     }
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
-    if (b.lostRun) setNotice('지난 판은 끝나지 않은 채 닫혔어요. 그때까지 받은 엘리트·보스 보상은 그대로예요.')
-    else if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
+    // (a run left unfinished — the page closed mid-fight — simply ends; what
+    // it earned stays: progress.js. Nothing needs saying about it)
+    if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
     // the game's fonts (survivor.css): asked for now, so the battle's numbers
     // (drawn on the canvas) have them from the first fight
     document.fonts?.load?.("16px 'Jua'").catch(() => {})
