@@ -15,7 +15,7 @@
 import { BEHAVIORS } from './weapons.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
-import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, zyoMarks, powerPreview } from './zyo.js'
+import { isClassCard, classOf, startClass, updateClass, revive, zyoCards, zyoMarks, powerPreview, optionName } from './zyo.js'
 
 export const FIXED = 1 / 60
 const TELEGRAPH = 0.35 // s an enemy shows where it will appear before it can touch
@@ -1378,8 +1378,10 @@ function applyChange(run, ch) {
 // What choosing `id` n times in a row would make (pure: works on a copy).
 // For the cards: n = 1, or Tizzzz's times for the card she rewrote.
 export function previewTimes(run, id, n) {
-  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang, cat: { ...run.cat }, cls: run.cls && { ...run.cls } }
-  for (let i = 0; i < n; i++) applyChange(tmp, applyPreview(tmp, id))
+  const tmp = { D: run.D, weapon: { ...run.weapon }, player: { ...run.player }, nyang: run.nyang, cat: { ...run.cat }, cls: run.cls && { ...run.cls }, picks: { ...run.picks }, level: run.level }
+  // (each time counts as a pick, as in choose: a card that grows with its
+  // picks grows between the times)
+  for (let i = 0; i < n; i++) applyChange(tmp, applyPreview(tmp, id)), (tmp.picks[id] = (tmp.picks[id] || 0) + 1)
   const w = tmp.weapon
   const p = tmp.player
   return { ...w, ballSpeed: w.speed, maxHp: p.maxHp, hp: p.hp, speed: p.speed, pickupR: p.pickupR, coinMul: p.coinMul, regen: p.regen, armor: p.armor, xpMul: p.xpMul, nyang: tmp.nyang, cat: tmp.cat, cls: tmp.cls }
@@ -1649,5 +1651,5 @@ export function buildSummary(run) {
   const O = run.D.upgrades.options
   return Object.entries(run.picks)
     .sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => ({ id, name: O[id] ? O[id].name : id, icon: O[id] ? O[id].icon : null, n }))
+    .map(([id, n]) => ({ id, name: optionName(run, id), icon: O[id] ? O[id].icon : null, n }))
 }

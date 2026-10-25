@@ -546,7 +546,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       rings.push({ x: ev.x, y: ev.y - 10, r: 70, t: 0, life: 0.45, c: 'rgba(255, 255, 255, 0.9)', w: 6 })
       burst(ev.x, ev.y - 10, 20, 220, c, 0.6, 3)
       for (const u of C.units) burst(u.x, u.y - 8, 8, 140, c, 0.5, 3)
-      words.push({ x: ev.x, y: ev.y - 52, text: `전투력 Lv.${ev.level}!`, t: 0, life: 1.4, c: rgba(c, 1), big: true })
+      words.push({ x: ev.x, y: ev.y - 52, text: `${run.D.upgrades.options['cls' + C.k].name} Lv.${ev.level}!`, t: 0, life: 1.4, c: rgba(c, 1), big: true })
     } else if (ev.type === 'revive') {
       rings.push({ x: ev.x, y: ev.y - 8, r: ev.r, t: 0, life: 0.7, c: 'rgba(255, 140, 40, 0.95)', w: 14 })
       rings.push({ x: ev.x, y: ev.y - 8, r: ev.r * 0.6, t: 0, life: 0.5, c: 'rgba(255, 240, 180, 0.95)' })
