@@ -50,12 +50,16 @@ only in its platform-specific part.
   run. On the PC the camera holds still for the extra boss's fight, so its
   attacks over the whole area are all on screen. The field comes in as `opts.arena`; nothing else in the fight knows
   the platform.
-- `room.js`, `room-items.js` — 마노의 방, the 마노 강화 tab's room: it fills
-  with the coin stats' levels added up (`data/room.json`: each piece's
-  total, place and name; Mano's lines when a stat is bought). Made again
-  from the save's levels every time, never stored, no number of the game in
-  it. The same room on both; on the phone it is above the stats, on the PC
-  beside them (`.ms-stats-room` in `survivor.css`).
+- `room.js`, `room-items.js` — 마노의 방, the 마노 강화 tab's room: one of
+  six pictures of it (growth stages, `data/room.json → stages`), chosen by
+  the coin stats' levels added up, with Mano and the cats living in it
+  (their fight sprites and a still pose each: `assets/room/`, made by
+  `scripts/survivor-room-assets.py`). Made again from the save's levels
+  every time, never stored, no number of the game in it. The same room on
+  both; on the phone it is above the stats, on the PC beside them
+  (`.ms-stats-room` in `survivor.css`). Mano's skin was made a little
+  lighter in her own sheets (`scripts/survivor-mano-skin.py`), so the fight
+  and the room show the same Mano.
 - `perma.js` — the coin stats' numbers and prices (the shop and the run):
   치명타 확률 goes to 100% (`balance.json → perma.stats.crit.past`), and at
   100% the run draws no 치명타 확률 card (`run.critFull`).

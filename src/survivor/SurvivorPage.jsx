@@ -11,7 +11,7 @@ import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { createRoom } from './room.js'
-import { roomTotal, roomItems, roomNext } from './room-items.js'
+import { roomTotal, roomProgress } from './room-items.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
@@ -1513,15 +1513,22 @@ function Room({ save, img, roomRef }) {
   }, [img])
   useEffect(() => roomRef.current?.setTotal(total), [total, roomRef])
   useEffect(() => roomRef.current?.setCats(cats), [cats, roomRef])
-  const have = roomItems(D, total).length
-  const next = roomNext(D, total)
+  // its growth: the stage it is at, and how far on to the next
+  const P = roomProgress(D, total)
+  const S = D.room.stages
   return (
     <div className="ms-room">
-      <canvas ref={ref} className="ms-room__canvas" aria-label="마노의 방" />
-      <p className="ms-room__bar">
-        <span>방 꾸미기 {have}/{D.room.items.length}</span>
-        <span>{next ? `다음: ${next.name} (강화 ${next.need - total}번 더)` : D.room.completeLine}</span>
-      </p>
+      <div className="ms-room__head">
+        <span className="ms-room__stage">
+          성장 단계 {P.stage + 1} / {S.length}
+        </span>
+        <span className="ms-room__name">{S[P.stage].name}</span>
+      </div>
+      <canvas ref={ref} className="ms-room__canvas" aria-label={`마노의 방, 성장 단계 ${P.stage + 1}`} />
+      <div className="ms-room__grow" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(P.share * 100)} aria-label="다음 성장 단계까지">
+        <span style={{ width: `${P.share * 100}%` }} />
+      </div>
+      <p className="ms-room__next">{P.next ? `다음 단계 「${P.next.name}」까지 강화 ${P.left}번 더 (모든 능력치 강화 횟수 합 ${total} / ${P.next.need})` : D.room.completeLine}</p>
     </div>
   )
 }
@@ -1535,7 +1542,7 @@ function Stats({ save, img, onBuy }) {
       <div className="ms-stats-room__room">
         <h3 className="ms-sub">마노의 방</h3>
         <Room save={save} img={img} roomRef={room} />
-        <p className="ms-dim">강화를 할수록 마노의 방에 가구가 하나씩 늘어나요. 가구는 꾸미기일 뿐, 능력치는 그대로예요.</p>
+        <p className="ms-dim">어느 능력치든 강화할 때마다 방이 조금씩 자라요. 방은 꾸미기일 뿐, 능력치는 그대로예요.</p>
       </div>
       <div className="ms-stats-room__shop">
       <h3 className="ms-sub">마노 강화 (코인으로 영구 강화)</h3>

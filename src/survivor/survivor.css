@@ -3165,10 +3165,14 @@
   margin: -18px 0 -6px -6px;
 }
 
-/* 마노의 방 (room.js): the room over the coin stats; on PC beside them */
+/* 마노의 방 (room.js): the room over the coin stats; on PC beside them (the
+   room left, the shop right: neither covers the other). The room keeps its
+   picture's own 16:9 (1672 × 941) at any width; the shop is a cream panel
+   with dark wood edges, its buy buttons green when there are coins enough,
+   grey when not (Astra's room design) */
 .ms-stats-room {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .ms-stats-room__room,
@@ -3181,30 +3185,111 @@
 
 .ms-room {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+}
+
+.ms-room__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+
+.ms-room__stage {
+  padding: 2px 10px;
+  border: 2px solid #5a3d2b;
+  border-radius: 999px;
+  color: #fdf1d6;
+  background: #7a5134;
+  font-size: 0.82rem;
+}
+
+.ms-room__name {
+  color: #5a3d2b;
+  font-size: 0.9rem;
 }
 
 .ms-room__canvas {
   display: block;
   width: 100%;
-  aspect-ratio: 240 / 136;
-  border: 3px solid #3b2a22;
-  border-radius: 12px;
-  background: #f6ead2;
-  image-rendering: pixelated;
+  height: auto;
+  aspect-ratio: 1672 / 941;
+  border: 3px solid #806141;
+  border-radius: 8px;
+  background: #2f221b;
+  box-shadow: 0 4px 0 #3a2a20;
 }
 
-.ms-room__bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 2px 8px;
+.ms-room__grow {
+  height: 10px;
+  overflow: hidden;
+  border: 2px solid #5a3d2b;
+  border-radius: 999px;
+  background: #f1dfbd;
+}
+
+.ms-room__grow > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8fb06c, #688565);
+  transition: width 0.4s ease;
+}
+
+.ms-room__next {
   margin: 0;
+  color: #5a3d2b;
   font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.ms .ms-stats-room__shop {
+  padding: 12px;
+  border: 3px solid #392c38;
+  border-radius: 12px;
+  background: #f9ebca;
+  box-shadow: inset 0 0 0 2px #dab77c;
+}
+
+.ms .ms-stats-room__shop .ms-stat {
+  border: 2px solid #c2a985;
+  background: #f4e2bd;
+}
+
+.ms .ms-stats-room__shop .ms-btn--primary {
+  border: 2px solid #3f5a3c;
+  color: #fffbe9;
+  background: #688565;
+  box-shadow: 0 3px 0 #3f5a3c;
+}
+
+@media (hover: hover) {
+  .ms .ms-stats-room__shop .ms-btn--primary:hover:not(:disabled) {
+    background: #789a72;
+  }
+}
+
+.ms .ms-stats-room__shop .ms-btn--primary:focus-visible {
+  outline: 3px solid #dd9b56;
+  outline-offset: 2px;
+}
+
+.ms .ms-stats-room__shop .ms-btn--primary:active:not(:disabled) {
+  background: #58744f;
+  box-shadow: 0 1px 0 #3f5a3c;
+  translate: 0 2px;
+}
+
+.ms .ms-stats-room__shop .ms-btn--primary:disabled {
+  border-color: #a99e88;
+  color: #7c7367;
+  background: #d5ccb7;
+  box-shadow: none;
 }
 
 .ms--pc .ms-stats-room {
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
   align-items: start;
   gap: 18px;
 }

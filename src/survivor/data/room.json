@@ -1,28 +1,160 @@
 {
-  "note": "마노의 방 (room.js): the 마노 강화 screen's room. It fills with the coin stats' levels added up (all six; nothing else, nothing stored: the room is always rebuilt from the save's levels). Each piece comes at `need` levels in all and gives nothing but the look. at: where it stands (its foot, room pixels: the room is size[0] × size[1], the wall down to floorY); wall: on the wall (drawn behind everything on the floor). The thresholds follow the levels players have: about 25 by chapter 5, 100 by chapter 10, 190 by chapter 15, 250 by chapter 20; the room is complete at 400. reactions: what Mano says when a stat is bought. lines: what shows when a piece comes.",
-  "size": [240, 136],
-  "floorY": 66,
-  "complete": 400,
-  "items": [
-    { "id": "window", "name": "창문", "need": 0, "at": [170, 46], "wall": true },
-    { "id": "cushion", "name": "방석", "need": 0, "at": [34, 112] },
-    { "id": "bowl", "name": "밥그릇", "need": 3, "at": [214, 128] },
-    { "id": "lamp", "name": "스탠드 조명", "need": 8, "at": [14, 96] },
-    { "id": "rug", "name": "동그란 러그", "need": 15, "at": [122, 118] },
-    { "id": "ball", "name": "탱탱볼 장난감", "need": 25, "at": [150, 120] },
-    { "id": "bed", "name": "침대", "need": 40, "at": [58, 92] },
-    { "id": "sandbag", "name": "샌드백", "need": 55, "at": [204, 100] },
-    { "id": "yarn", "name": "털실 공", "need": 75, "at": [96, 130] },
-    { "id": "tower", "name": "캣타워", "need": 95, "at": [228, 104] },
-    { "id": "plant", "name": "화분", "need": 120, "at": [138, 74] },
-    { "id": "books", "name": "책장", "need": 145, "at": [104, 72] },
-    { "id": "frame", "name": "마노 그림 액자", "need": 170, "at": [122, 34], "wall": true },
-    { "id": "shelf", "name": "벽 선반", "need": 200, "at": [56, 30], "wall": true },
-    { "id": "clock", "name": "벽시계", "need": 230, "at": [24, 30], "wall": true },
-    { "id": "lights", "name": "꼬마 전구", "need": 260, "at": [120, 12], "wall": true },
-    { "id": "dumbbell", "name": "아령", "need": 300, "at": [176, 130] },
-    { "id": "trophy", "name": "트로피", "need": 340, "at": [158, 74] },
-    { "id": "mobile", "name": "별 모빌", "need": 400, "at": [93, 30], "wall": true }
+  "note": "마노의 방 (room.js, room-items.js): the 마노 강화 tab's room. It grows in six stages with the coin stats' levels added up (all six stats; nothing else, nothing stored: the stage is always worked out again from the save's levels, so a save that already has levels shows its stage at once). need: the levels in all a stage takes (the stats have no common top: four of them have none, so the steps follow the levels players have: about 25 by chapter 5, 100 by chapter 10, 190 by chapter 15, 250 by chapter 20; the last stage comes about chapter 25). Each stage is one whole picture of the room (Astra's 6-stage set; scripts/survivor-room-assets.py), shown at its own 16:9 and faded into the next. It gives nothing but the look. Everything below is in the picture's own pixels (size). walk: where feet may go on the open floor (rects x0 y0 x1 y1). spots: places in the room (at: where someone stands or lies, feet; from: the first stage that has it; door: where one steps from the floor to it; face: where Mano looks; line: what she says there; punch: she hits it). ball: where the toy ball starts. Mano and the cats are their sprites from the fight (the same pictures, the same colours) and a still pose each (art.poses) where they rest. reactions: what Mano says when a stat is bought.",
+  "size": [
+    1672,
+    941
+  ],
+  "stages": [
+    {
+      "need": 0,
+      "name": "새로 이사 온 방"
+    },
+    {
+      "need": 15,
+      "name": "작은 보금자리"
+    },
+    {
+      "need": 50,
+      "name": "책상이 생긴 방"
+    },
+    {
+      "need": 120,
+      "name": "취향이 담긴 방"
+    },
+    {
+      "need": 220,
+      "name": "북적북적 생활방"
+    },
+    {
+      "need": 350,
+      "name": "완성된 마노의 방"
+    }
+  ],
+  "walk": [
+    [
+      490,
+      445,
+      1430,
+      775
+    ]
+  ],
+  "spots": {
+    "bed": {
+      "at": [
+        268,
+        470
+      ],
+      "from": 1,
+      "door": [
+        505,
+        520
+      ]
+    },
+    "cushion": {
+      "at": [
+        285,
+        632
+      ],
+      "from": 1,
+      "door": [
+        505,
+        640
+      ]
+    },
+    "rug": {
+      "at": [
+        412,
+        520
+      ],
+      "from": 2,
+      "door": [
+        505,
+        540
+      ]
+    },
+    "bowl": {
+      "at": [
+        452,
+        700
+      ],
+      "from": 2
+    },
+    "window": {
+      "at": [
+        840,
+        450
+      ],
+      "from": 1,
+      "face": "n",
+      "line": "날씨 좋다~"
+    },
+    "desk": {
+      "at": [
+        600,
+        450
+      ],
+      "from": 3,
+      "face": "n",
+      "line": "공부해 볼까?"
+    },
+    "dummy": {
+      "at": [
+        1262,
+        452
+      ],
+      "from": 3,
+      "face": "ne",
+      "line": "얍! 얍!",
+      "punch": true
+    },
+    "rug2": {
+      "at": [
+        1310,
+        452
+      ],
+      "from": 4
+    },
+    "plant": {
+      "at": [
+        1030,
+        450
+      ],
+      "from": 5,
+      "face": "n",
+      "line": "물 줘야지"
+    },
+    "sandbag": {
+      "at": [
+        1180,
+        450
+      ],
+      "from": 5,
+      "face": "ne",
+      "line": "퍽! 퍽!",
+      "punch": true
+    },
+    "books": {
+      "at": [
+        520,
+        455
+      ],
+      "from": 6,
+      "face": "nw",
+      "line": "무슨 책 읽지?"
+    },
+    "frame": {
+      "at": [
+        1120,
+        450
+      ],
+      "from": 6,
+      "face": "n",
+      "line": "내 탱탱볼 그림!"
+    }
+  },
+  "ball": [
+    1180,
+    650
   ],
   "reactions": {
     "hp": "튼튼해졌어!",
@@ -32,6 +164,84 @@
     "crit": "급소를 노려!",
     "coins": "코인이 반짝!"
   },
-  "newItem": "새 가구: {name}!",
-  "completeLine": "마노의 방 완성!"
+  "stageUp": "방이 자랐어요! {name}",
+  "completeLine": "마노의 방 완성!",
+  "art": {
+    "size": [
+      1672,
+      941
+    ],
+    "stages": [
+      {
+        "file": "room/stage_1.webp",
+        "source": "room_stage_01.png",
+        "sha256": "43a92530c7ce6de0721d5d520d6d79fdc1a9a3cf2a28fd55729bd96fef1331eb",
+        "bytes": 79760
+      },
+      {
+        "file": "room/stage_2.webp",
+        "source": "room_stage_02.png",
+        "sha256": "dd47dc13b4dff1d9f89155ea4f0961b7ed9be62eaaab747f4d0c15414f5126b8",
+        "bytes": 84760
+      },
+      {
+        "file": "room/stage_3.webp",
+        "source": "room_stage_03.png",
+        "sha256": "b058b2fc329f3009ce9ce5ab068aebdde2fbef9e946bf6751a497a144975eb3f",
+        "bytes": 92132
+      },
+      {
+        "file": "room/stage_4.webp",
+        "source": "room_stage_04.png",
+        "sha256": "b1e2142bc8546898d2b0962363df5e1b235436e389986e5c78a8cf8221274c2d",
+        "bytes": 98466
+      },
+      {
+        "file": "room/stage_5.webp",
+        "source": "room_stage_05.png",
+        "sha256": "5a818ba5081ccf7e2269e438290ff3809bf13d6e3bff910c39bf06c512d19b00",
+        "bytes": 110754
+      },
+      {
+        "file": "room/stage_6.webp",
+        "source": "room_stage_06.png",
+        "sha256": "957fbd4e7e063b2195a9b948ff339528c1d2051cbc3a09aa8c7e4dca77d25cd5",
+        "bytes": 117136
+      }
+    ],
+    "poses": {
+      "mano_sit": {
+        "file": "room/mano_sit.webp",
+        "source": "mano.png",
+        "sha256": "377a8e3c7e90edf4819d8a734aa18d28482f680f8b9681c460fc874538516d80",
+        "w": 143.5,
+        "h": 162.0,
+        "bytes": 27162
+      },
+      "danchu_play": {
+        "file": "room/danchu_play.webp",
+        "source": "danchu.png",
+        "sha256": "afed2c929d62edec8c9c577ff4a4a2849200e030c9991748162c5890fe99d8fd",
+        "w": 118.5,
+        "h": 120.0,
+        "bytes": 18676
+      },
+      "hodu_belly": {
+        "file": "room/hodu_belly.webp",
+        "source": "hodu.png",
+        "sha256": "f03d132574713e3368cf91de736c54174247f8436f8e22adfe4dc4f215303fcf",
+        "w": 105.5,
+        "h": 110.0,
+        "bytes": 16558
+      },
+      "moru_sleep": {
+        "file": "room/moru_sleep.webp",
+        "source": "moru.png",
+        "sha256": "eaf58f5618a9b44e82c1a15eea497357431b56d9c547e4b45844a3b76d474b3c",
+        "w": 158.0,
+        "h": 107.5,
+        "bytes": 12398
+      }
+    }
+  }
 }
