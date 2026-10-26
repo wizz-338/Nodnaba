@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
 # MANO SURVIVOR — writes every extra special boss's attacks (balance.json →
-# extraBosses.bosses[*].phases) as three HP phases (the last boss: four), from
-# its own attack and the shared ones (volley, spiral, dash, rain, cross;
-# bosses.js), harder with each episode. Run again after changing a number here:
+# extraBosses.bosses[*].phases) as four HP phases (the last boss: five), from
+# its own attack and the shared ones (volley, spiral, dash, rain, cross, nova,
+# homing, cage, stalk, beam; bosses.js), harder with each episode. Run again after changing a number here:
 #   python3 -I scripts/survivor-extra-bosses.py src/survivor/data/balance.json
 import json, sys, copy
 p = sys.argv[1]
 raw = open(p, encoding='utf-8').read()
 bal = json.loads(raw)
 X = bal['extraBosses']
+# (a longer fight: more of its phases seen)
+X['hpMul'] = 18.0
 MINW = X['minWarn']
 ORDER = ['x_snail', 'x_moth', 'x_toad', 'x_spider', 'x_bellkeeper', 'x_organ', 'x_scarab', 'x_sultan', 'x_jelly', 'x_peacock', 'x_ray', 'x_clock', 'x_queen']
-# each boss: its own attack, two more from the start, a third from phase 2
+# each boss: its own attack and five of the shared ones (in the order they
+# come in: three from the start, a fourth from phase 2, a fifth from phase 3)
 PLAN = {
-    'x_snail': ['volley', 'dash', 'rain'],
-    'x_moth': ['spiral', 'rain', 'volley'],
-    'x_toad': ['dash', 'volley', 'cross'],
-    'x_spider': ['volley', 'spiral', 'dash'],
-    'x_bellkeeper': ['cross', 'spiral', 'rain'],
-    'x_organ': ['volley', 'ringwave', 'spiral'],
-    'x_scarab': ['spiral', 'dash', 'rain'],
-    'x_sultan': ['rain', 'volley', 'dash'],
-    'x_jelly': ['spiral', 'rain', 'cross'],
-    'x_peacock': ['volley', 'cross', 'spiral'],
-    'x_ray': ['dash', 'volley', 'cross'],
-    'x_clock': ['volley', 'spiral', 'cross'],
-    'x_queen': ['volley', 'cross', 'spiral'],
+    'x_snail': ['volley', 'stalk', 'dash', 'nova', 'rain'],
+    'x_moth': ['spiral', 'homing', 'rain', 'beam', 'volley'],
+    'x_toad': ['stalk', 'dash', 'volley', 'cage', 'cross'],
+    'x_spider': ['volley', 'homing', 'spiral', 'cage', 'dash'],
+    'x_bellkeeper': ['nova', 'cross', 'spiral', 'beam', 'rain'],
+    'x_organ': ['volley', 'nova', 'ringwave', 'homing', 'spiral'],
+    'x_scarab': ['spiral', 'stalk', 'dash', 'cage', 'rain'],
+    'x_sultan': ['rain', 'beam', 'volley', 'dash', 'homing'],
+    'x_jelly': ['spiral', 'homing', 'rain', 'nova', 'cross'],
+    'x_peacock': ['volley', 'beam', 'cross', 'nova', 'spiral'],
+    'x_ray': ['dash', 'stalk', 'volley', 'beam', 'cross'],
+    'x_clock': ['volley', 'beam', 'spiral', 'cage', 'cross'],
+    'x_queen': ['volley', 'cage', 'cross', 'homing', 'spiral'],
 }
 SHOT = {'bell': 'spark', 'flower': 'seed', 'spore': 'seed', 'web': 'bone', 'ghost': 'void', 'organ': 'spark', 'sun': 'spark', 'sand': 'bone', 'snow': 'ice', 'ice': 'crystal', 'storm': 'spark', 'clock': 'crystal', 'chess': 'void', 'eclipse': 'void'}
 # each boss's own attack (the one it had alone before the phases)
@@ -63,6 +66,21 @@ def shared(kind, t, dmg, hard=0):
         return {'type': 'rain', 'warn': W(0.9 - 0.02 * t), 'count': 8 + 2 * s, 'r': 46, 'step': round(0.11 - 0.006 * s, 3), 'damage': dmg}
     if kind == 'cross':
         return {'type': 'cross', 'warn': W(0.9 - 0.02 * t), 'count': 2 + s // 3, 'width': 44, 'step': round(0.62 - 0.035 * s, 3), 'damage': dmg}
+    if kind == 'nova':
+        # rings of shots all round it, each turned half a step from the last
+        return {'type': 'nova', 'warn': W(0.9 - 0.02 * t), 'count': min(28, 14 + 2 * s), 'waves': min(5, 2 + s // 3), 'every': round(max(0.2, 0.32 - 0.012 * s), 3), 'speed': 150 + 8 * s, 'r': 7, 'damage': round(dmg * 0.45)}
+    if kind == 'homing':
+        # seeking orbs thrown out wide, turning toward her for a while
+        return {'type': 'homing', 'warn': W(0.9 - 0.02 * t), 'count': min(8, 4 + s // 2), 'spreadDeg': 160, 'speed': 140 + 6 * s, 'turn': round(1.5 + 0.08 * s, 2), 'seek': 2.4, 'r': 7, 'ttl': 6, 'salvos': 1 + s // 3, 'every': 0.6, 'damage': round(dmg * 0.45)}
+    if kind == 'cage':
+        # a ring of blows round her with one way out, then its inside
+        return {'type': 'cage', 'warn': W(0.95 - 0.02 * t), 'count': 14, 'gap': 2, 'ring': 120, 'r': 32, 'after': round(max(0.45, 0.62 - 0.02 * s), 3), 'damage': dmg}
+    if kind == 'stalk':
+        # circles that follow her, each where she is (and a little ahead)
+        return {'type': 'stalk', 'warn': W(0.9 - 0.02 * t), 'count': 4 + s // 2, 'r': 46, 'step': round(max(0.24, 0.4 - 0.015 * s), 3), 'lead': 0.25, 'damage': dmg}
+    if kind == 'beam':
+        # a beam swinging round it through her (and back, later on)
+        return {'type': 'beam', 'warn': W(0.95 - 0.02 * t), 'widthDeg': 12, 'sweepDeg': min(220, 120 + 10 * s), 'step': round(max(0.035, 0.06 - 0.003 * s), 3), 'back': 0.3 if s >= 4 else 0, 'damage': dmg}
     if kind == 'ringwave':
         return {'type': 'ringwave', 'warn': W(0.95 - 0.02 * t), 'speed': 220 + 12 * s, 'width': 32, 'gaps': 2, 'gapDeg': 60, 'damage': dmg}
     raise ValueError(kind)
@@ -92,14 +110,19 @@ for t2, bid in enumerate(ORDER):
     b = X['bosses'][bid]
     sig = SIG[bid]
     dmg = sig['damage']
-    e1, e2, e3 = PLAN[bid]
-    walk = round(0.55 - 0.03 * t, 2)
+    e1, e2, e3, e4, e5 = PLAN[bid]
+    sh = lambda k, h: shared(k, t, dmg, h)
+    walk = round(0.45 - 0.03 * t, 2)
+    gap = lambda k: round(max(0.25, 0.55 - 0.03 * t - 0.08 * k), 2)
     b.pop('attacks', None)
     b['shot'] = SHOT[b['look']]
+    # four phases by HP: more attacks each, combos from the second, only
+    # three-part combos close together in the last
     b['phases'] = [
-        {'above': 0.6, 'walk': walk, 'attacks': [harder(sig, 0), shared(e1, t, dmg), shared(e2, t, dmg)]},
-        {'above': 0.3, 'walk': round(walk * 0.75, 2), 'attacks': [harder(sig, 1), shared(e1, t, dmg, 1), shared(e3, t, dmg, 1), combo([harder(sig, 1), shared(e2, t, dmg, 1)], round(0.6 - 0.03 * t, 2)), shared(e2, t, dmg, 1)]},
-        {'above': 0, 'walk': round(walk * 0.55, 2), 'attacks': [combo([harder(sig, 2), shared(e1, t, dmg, 2)], round(0.5 - 0.03 * t, 2)), combo([shared(e3, t, dmg, 2), harder(sig, 2)], round(0.5 - 0.03 * t, 2)), shared(e2, t, dmg, 2), combo([shared(e1, t, dmg, 2), shared(e3, t, dmg, 2)], round(0.5 - 0.03 * t, 2))]},
+        {'above': 0.75, 'walk': walk, 'attacks': [harder(sig, 0), sh(e1, 0), sh(e2, 0), sh(e3, 0)]},
+        {'above': 0.5, 'walk': round(walk * 0.7, 2), 'attacks': [harder(sig, 1), sh(e4, 1), combo([harder(sig, 1), sh(e1, 1)], gap(1)), sh(e2, 1), combo([sh(e3, 1), sh(e4, 1)], gap(1))]},
+        {'above': 0.25, 'walk': round(walk * 0.5, 2), 'attacks': [combo([harder(sig, 2), sh(e5, 2)], gap(2)), combo([sh(e1, 2), sh(e4, 2)], gap(2)), harder(sig, 2), combo([sh(e2, 2), sh(e3, 2)], gap(2)), combo([sh(e5, 2), harder(sig, 2)], gap(2))]},
+        {'above': 0, 'walk': round(walk * 0.35, 2), 'attacks': [combo([harder(sig, 3), sh(e1, 3), sh(e4, 3)], gap(3)), combo([sh(e5, 3), harder(sig, 3), sh(e2, 3)], gap(3)), combo([sh(e3, 3), sh(e4, 3), sh(e5, 3)], gap(3))]},
     ]
 
 # the last boss: everything, four phases, triple combos at the end
@@ -109,11 +132,13 @@ sweep = {'type': 'sweep', 'warn': 0.85, 'width': 84, 'speed': 380, 'gaps': 1, 'g
 T = 9
 def sh(kind, hard): return shared(kind, T, 32, hard)
 E['shot'] = 'void'
+E['hpMul'] = 26.0 # (the others' ×1.44, as before)
 E['phases'] = [
-    {'above': 0.7, 'walk': 0.4, 'attacks': [ring, sh('volley', 0), sweep, sh('spiral', 0), sh('dash', 0)]},
-    {'above': 0.4, 'walk': 0.3, 'attacks': [combo([ring, sh('spiral', 1)], 0.5), sh('rain', 1), combo([sweep, sh('volley', 1)], 0.5), sh('cross', 1), combo([sh('dash', 1), ring], 0.45)]},
-    {'above': 0.15, 'walk': 0.2, 'attacks': [combo([ring, sh('spiral', 2), sweep], 0.3), combo([sh('cross', 2), sh('volley', 2), sh('dash', 2)], 0.3), combo([sh('rain', 2), ring, sh('spiral', 2)], 0.3), combo([sweep, sh('volley', 2), sh('cross', 2)], 0.3)]},
-    {'above': 0, 'walk': 0.12, 'core': True, 'attacks': [combo([harder(ring, 1), sh('spiral', 3), harder(sweep, 1)], 0.24), combo([sh('dash', 3), sh('volley', 3), sh('rain', 3)], 0.24), combo([sh('spiral', 3), sh('cross', 3), harder(ring, 1)], 0.24), combo([harder(sweep, 1), sh('volley', 3), sh('spiral', 3)], 0.24)]},
+    {'above': 0.75, 'walk': 0.35, 'attacks': [ring, sh('volley', 0), sweep, sh('nova', 0), sh('spiral', 0), sh('dash', 0)]},
+    {'above': 0.5, 'walk': 0.26, 'attacks': [combo([ring, sh('spiral', 1)], 0.45), sh('homing', 1), combo([sweep, sh('volley', 1)], 0.45), sh('stalk', 1), combo([sh('dash', 1), ring], 0.4), sh('beam', 1)]},
+    {'above': 0.25, 'walk': 0.18, 'attacks': [combo([ring, sh('spiral', 2), sweep], 0.3), combo([sh('cage', 2), sh('nova', 2)], 0.3), combo([sh('cross', 2), sh('volley', 2), sh('dash', 2)], 0.3), combo([sh('beam', 2), sh('homing', 2)], 0.3), combo([sh('rain', 2), ring, sh('spiral', 2)], 0.3)]},
+    {'above': 0.1, 'walk': 0.12, 'attacks': [combo([sweep, sh('stalk', 3), sh('nova', 3)], 0.26), combo([harder(ring, 1), sh('homing', 3), sh('beam', 3)], 0.26), combo([sh('cage', 3), sh('volley', 3), sh('cross', 3)], 0.26), combo([sh('dash', 3), sh('spiral', 3), sweep], 0.26)]},
+    {'above': 0, 'walk': 0.08, 'core': True, 'attacks': [combo([harder(ring, 1), sh('spiral', 4), harder(sweep, 1)], 0.22), combo([sh('dash', 4), sh('nova', 4), sh('rain', 4)], 0.22), combo([sh('beam', 4), sh('cross', 4), harder(ring, 1)], 0.22), combo([sh('cage', 4), sh('homing', 4), sh('stalk', 4)], 0.22), combo([harder(sweep, 1), sh('volley', 4), sh('spiral', 4)], 0.22)]},
 ]
 def fast(a):
     if a['type'] == 'combo':

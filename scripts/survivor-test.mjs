@@ -6,7 +6,7 @@ import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '.
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
-import { extraOf, touchesAt, inGap, reachesAt } from '../src/survivor/bosses.js'
+import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
 import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '../src/survivor/zyo.js'
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
@@ -1439,6 +1439,87 @@ const still = { x: 0, y: 0 }
   ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
 }
 
+// ── the ordinary bosses' skills (balance.json → bossSkills) ──────────────
+{
+  const S = B.bossSkills
+  const counts = [1, 6, 11, 16, 21, 26, 31].map((ch) => bossSkills(D, 'A', 'boss', ch).length)
+  const brute = [1, 6, 11, 16, 21, 26, 31].map((ch) => bossSkills(D, 'C', 'brute', ch).length)
+  ok(counts.join() === S.count.boss.join() && brute.join() === S.count.brute.join() && counts.every((n, i) => !i || n >= counts[i - 1]) && tierOf(5) === 0 && tierOf(6) === 1 && tierOf(35) === 6, `skills by episode: the boss ${counts.join(' → ')}, the mid-boss ${brute.join(' → ')}`)
+  ok('ABCD'.split('').every((t) => S.byType[t].every((k) => S.skills[k])) && new Set(Object.values(S.byType).flat()).size === Object.keys(S.skills).length, 'every skill a boss way lists exists, and every skill is used by some way')
+  const early = bossSkill(D, 'rain', 1, B.enemies.boss)
+  const late = bossSkill(D, 'rain', 35, B.enemies.boss)
+  ok(late.count > early.count && late.warn < early.warn && late.warn >= S.minWarn && early.damage === B.enemies.boss.chargeDamage * S.skills.rain.hit, `a skill grows with the episode: rain ${early.count} circles warned ${early.warn} s → ${late.count} warned ${late.warn} s (never under ${S.minWarn} s)`)
+  // a boss of each way in the last chapter: its skills come by turns, every
+  // blow warned; under half HP it is enraged once and its skills pair up
+  const bossAt = (ch, type, key = 'boss', seed = 3) => {
+    const r = createRun(D, { chapter: ch, weaponId: 'bouncy_ball', grade: 'D', seed, perma: {} })
+    r.spawnT = -1e9
+    r.player.hp = r.player.maxHp = 1e12
+    r.t = 209.99
+    r.nextEvent = B.chapter.events.findIndex((e) => e.key === key)
+    step(r, FIXED * 2, still)
+    const b = r.enemies.find((e) => e.behavior === 'boss')
+    b.btype = type
+    return [r, b]
+  }
+  for (const type of 'ABCD') {
+    const [r, b] = bossAt(35, type)
+    const want = new Set(bossSkills(D, type, 'boss', 35).map((k) => S.skills[k].type))
+    const seen = new Set()
+    let early = 0
+    let blows = 0
+    let shots = 0
+    let rage = 0
+    let combos = 0
+    const hz = new Set()
+    for (let i = 0; i < 60 * 90; i++) {
+      if (i === 60 * 60) b.hp = b.maxHp * 0.4
+      r.enemies = r.enemies.filter((e) => e === b)
+      r.player.inv = 1e9
+      r.fireT = 1e9
+      if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
+      step(r, FIXED, still)
+      for (const e of r.events) if (e.type === 'bossRage') rage++
+      r.events.length = 0
+      if (b.atk) {
+        if (b.atk.spec.type === 'combo') combos++, b.atk.spec.parts.forEach((q) => seen.add(q.type))
+        else seen.add(b.atk.spec.type)
+      }
+      for (const h of r.hazards) {
+        if (h.owner !== b.id || hz.has(h) || h.harmless) continue
+        hz.add(h)
+        blows++
+        if (h.at - h.born < S.minWarn - 1e-9) early++
+      }
+      shots = Math.max(shots, r.shots.filter((x) => x.owner === b.id).length)
+    }
+    ok([...want].every((t) => seen.has(t)) && !early && rage === 1 && b.enraged && combos > 0, `chapter 35, a boss of way ${type}: its skills ${[...want].join(' ')} all come (${blows} warned blows, every one ≥ ${S.minWarn} s; up to ${shots} shots in the air); under half HP enraged once, its skills in pairs`)
+    // it falls: nothing of its skills stays
+    for (let i = 0; i < 600 && !b.atk; i++) step(r, FIXED, still)
+    b.hp = 1
+    b.guard = false
+    r.hurt(b, 5, b.x, b.y)
+    ok(!r.hazards.some((h) => h.owner === b.id) && !r.shots.some((x) => x.owner === b.id), `way ${type}: it falls mid-skill, and its warnings and shots go with it`)
+  }
+  // chapter 1: one skill, no rage
+  {
+    const [r, b] = bossAt(1, 'B')
+    b.hp = b.maxHp * 0.3
+    const seen = new Set()
+    let rage = 0
+    for (let i = 0; i < 60 * 40; i++) {
+      r.enemies = r.enemies.filter((e) => e === b)
+      r.player.inv = 1e9
+      r.fireT = 1e9
+      step(r, FIXED, still)
+      for (const e of r.events) if (e.type === 'bossRage') rage++
+      r.events.length = 0
+      if (b.atk) seen.add(b.atk.spec.type)
+    }
+    ok([...seen].join() === S.skills[S.byType.B[0]].type && !rage && !b.enraged, `chapter 1: the boss has one skill (${[...seen].join()}), and is never enraged`)
+  }
+}
+
 // ── the extra special bosses (balance.json → extraBosses) ─────────────────
 {
   const X = B.extraBosses
@@ -1580,6 +1661,43 @@ const still = { x: 0, y: 0 }
     ok(!left && !hurtAfter && run.state === 'over' && run.result.cleared && overs === 1 && run.result.extra === WANT[ch], `ch${ch}: it falls: nothing of its attack stays, no touch while it lies, then the chapter is cleared once`)
   }
 
+  // every phase of every one (held there a while): every blow still warned
+  // at least minWarn, and each phase's own attacks all come
+  {
+    const bad = []
+    let blows = 0
+    for (const ch of Object.keys(WANT).map(Number)) {
+      const run = toBoss(ch, 9)
+      killBoss(run)
+      tick(run, 60 * 6)
+      const b = run.extra.boss
+      const P = X.bosses[WANT[ch]].phases
+      const seenH = new Set()
+      P.forEach((ph, k) => {
+        const share = k === 0 ? 0.95 : (ph.above + P[k - 1].above) / 2
+        const kinds = new Set()
+        tick(run, 60 * Math.max(24, 7 * ph.attacks.length), {
+          noFire: true,
+          each: (r) => {
+            b.hp = b.maxHp * share
+            r.player.inv = 1e9
+            if (b.atk && b.phase === k) kinds.add(b.atk.spec.type === 'combo' ? b.atk.spec.parts.map((q) => q.type).join('+') : b.atk.spec.type)
+            for (const h of r.hazards) {
+              if (h.owner !== b.id || seenH.has(h)) continue
+              seenH.add(h)
+              if (h.harmless) continue
+              blows++
+              if (h.at - h.born < X.minWarn - 1e-9) bad.push(`ch${ch} phase ${k + 1}: ${(h.at - h.born).toFixed(2)} s`)
+            }
+          },
+        })
+        const want = ph.attacks.map((a) => (a.type === 'combo' ? a.parts.map((q) => q.type).join('+') : a.type))
+        if (!want.every((w) => kinds.has(w))) bad.push(`ch${ch} phase ${k + 1}: only ${[...kinds].join(', ')}`)
+      })
+    }
+    ok(!bad.length, `every special boss in each of its phases: all its attacks come, ${blows} blows, every one warned ≥ ${X.minWarn} s${bad.length ? ' — ' + bad.slice(0, 6).join('; ') : ''}`)
+  }
+
   // an ordinary chapter: cleared when its boss falls, no warning
   {
     const run = toBoss(4)
@@ -1648,22 +1766,23 @@ const still = { x: 0, y: 0 }
     killBoss(run)
     tick(run, 60 * 6)
     const b = run.extra.boss
-    const used = [new Set(), new Set(), new Set(), new Set()]
-    for (let i = 0; i < 60 * 80; i++) {
-      if (i === 60 * 20) b.hp = b.maxHp * 0.55
-      if (i === 60 * 40) b.hp = b.maxHp * 0.25
-      if (i === 60 * 60) b.hp = b.maxHp * 0.1
+    const used = [new Set(), new Set(), new Set(), new Set(), new Set()]
+    for (let i = 0; i < 60 * 100; i++) {
+      if (i === 60 * 20) b.hp = b.maxHp * 0.6
+      if (i === 60 * 40) b.hp = b.maxHp * 0.4
+      if (i === 60 * 60) b.hp = b.maxHp * 0.2
+      if (i === 60 * 80) b.hp = b.maxHp * 0.05
       tick(run, 1, { noFire: true })
       if (b.atk) used[b.phase].add(b.atk.spec.type)
     }
-    ok(['ringwave', 'sweep', 'volley', 'spiral', 'dash'].every((t) => used[0].has(t)) && !used[0].has('combo') && used[1].has('combo') && used[2].has('combo') && used[3].has('combo') && b.core, `the last boss: ${used.map((u) => [...u].join('+')).join(' → ')}; its core lights at the end`)
+    ok(['ringwave', 'sweep', 'volley', 'nova', 'spiral', 'dash'].every((t) => used[0].has(t)) && !used[0].has('combo') && used.slice(1).every((u) => u.has('combo')) && b.core, `the last boss: ${used.map((u) => [...u].join('+')).join(' → ')}; its core lights at the end`)
     const pX = B.extraBosses.bosses.x_eclipse
     const others = Object.entries(B.extraBosses.bosses).filter(([id]) => id !== 'x_eclipse')
     const kinds = (o) => new Set(o.phases.flatMap((ph) => ph.attacks.flatMap((a) => (a.type === 'combo' ? a.parts.map((q) => q.type) : [a.type]))))
-    const varied = others.every(([, o]) => o.phases.length === 3 && new Set(o.phases[0].attacks.map((a) => a.type)).size >= 3 && kinds(o).size >= 4 && o.phases[2].attacks.some((a) => a.type === 'combo') && o.phases[2].walk < o.phases[0].walk)
+    const triples = (ph) => ph.attacks.every((a) => a.type === 'combo' && a.parts.length === 3)
+    const varied = others.every(([, o]) => o.phases.length === 4 && new Set(o.phases[0].attacks.map((a) => a.type)).size >= 4 && kinds(o).size >= 6 && o.phases[1].attacks.some((a) => a.type === 'combo') && triples(o.phases[3]) && o.phases.every((ph, i) => !i || ph.walk < o.phases[i - 1].walk))
     const last = kinds(pX)
-    const triple = pX.phases[3].attacks.every((a) => a.type === 'combo' && a.parts.length === 3)
-    ok((pX.hpMul ?? X.hpMul) > X.hpMul && pX.phases.length === 4 && last.size >= 7 && triple && varied, `every special boss: three phases by HP, three attacks of its own kind and more from the start, combos at the end, faster each phase; the last is the hardest (HP ×${pX.hpMul} against ×${X.hpMul}, four phases, ${last.size} kinds of attack, only three-part combos at the end)`)
+    ok((pX.hpMul ?? X.hpMul) > X.hpMul && pX.phases.length === 5 && last.size >= 11 && triples(pX.phases[4]) && varied, `every special boss: four phases by HP, four kinds of attack from the start and six in all, combos from the second phase, only three-part combos in the last, faster each phase; the last is the hardest (HP ×${pX.hpMul} against ×${X.hpMul}, five phases, ${last.size} kinds of attack, only three-part combos at the end)`)
   }
 
   // the animation data: every monster has its frames; the old motion set's

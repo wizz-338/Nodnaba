@@ -16,7 +16,7 @@ import { BEHAVIORS } from './weapons.js'
 import { permaValue } from './perma.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { snap, recordPick, takeBack, fits, placeTurret, relocateTurrets, updateTurrets } from './turret.js'
-import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
+import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot, startAttack, tickAttack, bossSkills, bossSkill, tierOf } from './bosses.js'
 import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, zyoSure, powerPreview, optionName, firepower } from './zyo.js'
 
 export const FIXED = 1 / 60
@@ -719,14 +719,40 @@ const MOVES = {
     e.y += (-uy * Math.cos(s) - ux * Math.sin(s)) * e.speed * dt
   },
   // an ordinary boss (the 145 s mid-boss, the 210 s boss): one of four ways
-  // (balance.json → bossTypes), given when it comes and kept until it falls
+  // (balance.json → bossTypes), given when it comes and kept until it falls,
+  // and between its own moves its skills by turns (balance.json →
+  // bossSkills: more of them in later chapters, two at a time once enraged)
   boss(run, e, dt) {
     const def = run.D.balance.enemies[e.type]
     const T = run.D.balance.bossTypes
-    e.modeT -= dt
-    if (!e.mode) (e.mode = 'walk'), (e.modeT = def.walkSeconds)
+    const SK = run.D.balance.bossSkills
     const type = e.btype || 'A'
+    // enraged under a share of its HP (from its tier on): it says so once
+    const R = SK.enrage
+    if (!e.enraged && e.hp < e.maxHp * R.below && tierOf(run.chapter) >= (e.type === 'brute' ? R.bruteFromTier : R.fromTier)) {
+      e.enraged = true
+      run.events.push({ type: 'bossRage', x: e.x, y: e.y })
+    }
+    const walk = def.walkSeconds * (e.enraged ? R.walk : 1)
+    // a skill under way (bosses.js): it runs to its end, then a short rest
+    if (e.mode === 'skill') {
+      if (!tickAttack(run, e, dt)) (e.mode = 'rest'), (e.modeT = def.restSeconds)
+      return
+    }
+    e.modeT -= dt
+    if (!e.mode) (e.mode = 'walk'), (e.modeT = walk)
     if (e.modeT <= 0) {
+      const skills = (e.skills ??= bossSkills(run.D, type, e.type, run.chapter))
+      if (e.mode === 'walk' && skills.length && (e.turns = (e.turns || 0) + 1) % 2 === 0) {
+        // a skill: the next of its list (enraged: that and the one after it)
+        const i = (e.skillNo = (e.skillNo ?? -1) + 1) % skills.length
+        let spec = bossSkill(run.D, skills[i], run.chapter, def)
+        if (e.enraged && skills.length > 1) spec = { type: 'combo', after: [R.after], parts: [spec, bossSkill(run.D, skills[(i + 1) % skills.length], run.chapter, def)] }
+        e.mode = 'skill'
+        e.modeT = Infinity
+        startAttack(run, e, spec)
+        return
+      }
       if (e.mode === 'walk') {
         if (type === 'A') {
           // A: stops and shows where it will charge
@@ -753,7 +779,7 @@ const MOVES = {
           e.mode = 'rushWind'
           e.modeT = T.D.warn
           ;[e.dx, e.dy] = toward(e, run.player.x, run.player.y)
-        } else e.modeT = def.walkSeconds // B only walks
+        } else e.modeT = walk // B only walks
       } else if (e.mode === 'windup') {
         // it charges exactly the path it showed, no further
         e.mode = 'charge'
@@ -768,7 +794,7 @@ const MOVES = {
       } else if (e.mode === 'rushWind') {
         e.mode = 'rush'
         e.modeT = T.D.seconds
-      } else if (e.mode === 'rush' || e.mode === 'rest') (e.mode = 'walk'), (e.modeT = def.walkSeconds)
+      } else if (e.mode === 'rush' || e.mode === 'rest') (e.mode = 'walk'), (e.modeT = walk)
     }
     if (e.mode === 'walk') {
       if (type === 'B') {
@@ -853,7 +879,7 @@ function moveEnemies(run, dt) {
     // does not walk), smoothed
     const v = Math.hypot(e.x - ox, e.y - oy) / dt
     e.pace = (e.pace || 0) * 0.8 + v * 0.2
-    if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind')) continue
+    if (e.behavior === 'boss' && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind' || e.mode === 'skill')) continue
     if (e.behavior === 'extra' && e.atk) continue // its attack faced it
     // left or right: by where it is going, with a margin, so small sways and
     // pushes never flip it back and forth; standing, it looks at Mano

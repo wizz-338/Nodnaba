@@ -86,6 +86,10 @@ const HPBAR_H = 4.5
 // the game's round font (survivor.css loads it; until it is in, the system's)
 const GAME_FONT = "'Jua', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif"
 const NUM_FONT = '12px ' + GAME_FONT
+// an ordinary boss getting ready to strike (its own moves, or a skill's
+// warning: bosses.js), and striking
+const winding = (e) => e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind' || (e.mode === 'skill' && (e.stage === 'ready' || e.stage === 'charge'))
+const striking = (e) => e.mode === 'charge' || e.mode === 'rush' || (e.mode === 'skill' && (e.stage === 'strike' || !!e.dash))
 const CRIT_FONT = '14px ' + GAME_FONT // about 17% larger
 // a critical number's size over time: in quickly a little large, settles, stays
 // how far a number has risen t s in: 26 px, quickly at first
@@ -511,8 +515,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       const t = e.life
       bob = -Math.abs(Math.sin(t * (boss ? 4 : 7.5) + e.id)) * (boss ? 2 : 1.6)
       rot = Math.sin(t * (boss ? 2.4 : 5) + e.id) * (boss ? 0.025 : 0.06)
-      if (boss && (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind')) dx = Math.sin(performance.now() / 22) * 1.3
-      else if (boss && (e.mode === 'charge' || e.mode === 'rush')) rot = 0.12 * (e.dx >= 0 ? 1 : -1)
+      if (boss && winding(e)) dx = Math.sin(performance.now() / 22) * 1.3
+      else if (boss && striking(e)) rot = 0.12 * (e.face >= 0 ? 1 : -1)
     }
     if (e.state === 'down') (rot = 0.45), (alpha = 0.85), (flash = 0)
     else if (e.state === 'spawn') alpha = 0.25 + 0.6 * spawnK(e)
@@ -595,7 +599,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   function attackPose(e) {
     if (e.behavior === 'extra') return e.stage === 'ready' ? 0 : e.stage === 'charge' ? 1 : e.stage === 'strike' ? 2 : e.stage === 'recover' ? 3 : -1
     if (e.behavior !== 'boss') return -1
-    return e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind' ? 0 : e.mode === 'charge' || e.mode === 'rush' ? 1 : e.mode === 'rest' ? 2 : -1
+    return winding(e) ? 0 : striking(e) ? 1 : e.mode === 'rest' || (e.mode === 'skill' && e.stage === 'recover') ? 2 : -1
   }
 
   // A monster from its frames: walking (four frames by time; a walker that
@@ -673,8 +677,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     let flash = e.hitT > 0 ? Math.min(1, e.hitT / 0.12) * 0.8 : 0
     if (e.behavior === 'boss') {
       if (e.state === 'down') (name = 'boss_down'), (flash = 0)
-      else if (e.mode === 'windup' || e.mode === 'aim' || e.mode === 'rushWind') name = 'boss_windup'
-      else if (e.mode === 'charge' || e.mode === 'rush') name = 'boss_charge'
+      else if (winding(e)) name = 'boss_windup'
+      else if (striking(e)) name = 'boss_charge'
       else if (e.hitT > 0) name = 'boss_hit'
       else name = animFrame('boss_run', e.life * 1000)
     } else name = animFrame(look + '_run', e.life * 1000 + e.id * 37)
@@ -739,6 +743,20 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
 
   // type D about to run: a ring round it, closing in as the run nears, and
   // an arrow at Mano
+  // an enraged ordinary boss (bosses.js → bossSkills.enrage): a red glow
+  // pulsing under it
+  function drawRage(e, now) {
+    world()
+    const k = 0.5 + 0.5 * Math.sin(now / 140)
+    const g = ctx.createRadialGradient(e.x, e.y, e.r * 0.4, e.x, e.y, e.r * 2.1)
+    g.addColorStop(0, `rgba(255, 70, 50, ${0.32 + 0.18 * k})`)
+    g.addColorStop(1, 'rgba(255, 70, 50, 0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(e.x, e.y, e.r * 2.1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   function drawRush(run, e) {
     const k = 1 - e.modeT / D.balance.bossTypes.D.warn
     const r = e.r + 10
@@ -809,6 +827,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const h of run.hazards) {
       if (h.kind === 'ray' || h.owner === xid) continue
       const c = hazardColor(h)
+      // (a boss gathering itself: only its dashed ring, drawn over)
+      if (h.thread && h.kind === 'circle') continue
       if (run.t < h.at) {
         const k = nearing(run, h)
         shape(h)
@@ -1451,6 +1471,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     drawShadows()
     for (const e of run.enemies) {
       if (e.behavior !== 'boss' || e.state !== 'live') continue
+      if (e.enraged) drawRage(e, now)
       if (e.mode === 'windup') drawWarning(run, e)
       else if (e.mode === 'rushWind') drawRush(run, e)
     }
@@ -1511,6 +1532,11 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         } else addSparks(ev.x, ev.y - 8, busy ? 2 : 5, 120)
       } else if (ev.type === 'blast') {
         if (fx.length < MAX_FX) fx.push({ anim: 'dust', x: ev.x, y: ev.y - 4, t: 0, s: Math.max(0.7, ev.r / 28) })
+      } else if (ev.type === 'bossRage') {
+        // an ordinary boss enraged: a burst of dust round it and a shake
+        rings.push({ x: ev.x, y: ev.y - 10, r: 70, t: 0 })
+        addSparks(ev.x, ev.y - 14, 18, 170)
+        kick(KICK.big)
       } else if (ev.type === 'phase') {
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2
