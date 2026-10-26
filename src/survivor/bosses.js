@@ -144,11 +144,19 @@ export function updateExtra(run, e, dt, api) {
   }
   const a = e.atk
   a.t += dt
+  // (a dash under way: it runs its lane)
+  if (e.dash) {
+    const k = Math.min(1, (run.t - e.dash.t0) / e.dash.dur)
+    e.x = e.dash.x0 + (e.dash.x1 - e.dash.x0) * k
+    e.y = e.dash.y0 + (e.dash.y1 - e.dash.y0) * k
+    if (k >= 1) e.dash = null
+  }
   while (a.next < a.steps.length && a.t >= a.steps[a.next].at) a.steps[a.next++].run(run, e)
   e.stage = a.t < a.strikeAt / 2 ? 'ready' : a.t < a.strikeAt ? 'charge' : a.t < a.strikeAt + 0.35 ? 'strike' : 'recover'
   if (a.t >= a.endAt) {
     e.atk = null
     e.stage = null
+    e.dash = null
   }
 }
 
@@ -347,6 +355,98 @@ function plan(run, e, spec, at0 = 0) {
       put({ kind: 'board', x: cx, y: cy, cols: spec.cols, rows: spec.rows, box: B, harmless: true, keep: 0.4 }, warn)
       break
     }
+    case 'volley': {
+      // fans of shots at Mano: `bursts` of `shots`, `step` s apart, each aimed
+      // where she is when its lanes show (laneWarn before it fires; the first
+      // at the start)
+      for (let k = 0; k < spec.bursts; k++) {
+        const fireAt = warn + k * spec.step
+        const dirs = []
+        at(k ? fireAt - spec.laneWarn : 0, (run, e) => {
+          const a = Math.atan2(run.player.y - e.y, run.player.x - e.x)
+          const spread = (spec.spreadDeg * Math.PI) / 180
+          for (let j = 0; j < spec.shots; j++) {
+            const d = a + (spec.shots > 1 ? (j / (spec.shots - 1) - 0.5) * spread : 0)
+            dirs.push(d)
+            hazard(run, e, { kind: 'line', x: e.x, y: e.y, dx: Math.cos(d), dy: Math.sin(d), len: far * 0.5, half: 2, harmless: true, thread: true, keep: 0.15 }, k ? spec.laneWarn : warn)
+          }
+        })
+        at(fireAt, (run, e) => {
+          for (const d of dirs) bullet(run, e, d, spec, dmg(spec.damage))
+          run.events.push({ type: 'bossShot', x: e.x, y: e.y, look: e.look })
+        })
+      }
+      endAt = warn + (spec.bursts - 1) * spec.step + (spec.recover ?? X.recover)
+      break
+    }
+    case 'spiral': {
+      // streams of shots wheeling out of it: `arms` of them, one each `every`
+      // s for `seconds`, turning spin rad/s (twin: a second wheel turning the
+      // other way); a ring round it while it gathers
+      const a0 = rnd() * Math.PI * 2
+      const turn = rnd() < 0.5 ? -1 : 1
+      put({ kind: 'circle', x: e.x, y: e.y, r: e.r + 46, harmless: true, thread: true, keep: 0 }, warn)
+      const n = Math.max(1, Math.round(spec.seconds / spec.every))
+      for (let k = 0; k < n; k++)
+        at(warn + k * spec.every, (run, e) => {
+          for (let j = 0; j < spec.arms; j++) {
+            const base = a0 + (j / spec.arms) * Math.PI * 2
+            bullet(run, e, base + turn * spec.spin * k * spec.every, spec, dmg(spec.damage))
+            if (spec.twin) bullet(run, e, base + Math.PI / spec.arms - turn * spec.spin * k * spec.every, spec, dmg(spec.damage))
+          }
+        })
+      endAt = warn + spec.seconds + (spec.recover ?? X.recover)
+      break
+    }
+    case 'dash': {
+      // it charges straight through where Mano is to the far side of the
+      // area: its lane shown, then the blow along it as it runs; `count`
+      // times, each from where the last one stopped
+      for (let k = 0; k < spec.count; k++) {
+        const d = {}
+        const t0 = k * (warn + spec.dur)
+        at(t0, (run, e) => {
+          const a = Math.atan2(run.player.y - e.y, run.player.x - e.x)
+          const dx = Math.cos(a)
+          const dy = Math.sin(a)
+          const m = e.r + 10
+          // (to the area's edge along it)
+          const tx = dx > 0 ? (bx1 - m - e.x) / dx : dx < 0 ? (bx0 + m - e.x) / dx : Infinity
+          const ty = dy > 0 ? (by1 - m - e.y) / dy : dy < 0 ? (by0 + m - e.y) / dy : Infinity
+          const len = Math.max(40, Math.min(tx, ty))
+          hazard(run, e, { kind: 'line', x: e.x, y: e.y, dx, dy, len, half: spec.width / 2, damage: dmg(spec.damage), blade: true }, warn)
+          Object.assign(d, { x0: e.x, y0: e.y, x1: e.x + dx * len, y1: e.y + dy * len })
+        })
+        at(t0 + warn, (run, e) => (e.dash = { ...d, t0: run.t, dur: spec.dur }))
+      }
+      endAt = spec.count * (warn + spec.dur) + (spec.recover ?? X.recover)
+      break
+    }
+    case 'rain': {
+      // circles falling all over the area in quick turns: the first where
+      // Mano is, the next where she is heading, the rest spread out
+      const spots = [clampTo(B, p.x, p.y, spec.r), clampTo(B, p.x + (p.vx || 0) * 0.6, p.y + (p.vy || 0) * 0.6, spec.r)]
+      for (let tries = 0; tries < 200 && spots.length < spec.count; tries++) {
+        const x = bx0 + spec.r + rnd() * (W - 2 * spec.r)
+        const y = by0 + spec.r + rnd() * (H - 2 * spec.r)
+        if (spots.every(([sx, sy]) => Math.hypot(sx - x, sy - y) > spec.r * 1.7)) spots.push([x, y])
+      }
+      spots.forEach(([x, y], k) => put({ kind: 'circle', x, y, r: spec.r, damage: dmg(spec.damage), puff: true }, warn + k * spec.step))
+      endAt = warn + (spots.length - 1) * spec.step + (spec.recover ?? X.recover)
+      break
+    }
+    case 'cross': {
+      // a cross through where Mano is, across the whole area (then an X, by
+      // turns): `count` of them, each on where she is when it shows
+      for (let k = 0; k < spec.count; k++)
+        at(k * spec.step, (run, e) => {
+          const q = run.player
+          const tilt = ((e.crossNo = (e.crossNo || 0) + 1) % 2) * (Math.PI / 4)
+          for (const a of [tilt, tilt + Math.PI / 2]) hazard(run, e, { kind: 'line', x: q.x - Math.cos(a) * far, y: q.y - Math.sin(a) * far, dx: Math.cos(a), dy: Math.sin(a), len: far * 2, half: spec.width / 2, damage: dmg(spec.damage), blade: true }, warn)
+        })
+      endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
+      break
+    }
     case 'combo': {
       // attacks it has already shown, one after the other: the next is
       // planned (and shown) only when its time comes, from where things are then
@@ -375,6 +475,12 @@ function plan(run, e, spec, at0 = 0) {
   return { spec, t: 0, next: 0, steps, strikeAt: at0 + strikeAt, endAt: at0 + endAt }
 }
 
+// one of an extra boss's own shots, at angle a, of `damage` (already capped)
+function bullet(run, e, a, spec, damage) {
+  const dx = Math.cos(a)
+  const dy = Math.sin(a)
+  run.shots.push({ owner: e.id, x: e.x + dx * e.r * 0.6, y: e.y + dy * e.r * 0.6, vx: dx * spec.speed, vy: dy * spec.speed, r: spec.r, damage, ttl: spec.ttl ?? 5, kind: spec.look || run.D.balance.extraBosses.bosses[e.extra].shot || 'spark' })
+}
 // (the ordinary bosses' shooter, type C, puts its lanes and shots here too: game.js)
 function shot(run, e, dx, dy, spec) {
   // (exactly on the lane that was shown)
