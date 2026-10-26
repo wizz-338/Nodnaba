@@ -1,0 +1,22 @@
+{
+  "note": "Mano's skin, a little lighter (scripts/survivor-mano-skin.py): her face and hands in these sheets got L* +9 (of 100) and a* b* ×0.88; nothing else of them changed. before/after: the sheets' sha256, so it is never done twice. The room's picture of her (survivor-room-assets.py) is lightened the same way.",
+  "lift": 9.0,
+  "chroma": 0.88,
+  "files": {
+    "01_mano_run.png": {
+      "before": "73d571a19f449246791e76e9d2e154fba39796b10d5ae87faa1d11ed362b0c20",
+      "after": "e1b09005a0e2ae682bfe53888e2f6231307f19629de5909d3b98ad857f2428fb",
+      "pixels": 1133
+    },
+    "02_mano_states.png": {
+      "before": "f7b555c58590e13a67684da2f4b8a8e0dc2e3554d43201f6d40f2721a684d37f",
+      "after": "92dcdeb86ad94c9aa3b012a303bc8fa00e91af2d617738a4aedb862b7d49a471",
+      "pixels": 1215
+    },
+    "08_profile.png": {
+      "before": "33ca1542659e2147918064ce571edb764ab3b217d858639d94acdf7af23f6b83",
+      "after": "7b76fb4ed699b635e1310df7c223a8f20fafd311c7db3d3486227a1a7468037c",
+      "pixels": 18197
+    }
+  }
+}

@@ -11,7 +11,7 @@ import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/surv
 import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '../src/survivor/zyo.js'
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
-import { roomTotal, roomItems, roomNext } from '../src/survivor/room-items.js'
+import { roomTotal, roomStage, roomProgress } from '../src/survivor/room-items.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -2887,14 +2887,21 @@ const still = { x: 0, y: 0 }
 // ── 마노의 방: the room follows the coin stats' levels, nothing else ────────
 {
   const R = D.room
-  const ids = R.items.map((it) => it.id)
-  const needs = R.items.map((it) => it.need)
-  ok(new Set(ids).size === ids.length && needs.every((n, i) => i === 0 || n >= needs[i - 1]) && needs.at(-1) === R.complete, `room: ${ids.length} pieces, each once, in the order they come; the last at ${R.complete} levels`)
-  ok(R.items.every((it) => it.at[0] >= 0 && it.at[0] <= R.size[0] && it.at[1] >= 0 && it.at[1] <= R.size[1] && (it.wall ? it.at[1] <= R.floorY : it.at[1] > R.floorY)), 'room: every piece inside the room, the wall ones on the wall, the rest on the floor')
+  const needs = R.stages.map((st) => st.need)
+  ok(R.stages.length === 6 && needs[0] === 0 && needs.every((n, i) => !i || n > needs[i - 1]) && R.art.stages.length === 6, `room: six stages, at ${needs.join(' / ')} levels in all, a picture each`)
+  ok(roomStage(D, 0) === 0 && roomStage(D, needs[1] - 1) === 0 && roomStage(D, needs[1]) === 1 && roomStage(D, needs[5]) === 5 && roomStage(D, 1e9) === 5, 'room: the stage follows the levels in all (exactly at each step, never past the sixth)')
+  const p0 = roomProgress(D, 0)
+  const pm = roomProgress(D, (needs[2] + needs[3]) / 2)
+  const pe = roomProgress(D, needs[5] + 40)
+  ok(p0.stage === 0 && p0.left === needs[1] && p0.share === 0 && pm.stage === 2 && near(pm.share, 0.5) && pm.left === needs[3] - (needs[2] + needs[3]) / 2 && pe.next === null && pe.share === 1, `room: the way to the next stage (a new save: ${p0.left} levels to go; halfway: ${Math.round(pm.share * 100)}%); complete: no next stage`)
+  const [W, H] = R.size
+  const inside = ([x, y]) => x >= 0 && x <= W && y >= 0 && y <= H
+  ok(Object.values(R.spots).every((sp) => inside(sp.at) && (!sp.door || inside(sp.door)) && sp.from >= 1 && sp.from <= 6) && R.walk.every(([x0, y0, x1, y1]) => x0 < x1 && y0 < y1 && inside([x0, y0]) && inside([x1, y1])) && inside(R.ball), 'room: every spot, door and the open floor inside the picture; every spot from one of the six stages')
+  ok(['mano_sit', 'danchu_play', 'hodu_belly', 'moru_sleep'].every((n) => R.art.poses[n] && R.art.poses[n].w > 0 && R.art.poses[n].h > 0), 'room: the four poses are there (Mano with her ball, 단추, 호두, 모루)')
   ok(Object.keys(B.perma.stats).every((k) => R.reactions[k]), 'room: Mano has a line for every coin stat')
   ok(roomTotal({}) === 0 && roomTotal({ hp: 3, damage: 2, crit: 0, junk: -4, bad: NaN }) === 5, 'room: the levels added up (bad numbers count as 0)')
-  ok(roomItems(D, 0).map((it) => it.id).join() === 'window,cushion' && roomNext(D, 0).id === 'bowl', 'room: a new save has only the window and the cushion; the bowl comes next')
-  ok(roomItems(D, R.complete).length === ids.length && roomNext(D, R.complete) === null && roomItems(D, 1e9).length === ids.length, 'room: complete at its last piece, and stays so')
+  // an old save with levels: its stage at once
+  ok(roomStage(D, roomTotal({ hp: 66, damage: 68, move: 10, interval: 68, crit: 40, coins: 8 })) === 4, 'room: a save that already has 260 levels opens on stage 5')
   // the room is made from the save, never kept in it, and changes no number
   const mem = new Mem()
   const P = createProgress(D, mem)
