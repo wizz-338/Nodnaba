@@ -6,7 +6,7 @@ import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '.
 import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
-import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf } from '../src/survivor/bosses.js'
+import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf, startAttack, tickAttack } from '../src/survivor/bosses.js'
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/survivor/friends.js'
 import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '../src/survivor/zyo.js'
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
@@ -1461,16 +1461,58 @@ const still = { x: 0, y: 0 }
   ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
 }
 
-// ── no swinging beam (it could not be dodged: asked for); the lances that
-// replaced it are cleared by a step aside in their warning ───────────────────
+// ── no swinging beam (it could not be dodged: asked for); the crossfire that
+// replaced it can be got out of, but only by going well between two lines ──
 {
   const all = []
   const walk = (a) => (a.type === 'combo' ? a.parts.forEach(walk) : all.push(a))
   for (const b of Object.values(B.extraBosses.bosses)) for (const ph of b.phases) ph.attacks.forEach(walk)
   for (const k of Object.keys(B.bossSkills.skills)) all.push(bossSkill(D, k, 35, B.enemies.boss))
-  const lances = all.filter((a) => a.type === 'lances')
-  const step = (a) => a.warn * B.player.speed
-  ok(!all.some((a) => a.type === 'beam') && lances.length > 0 && lances.every((a) => step(a) > a.width / 2 + B.player.hitRadius + 10), `no swinging beam left anywhere; ${lances.length} lances attacks, each cleared by a step aside before it lands (at least ${Math.min(...lances.map(step)).toFixed(0)} px of walking in its warning, it is ${Math.max(...lances.map((a) => a.width))} px wide)`)
+  const cf = all.filter((a) => a.type === 'crossfire')
+  // (from the crossing, along the middle between two lines: clear of both
+  // at (half width + Mano) / sin(the half angle between them))
+  const need = (a) => (a.width / 2 + B.player.hitRadius) / Math.sin(Math.PI / (2 * a.lines))
+  const can = (a) => a.warn * B.player.speed
+  ok(!all.some((a) => a.type === 'beam' || a.type === 'lances') && cf.length > 0 && cf.every((a) => can(a) > need(a) + 10 && a.step >= a.warn), `no swinging beam left anywhere; ${cf.length} crossfire attacks, each escapable, one star at a time (${Math.max(...cf.map(need)).toFixed(0)} px out at most, ${Math.min(...cf.map(can)).toFixed(0)} px of walking in its warning at least)`)
+  // and really: Mano walking straight out between two lines in time is not hit
+  const run = createRun(D, { chapter: 35, weaponId: 'bouncy_ball', grade: 'D', seed: 4, perma: {} })
+  run.spawnT = -1e9
+  const e = enemy(run, 60, 60)
+  e.behavior = 'chase'
+  e.damageMul = 1
+  run.player.x = 300
+  run.player.y = 500
+  run.player.hp = run.player.maxHp = 1e9
+  const spec = cf.find((a) => a.lines === 4)
+  startAttack(run, e, spec)
+  let hits = 0
+  let walked = false
+  for (let i = 0; i < 60 * 4; i++) {
+    run.enemies = [e]
+    run.fireT = 1e9
+    e.speed = 0
+    const hs = run.hazards.filter((h) => h.owner === e.id && run.t < h.at)
+    const hp = run.player.hp
+    if (hs.length && !walked) {
+      // straight out between two lines of this wave: the gap with the most
+      // room before the area's edge (a player does not walk into a wall)
+      const [x0, y0, x1, y1] = run.arena.bounds
+      const p = run.player
+      const room = (a) => Math.min(...[Math.cos(a) > 0 ? (x1 - p.x) / Math.cos(a) : Math.cos(a) < 0 ? (x0 - p.x) / Math.cos(a) : 1e9, Math.sin(a) > 0 ? (y1 - p.y) / Math.sin(a) : Math.sin(a) < 0 ? (y0 - p.y) / Math.sin(a) : 1e9])
+      const a0 = Math.atan2(hs[0].dy, hs[0].dx)
+      let best = a0 + Math.PI / (2 * spec.lines)
+      for (let k = 1; k < 2 * spec.lines; k++) {
+        const a = a0 + ((2 * k + 1) * Math.PI) / (2 * spec.lines)
+        if (room(a) > room(best)) best = a
+      }
+      walked = { x: Math.cos(best), y: Math.sin(best) }
+    }
+    step(run, FIXED, walked ? { x: walked.x, y: walked.y } : still)
+    tickAttack(run, e, FIXED)
+    if (run.player.hp < hp) hits++
+    if (!run.hazards.some((h) => h.owner === e.id && run.t < h.at)) walked = false
+  }
+  ok(hits === 0, `crossfire of ${spec.lines} lines, ${spec.waves} waves: walking out between two lines each wave, Mano is never hit`)
 }
 
 // ── the ordinary bosses' skills (balance.json → bossSkills) ──────────────

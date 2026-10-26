@@ -564,17 +564,22 @@ function plan(run, e, spec, at0 = 0) {
       endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
       break
     }
-    case 'lances': {
-      // lances out of it across the whole area, one after another, each
-      // aimed where Mano is when it shows (a step aside clears it; the next
-      // one follows her)
-      for (let k = 0; k < spec.count; k++)
+    case 'crossfire': {
+      // crossfire: `lines` lines across the whole area at once, crossing
+      // where Mano is when they show, evenly turned (a star); `waves` of
+      // them, `step` s apart (the data keeps it no shorter than the warning:
+      // one star at a time), each at where she is then. She is clear only by
+      // going far enough between two of them before they land
+      for (let k = 0; k < spec.waves; k++)
         at(k * spec.step, (run, e) => {
           const q = run.player
-          const a = Math.atan2(q.y - e.y, q.x - e.x)
-          hazard(run, e, { kind: 'line', x: e.x, y: e.y, dx: Math.cos(a), dy: Math.sin(a), len: far, half: spec.width / 2, damage: dmg(spec.damage), blade: true, lance: true }, warn)
+          const a0 = run.rng() * Math.PI
+          for (let j = 0; j < spec.lines; j++) {
+            const a = a0 + (j / spec.lines) * Math.PI
+            hazard(run, e, { kind: 'line', x: q.x - Math.cos(a) * far, y: q.y - Math.sin(a) * far, dx: Math.cos(a), dy: Math.sin(a), len: far * 2, half: spec.width / 2, damage: dmg(spec.damage), blade: true, order: k + 1 }, warn)
+          }
         })
-      endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
+      endAt = (spec.waves - 1) * spec.step + warn + (spec.recover ?? X.recover)
       break
     }
     case 'slam': {
