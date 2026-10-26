@@ -11,6 +11,7 @@ import { catDamage, catInterval, catSpeed, catSwipe, packMul } from '../src/surv
 import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '../src/survivor/zyo.js'
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
+import { roomTotal, roomItems, roomNext } from '../src/survivor/room-items.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -598,7 +599,11 @@ const still = { x: 0, y: 0 }
   ok(near(run.weapon.damage, BASE.damage * 1.65 * S.damage.mul ** 2 * 1.5), 'an in-run upgrade multiplies on top')
   const r2 = createRun(D, { weaponId: 'bouncy_ball', grade: 'A', seed: 2, perma: { damage: 2 } })
   ok(near(r2.weapon.damage, BASE.damage * 1.65 * S.damage.mul ** 2) && r2.weapon.count === 1, 'the next run starts again from the grade and coin stats (upgrades reset)')
-  ok(near(statValue(D, 'crit', 1000), 0.5) && statValue(D, 'move', 999) === 1.015 ** 40, 'coin stat caps: crit 50%, speed 40 levels')
+  ok(near(statValue(D, 'crit', 1000), 1) && statValue(D, 'move', 999) === 1.015 ** 40, 'coin stat caps: crit 100%, speed 40 levels')
+  // crit: as it always was up to 50% (level 67), then 1.5% a level (×1.05 the price) up to 100%
+  const oldCrit = (L) => Math.min(0.5, 0.0075 * L)
+  const same = Array.from({ length: 68 }, (_, L) => L).every((L) => near(statValue(D, 'crit', L), oldCrit(L), 1e-12) && statPrice(D, 'crit', L) === Math.floor(200 * B.perma.priceGrowth ** L))
+  ok(same && near(statValue(D, 'crit', 68), 0.515) && near(statValue(D, 'crit', 101), 1) && statValue(D, 'crit', 100) < 1 && statPrice(D, 'crit', 68) === Math.floor(200 * B.perma.priceGrowth ** 67 * 1.05), 'coin stat 치명타 확률: levels 0–67 (up to 50%) and their prices as before; then +1.5% a level, the price ×1.05; 100% at level 101')
 }
 
 // ── progress: rewards, chests, fusion, coin stats, saves ────────────────────
@@ -2732,6 +2737,58 @@ const still = { x: 0, y: 0 }
   ok(zyoTargets(t).map((r) => r.k).join() === 'A,B' && tm.includes('size') && tm.includes('ballSpeed') && !tm.includes('crit'), 'two recipes level (5/7 + 5/7 and 5/7 + 5/7): zyo_ marks the cards of both')
   t.picks.interval = 6
   ok(zyoTargets(t).map((r) => r.k).join() === 'B', 'one ahead (6/7 + 5/7): only that one')
+}
+
+// ── the coin stat 치명타 확률 at 100%: no crit card in a run ───────────────
+{
+  const full = newRun({ chapter: 21, grade: 'SS', perma: { crit: 101 }, cats: true, tizzzz: true, zyo: true, seed: 401 })
+  const less = newRun({ chapter: 21, grade: 'SS', perma: { crit: 100 }, cats: true, tizzzz: true, zyo: true, seed: 401 })
+  let crit = 0
+  let three = true
+  full.rerolls = 400
+  full.state = 'levelup'
+  full.choices = ['move', 'luck', 'armor']
+  for (let i = 0; i < 300; i++) {
+    reroll(full, full.choiceSeq)
+    if (full.choices.includes('crit')) crit++
+    if (full.choices.length < 3) three = false
+  }
+  let seenLess = 0
+  for (let i = 0; i < 300; i++) if (drawChoices(less).includes('crit')) seenLess++
+  ok(full.critFull && !full.pool.includes('crit') && full.pool.includes('critDamage') && crit === 0 && three && !less.critFull && seenLess > 0 && near(full.weapon.critChance, B.player.critChance + 1), `치명타 확률 100% (level 101): the crit card never comes, in 300 redraws none (three cards each time; 치명타 피해 stays); at 99.5% it still comes (${seenLess} of 300)`)
+  // after zyo_'s class change too
+  full.state = 'levelup'
+  full.pending = 1
+  full.choices = ['clsA']
+  full.choiceSeq++
+  choose(full, 'clsA', full.choiceSeq)
+  ok(full.cls && !full.pool.includes('crit') && full.pool.includes('critDamage'), 'after the class change: still no crit card')
+}
+
+// ── 마노의 방: the room follows the coin stats' levels, nothing else ────────
+{
+  const R = D.room
+  const ids = R.items.map((it) => it.id)
+  const needs = R.items.map((it) => it.need)
+  ok(new Set(ids).size === ids.length && needs.every((n, i) => i === 0 || n >= needs[i - 1]) && needs.at(-1) === R.complete, `room: ${ids.length} pieces, each once, in the order they come; the last at ${R.complete} levels`)
+  ok(R.items.every((it) => it.at[0] >= 0 && it.at[0] <= R.size[0] && it.at[1] >= 0 && it.at[1] <= R.size[1] && (it.wall ? it.at[1] <= R.floorY : it.at[1] > R.floorY)), 'room: every piece inside the room, the wall ones on the wall, the rest on the floor')
+  ok(Object.keys(B.perma.stats).every((k) => R.reactions[k]), 'room: Mano has a line for every coin stat')
+  ok(roomTotal({}) === 0 && roomTotal({ hp: 3, damage: 2, crit: 0, junk: -4, bad: NaN }) === 5, 'room: the levels added up (bad numbers count as 0)')
+  ok(roomItems(D, 0).map((it) => it.id).join() === 'window,cushion' && roomNext(D, 0).id === 'bowl', 'room: a new save has only the window and the cushion; the bowl comes next')
+  ok(roomItems(D, R.complete).length === ids.length && roomNext(D, R.complete) === null && roomItems(D, 1e9).length === ids.length, 'room: complete at its last piece, and stays so')
+  // the room is made from the save, never kept in it, and changes no number
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.currency = 1e6
+  mem.setItem(KEY, JSON.stringify(d))
+  const before = Object.keys(P.get()).sort().join()
+  const t0 = roomTotal(P.get().perma)
+  for (const k of Object.keys(B.perma.stats)) P.buyStat(k, P.get().perma[k])
+  const t1 = roomTotal(P.get().perma)
+  const reload = createProgress(D, mem).boot().data
+  ok(t1 === t0 + Object.keys(B.perma.stats).length && Object.keys(reload).sort().join() === before && !JSON.stringify(reload).includes('room'), `room: buying a level of each stat adds ${t1 - t0} to the room's count; the save has the same keys as before and nothing of the room`)
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────

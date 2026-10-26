@@ -1,0 +1,37 @@
+{
+  "note": "마노의 방 (room.js): the 마노 강화 screen's room. It fills with the coin stats' levels added up (all six; nothing else, nothing stored: the room is always rebuilt from the save's levels). Each piece comes at `need` levels in all and gives nothing but the look. at: where it stands (its foot, room pixels: the room is size[0] × size[1], the wall down to floorY); wall: on the wall (drawn behind everything on the floor). The thresholds follow the levels players have: about 25 by chapter 5, 100 by chapter 10, 190 by chapter 15, 250 by chapter 20; the room is complete at 400. reactions: what Mano says when a stat is bought. lines: what shows when a piece comes.",
+  "size": [240, 136],
+  "floorY": 66,
+  "complete": 400,
+  "items": [
+    { "id": "window", "name": "창문", "need": 0, "at": [170, 46], "wall": true },
+    { "id": "cushion", "name": "방석", "need": 0, "at": [34, 112] },
+    { "id": "bowl", "name": "밥그릇", "need": 3, "at": [214, 128] },
+    { "id": "lamp", "name": "스탠드 조명", "need": 8, "at": [14, 96] },
+    { "id": "rug", "name": "동그란 러그", "need": 15, "at": [122, 118] },
+    { "id": "ball", "name": "탱탱볼 장난감", "need": 25, "at": [150, 120] },
+    { "id": "bed", "name": "침대", "need": 40, "at": [58, 92] },
+    { "id": "sandbag", "name": "샌드백", "need": 55, "at": [204, 100] },
+    { "id": "yarn", "name": "털실 공", "need": 75, "at": [96, 130] },
+    { "id": "tower", "name": "캣타워", "need": 95, "at": [228, 104] },
+    { "id": "plant", "name": "화분", "need": 120, "at": [138, 74] },
+    { "id": "books", "name": "책장", "need": 145, "at": [104, 72] },
+    { "id": "frame", "name": "마노 그림 액자", "need": 170, "at": [122, 34], "wall": true },
+    { "id": "shelf", "name": "벽 선반", "need": 200, "at": [56, 30], "wall": true },
+    { "id": "clock", "name": "벽시계", "need": 230, "at": [24, 30], "wall": true },
+    { "id": "lights", "name": "꼬마 전구", "need": 260, "at": [120, 12], "wall": true },
+    { "id": "dumbbell", "name": "아령", "need": 300, "at": [176, 130] },
+    { "id": "trophy", "name": "트로피", "need": 340, "at": [158, 74] },
+    { "id": "mobile", "name": "별 모빌", "need": 400, "at": [93, 30], "wall": true }
+  ],
+  "reactions": {
+    "hp": "튼튼해졌어!",
+    "damage": "힘이 솟아!",
+    "move": "더 빨라졌어!",
+    "interval": "착착 던지자!",
+    "crit": "급소를 노려!",
+    "coins": "코인이 반짝!"
+  },
+  "newItem": "새 가구: {name}!",
+  "completeLine": "마노의 방 완성!"
+}

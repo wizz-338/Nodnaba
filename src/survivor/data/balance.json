@@ -412,7 +412,14 @@
         "name": "치명타 확률",
         "price": 200,
         "add": 0.0075,
-        "max": 0.5
+        "max": 1,
+        "past": {
+          "from": 67,
+          "at": 0.5,
+          "add": 0.015,
+          "priceGrowth": 1.05
+        },
+        "note": "0.75% a level, price ×priceGrowth, up to 50% at level 67 (as it always was); past that 1.5% a level, price ×1.05, up to 100% at level 101 (asked for: 100% reachable). At 100% the crit card never comes in a run (game.js)."
       },
       "coins": {
         "name": "코인 획득량",
@@ -420,7 +427,7 @@
         "mul": 1.05
       }
     },
-    "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L). Caps here are game rules for permanent stats, shown in the shop."
+    "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L); past: from that level on another step (perma.js). Caps here are game rules for permanent stats, shown in the shop."
   },
   "upgrades": {
     "pool": [

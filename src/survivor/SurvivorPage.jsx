@@ -10,6 +10,8 @@ import { materials, canMake, sunk } from './turret.js'
 import { extraOf } from './bosses.js'
 import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
+import { createRoom } from './room.js'
+import { roomTotal, roomItems, roomNext } from './room-items.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
@@ -768,6 +770,7 @@ function Game({ exitHref }) {
           tab={tab}
           setTab={setTab}
           save={save}
+          img={img}
           onReplay={(groups) => setModal({ kind: 'cut', groups, replay: true })}
           equipped={equipped}
           chapter={chapter}
@@ -889,13 +892,13 @@ function Game({ exitHref }) {
 
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
 
-function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
   const pf = usePlatform()
   const region = regionOf(D, chapter)
   const tabs = [
     ['go', '출발'],
     ['gear', '장비'],
-    ['stats', '마노 강화'],
+    ['stats', '마노의 방'],
     ['settings', '설정'],
   ]
   return (
@@ -937,7 +940,7 @@ function Lobby({ tab, setTab, save, equipped, chapter, setChapter, notice, onNot
       <div className={`ms-lobby__body ms-lobby__body--${tab}`}>
         {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
         {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
-        {tab === 'stats' && <Stats save={save} onBuy={onBuy} />}
+        {tab === 'stats' && <Stats save={save} img={img} onBuy={onBuy} />}
         {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
       </div>
     </div>
@@ -1485,11 +1488,56 @@ function StoryReplay({ save, onReplay }) {
 // taps closer together than this count as one (a double tap)
 const TAP_GAP = 350
 
-function Stats({ save, onBuy }) {
+// 마노의 방 (room.js): the room above the coin stats, filling as they go up
+function Room({ save, img, roomRef }) {
+  const ref = useRef(null)
+  const total = roomTotal(save.perma)
+  const cats = !!save.cats.unlocked
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas || !img) return
+    const room = createRoom(canvas, img, D, { cats, total, font: "'Jua', system-ui, sans-serif" })
+    roomRef.current = room
+    if (import.meta.env.DEV) window.__room = room
+    const fit = () => room.resize(canvas.clientWidth || 240)
+    fit()
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null
+    ro?.observe(canvas)
+    return () => {
+      ro?.disconnect()
+      room.destroy()
+      roomRef.current = null
+    }
+    // (made once; the levels and the cats come in below)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [img])
+  useEffect(() => roomRef.current?.setTotal(total), [total, roomRef])
+  useEffect(() => roomRef.current?.setCats(cats), [cats, roomRef])
+  const have = roomItems(D, total).length
+  const next = roomNext(D, total)
+  return (
+    <div className="ms-room">
+      <canvas ref={ref} className="ms-room__canvas" aria-label="마노의 방" />
+      <p className="ms-room__bar">
+        <span>방 꾸미기 {have}/{D.room.items.length}</span>
+        <span>{next ? `다음: ${next.name} (강화 ${next.need - total}번 더)` : D.room.completeLine}</span>
+      </p>
+    </div>
+  )
+}
+
+function Stats({ save, img, onBuy }) {
   const last = useRef(0)
+  const room = useRef(null)
   const [msg, setMsg] = useState('')
   return (
-    <section className="ms-panel">
+    <section className="ms-panel ms-stats-room">
+      <div className="ms-stats-room__room">
+        <h3 className="ms-sub">마노의 방</h3>
+        <Room save={save} img={img} roomRef={room} />
+        <p className="ms-dim">강화를 할수록 마노의 방에 가구가 하나씩 늘어나요. 가구는 꾸미기일 뿐, 능력치는 그대로예요.</p>
+      </div>
+      <div className="ms-stats-room__shop">
       <h3 className="ms-sub">마노 강화 (코인으로 영구 강화)</h3>
       <p className="ms-dim">능력치마다 따로 올려요. 한 번 올릴 때마다 다음 가격이 ×{D.balance.perma.priceGrowth}가 돼요. 판 안의 강화와는 따로 쌓여요.</p>
       <ul className="ms-stats-list">
@@ -1520,7 +1568,7 @@ function Stats({ save, onBuy }) {
                   last.current = now
                   const r = onBuy(k, L)
                   setMsg(r.ok ? `${s.name} Lv.${r.level}!` : r.reason)
-                  if (r.ok) audio.sfx('confirm'), popButton(e.currentTarget)
+                  if (r.ok) audio.sfx('confirm'), popButton(e.currentTarget), room.current?.react(k)
                   else audio.sfx('deny')
                 }}
               >
@@ -1535,7 +1583,10 @@ function Stats({ save, onBuy }) {
         })}
       </ul>
       {msg && <p className="ms-ok">{msg}</p>}
-      <p className="ms-dim">치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요.</p>
+      <p className="ms-dim">
+        치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요. 치명타 확률이 {pctOf(D.balance.perma.stats.crit.max)}가 되면 판 안에서 치명타 확률 카드가 더는 나오지 않아요.
+      </p>
+      </div>
     </section>
   )
 }
