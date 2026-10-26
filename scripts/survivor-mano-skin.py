@@ -34,8 +34,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHEETS = ['01_mano_run.png', '02_mano_states.png', '08_profile.png']
 SHEET_DIR = os.path.join(ROOT, 'src', 'survivor', 'assets', 'v3')
 RECORD = os.path.join(ROOT, 'src', 'survivor', 'data', 'mano-skin.json')
-LIFT = 5.0
-CHROMA = 0.96
+LIFT = 9.0
+CHROMA = 0.88
 
 
 def _hsv(rgb):
