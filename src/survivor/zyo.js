@@ -443,7 +443,7 @@ function updateNinjas(run, dt) {
     u.spin += Math.PI * (0.7 + run.rng() * 0.6)
     u.face = e.x > u.x ? 1 : -1
     const sr = N.slashR * growth(run)
-    run.events.push({ type: 'slash', x: e.x, y: e.y, r: sr })
+    run.events.push({ type: 'slash', x: e.x, y: e.y, r: sr, face: u.face })
     let took = 0
     run.grid.near(e.x, e.y, sr + 60, (o) => {
       if (o.state !== 'live' || o.under) return

@@ -6,9 +6,10 @@
 // there (all in balance.json → zyo.fxSeconds, by the game's clock, so a pause
 // stops it too). Then a few units drawn as the class's power, not as more of
 // them: the giant balls in a glow with a trail, a turning shine and embers
-// (A: the shield balls on a turning ring), the ninja cats in a violet aura
-// with afterimages, speed lines and a long headband, a crescent and a cross
-// at each slash. The skill over the screen: 탱탱 메테오 (a mark on the ground,
+// (A: the shield balls on a turning ring); the ninja cats never seen
+// running: at each of their slashes a samurai cat with a sword and a long
+// headband sweeps across the monster with a few afterimages and is gone, a
+// crescent and a cross over it. The skill over the screen: 탱탱 메테오 (a mark on the ground,
 // a burning ball falling on it, a blast) or 그림자 분신 (a shadow ninja out of
 // a puff, a big X). The 전투력 level shows in the colours (red → gold →
 // violet → all colours), the size (zyo.js growth) and more sparks; a level
@@ -20,6 +21,8 @@ import { classLevel, growth } from './zyo.js'
 const NOTE_COLORS = ['#ff5f8f', '#ffb547', '#6fd389', '#5fb8ff', '#b88bff', '#ff8a5c']
 const WARP = ['rgba(120, 90, 255, ', 'rgba(70, 220, 255, ']
 const SLASH = 0.24 // s a slash's crescent shows
+const STRIKE = 0.32 // s a ninja's blow shows: the samurai cat sweeping past
+const MAX_STRIKES = 14
 const MAX_SLASHES = 16
 const MAX_PARTS = 160
 const MAX_IMPACTS = 10
@@ -54,6 +57,7 @@ const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
 
 export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font }) {
   const slashes = [] // { x, y, r, a, t, c }
+  const strikes = [] // the ninjas' blows: { x, y, face, reach, t, c, L, G, id }
   const rings = [] // { x, y, r, t, life, c, w }
   const words = [] // { x, y, text, t, life, c, big }
   const parts = [] // { x, y, vx, vy, t, life, s, c, g }
@@ -291,8 +295,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     const L = classLevel(run)
     const c = tierColor(L, now)
     const G = growth(run)
-    if (C.form === 'ninja') for (const u of C.units) glow(u.x, u.y - 6, 22 * G, [150, 80, 255], 0.35)
-    else for (const u of C.units) glow(u.x, u.y - lift, run.D.balance.zyo.ball.radius * 2 * G, c, 0.28 + 0.08 * Math.sin(now / 120 + u.id))
+    if (C.form !== 'ninja') for (const u of C.units) glow(u.x, u.y - lift, run.D.balance.zyo.ball.radius * 2 * G, c, 0.28 + 0.08 * Math.sin(now / 120 + u.id))
   }
 
   // one giant ball: its trail, its glow, the ball, a turning shine, embers
@@ -352,41 +355,8 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       const G = growth(run)
       if (run.t >= C.fxEnd) {
         if (C.form === 'ball') for (const u of C.units) giant(run, u, Z.ball.radius * G, now, c, L, 'u' + u.id)
-        else
-          for (const u of C.units) {
-            // the afterimages and the speed lines behind it
-            world()
-            if (u.trail.length > 2) {
-              ctx.strokeStyle = 'rgba(170, 110, 255, 0.55)'
-              ctx.lineWidth = 3
-              ctx.beginPath()
-              ctx.moveTo(u.trail[0], u.trail[1] - 8)
-              for (let i = 2; i + 1 < u.trail.length; i += 2) ctx.lineTo(u.trail[i], u.trail[i + 1] - 8)
-              ctx.lineTo(u.x, u.y - 8)
-              ctx.stroke()
-            }
-            for (let i = 0; i + 1 < u.trail.length; i += 2) {
-              ctx.globalAlpha = 0.12 + (0.25 * i) / u.trail.length
-              drawFriend({ x: u.trail[i], y: u.trail[i + 1], size: 1.15 * G, mode: 'move', step: 0, moving: true, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
-            }
-            ctx.globalAlpha = 1
-            const moving = u.trail.length > 0
-            drawFriend({ x: u.x, y: u.y, size: 1.15 * G, mode: u.slash > 0 ? 'attack' : 'move', atk: 0.16 - u.slash, atkDur: 0.16, step: now / 8, moving, dir: 'e', face: u.face, id: u.id, rec: 0 }, now)
-            // the headband: the level's colour, its tails flying long behind
-            world()
-            ctx.strokeStyle = rgba(L >= 3 ? c : [214, 58, 58], 1)
-            ctx.lineWidth = 2.4
-            const hx = u.x + u.face * 1
-            const hy = u.y - 15 * G
-            const tail = 16 + (moving ? 8 : 0) + L
-            ctx.beginPath()
-            ctx.moveTo(hx - 5, hy)
-            ctx.lineTo(hx + 5, hy)
-            ctx.moveTo(hx - u.face * 5, hy)
-            ctx.quadraticCurveTo(hx - u.face * tail * 0.6, hy - 4 + Math.sin(now / 70 + u.id) * 3, hx - u.face * tail, hy + 1 + Math.sin(now / 90 + u.id) * 2)
-            ctx.stroke()
-            if (Math.random() < (0.2 + L * 0.03) * budget) spark(u.x + (Math.random() - 0.5) * 14, u.y - 6, 0, -40, 0.45, 2, [170, 110, 255], -30)
-          }
+        // (the ninja cats are never seen running: each of their blows shows
+        // as a samurai cat sweeping past the monster, below)
         if (C.shield.length) {
           world()
           const p = run.player
@@ -490,6 +460,63 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       ctx.globalAlpha = 1
       world()
     }
+    // the ninjas' blows: a samurai cat sweeping across the monster, sword
+    // swinging, a few afterimages behind it, there a moment and gone
+    for (let i = strikes.length - 1; i >= 0; i--) {
+      const st = strikes[i]
+      st.t += dt
+      if (st.t >= STRIKE) {
+        strikes.splice(i, 1)
+        continue
+      }
+      const k = st.t / STRIKE
+      // (across it fast, then a short pose, fading)
+      const at = (q) => st.x + st.face * st.reach * (Math.min(1, Math.max(0, q) / 0.45) * 2 - 1)
+      const fade = k < 0.12 ? k / 0.12 : k > 0.6 ? (1 - k) / 0.4 : 1
+      for (let j = 3; j >= 0; j--) {
+        const q = k - j * 0.07
+        if (q < 0) continue
+        ctx.globalAlpha = fade * (j ? 0.32 - j * 0.08 : 1)
+        drawFriend({ x: at(q), y: st.y, size: 1.15 * st.G, mode: 'attack', atk: Math.min(0.15, q * 0.4), atkDur: 0.16, step: 0, moving: false, dir: 'e', face: st.face, id: st.id, rec: 0 }, now)
+      }
+      world()
+      // the sword: a long blade from its paws, swung through the monster
+      const x = at(k)
+      const y = st.y - 12 * st.G
+      const sw = -1.1 + 2.0 * Math.min(1, k / 0.5)
+      const a = st.face > 0 ? sw : Math.PI - sw
+      const L = 30 * st.G
+      ctx.globalAlpha = fade
+      ctx.lineCap = 'round'
+      ctx.strokeStyle = rgba(st.c, 0.55)
+      ctx.lineWidth = 6
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L)
+      ctx.stroke()
+      ctx.strokeStyle = '#f4f6ff'
+      ctx.lineWidth = 2.4
+      ctx.stroke()
+      ctx.strokeStyle = '#3a2a1e'
+      ctx.lineWidth = 3.4
+      ctx.beginPath()
+      ctx.moveTo(x - Math.cos(a) * 5, y - Math.sin(a) * 5)
+      ctx.lineTo(x + Math.cos(a) * 3, y + Math.sin(a) * 3)
+      ctx.stroke()
+      // its headband, the tails flying behind
+      ctx.strokeStyle = rgba(st.L >= 3 ? st.c : [214, 58, 58], 1)
+      ctx.lineWidth = 2.2
+      const hx = x
+      const hy = st.y - 15 * st.G
+      ctx.beginPath()
+      ctx.moveTo(hx - 5, hy)
+      ctx.lineTo(hx + 5, hy)
+      ctx.moveTo(hx - st.face * 5, hy)
+      ctx.quadraticCurveTo(hx - st.face * 14, hy - 4, hx - st.face * 22, hy + 1)
+      ctx.stroke()
+      ctx.lineCap = 'butt'
+    }
+    ctx.globalAlpha = 1
     // the slashes: a bright crescent and a crossing one
     for (let i = slashes.length - 1; i >= 0; i--) {
       const s = slashes[i]
@@ -628,6 +655,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     const now = performance.now()
     if (ev.type === 'slash') {
       if (slashes.length < MAX_SLASHES) slashes.push({ x: ev.x, y: ev.y, r: ev.r, a: Math.random() * TAU, t: 0, c: tierColor(classLevel(run), now) })
+      if (strikes.length < MAX_STRIKES * budget) strikes.push({ x: ev.x, y: ev.y, face: ev.face || 1, reach: ev.r * 0.9 + 10, t: 0, c: tierColor(classLevel(run), now), L: classLevel(run), G: growth(run), id: strikes.length })
       burst(ev.x, ev.y - 8, 4, 90, [200, 160, 255], 0.3)
     } else if (ev.type === 'hit' && (ev.by === 'giant' || ev.by === 'shield') && impacts < MAX_IMPACTS) {
       // a giant ball's blow: a small shock ring and sparks
@@ -691,7 +719,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   }
 
   const reset = () => {
-    for (const a of [slashes, rings, words, parts, meteors, clones, flashes, scorches, puffs]) a.length = 0
+    for (const a of [slashes, strikes, rings, words, parts, meteors, clones, flashes, scorches, puffs]) a.length = 0
     trails.clear()
   }
   return { shadows, under, over, event, reset }
