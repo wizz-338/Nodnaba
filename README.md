@@ -38,7 +38,7 @@ npm run preview  # 빌드 결과 미리보기
 
 ## 링크
 
-- X: https://x.com/readevism (`src/components/Footer.jsx`의 `X_URL`)
+- YouTube: https://youtube.com/@zyo_musix (`src/components/Footer.jsx`의 `YOUTUBE_URL`)
 
 ## MANO RUN (미니게임)
 
