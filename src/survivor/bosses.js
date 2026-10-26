@@ -197,7 +197,7 @@ export function bossSkills(D, btype, type, chapter) {
 }
 
 // (the numbers that count things: whole)
-const COUNTS = new Set(['count', 'waves', 'bursts', 'shots', 'arms', 'salvos', 'ring', 'gap', 'reach', 'sweepDeg'])
+const COUNTS = new Set(['count', 'waves', 'bursts', 'shots', 'arms', 'salvos', 'ring', 'gap', 'reach'])
 
 // one of its skills as an attack (plan's spec): the skill's numbers at the
 // chapter's tier (each `per` a tier added), its warning never under minWarn,
@@ -564,22 +564,17 @@ function plan(run, e, spec, at0 = 0) {
       endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
       break
     }
-    case 'beam': {
-      // a beam that swings round it: narrow fans side by side, each striking
-      // `step` s after the last, `sweepDeg` in all through where Mano is (a
-      // swing, then, at `back`, the same swing back)
-      const width = (spec.widthDeg * Math.PI) / 180
-      const n = Math.max(2, Math.round(spec.sweepDeg / spec.widthDeg))
-      const turn = rnd() < 0.5 ? -1 : 1
-      const toMano = Math.atan2(uy, ux)
-      const from = toMano - (turn * (n - 1) * width) / 2
-      const legs = spec.back ? 2 : 1
-      for (let l = 0; l < legs; l++)
-        for (let k = 0; k < n; k++) {
-          const i = l ? n - 1 - k : k
-          put({ kind: 'cone', x: e.x, y: e.y, dir: from + turn * i * width, angle: width * 1.05, range: far, inner: e.r, damage: dmg(spec.damage), beam: true }, warn + (l * n + k) * spec.step + l * (spec.back || 0))
-        }
-      endAt = warn + (legs * n - 1) * spec.step + (spec.back || 0) * (legs - 1) + (spec.recover ?? X.recover)
+    case 'lances': {
+      // lances out of it across the whole area, one after another, each
+      // aimed where Mano is when it shows (a step aside clears it; the next
+      // one follows her)
+      for (let k = 0; k < spec.count; k++)
+        at(k * spec.step, (run, e) => {
+          const q = run.player
+          const a = Math.atan2(q.y - e.y, q.x - e.x)
+          hazard(run, e, { kind: 'line', x: e.x, y: e.y, dx: Math.cos(a), dy: Math.sin(a), len: far, half: spec.width / 2, damage: dmg(spec.damage), blade: true, lance: true }, warn)
+        })
+      endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
       break
     }
     case 'slam': {

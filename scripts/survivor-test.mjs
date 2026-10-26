@@ -1461,6 +1461,18 @@ const still = { x: 0, y: 0 }
   ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
 }
 
+// ── no swinging beam (it could not be dodged: asked for); the lances that
+// replaced it are cleared by a step aside in their warning ───────────────────
+{
+  const all = []
+  const walk = (a) => (a.type === 'combo' ? a.parts.forEach(walk) : all.push(a))
+  for (const b of Object.values(B.extraBosses.bosses)) for (const ph of b.phases) ph.attacks.forEach(walk)
+  for (const k of Object.keys(B.bossSkills.skills)) all.push(bossSkill(D, k, 35, B.enemies.boss))
+  const lances = all.filter((a) => a.type === 'lances')
+  const step = (a) => a.warn * B.player.speed
+  ok(!all.some((a) => a.type === 'beam') && lances.length > 0 && lances.every((a) => step(a) > a.width / 2 + B.player.hitRadius + 10), `no swinging beam left anywhere; ${lances.length} lances attacks, each cleared by a step aside before it lands (at least ${Math.min(...lances.map(step)).toFixed(0)} px of walking in its warning, it is ${Math.max(...lances.map((a) => a.width))} px wide)`)
+}
+
 // ── the ordinary bosses' skills (balance.json → bossSkills) ──────────────
 {
   const S = B.bossSkills

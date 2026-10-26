@@ -770,7 +770,7 @@
         "dash",
         "cross",
         "stalk",
-        "beam"
+        "lances"
       ],
       "B": [
         "nova",
@@ -783,7 +783,7 @@
         "volley",
         "snipe",
         "nova",
-        "beam",
+        "lances",
         "homing"
       ],
       "D": [
@@ -957,23 +957,21 @@
           "seconds": 0.1
         }
       },
-      "beam": {
-        "type": "beam",
+      "lances": {
+        "type": "lances",
         "warn": 1.0,
-        "widthDeg": 14,
-        "sweepDeg": 100,
-        "step": 0.07,
-        "back": 0,
+        "count": 2,
+        "width": 36,
+        "step": 0.5,
         "hit": 0.8,
         "per": {
-          "sweepDeg": 10,
-          "back": 0.06
+          "count": 0.5
         }
       }
     }
   },
   "extraBosses": {
-    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (18, from 15 for a longer fight with more of its phases; 15 was six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart), volley (fans of `shots` shots at Mano, `bursts` of them `step` s apart, each aimed where she is when its thin lanes show, laneWarn s before), spiral (`arms` streams of shots wheeling out of it, one each `every` s for `seconds`, turning spin rad/s; twin: a second wheel the other way), dash (it charges straight through where Mano is to the area's edge: the lane warned, the blow along it as it runs, `count` times from where each ends), rain (circles over the area in quick turns: where Mano is, where she is heading, then spread), cross (a + then an × through where she is, across the whole area, `count` in turn). Shots are many small blows (about half a blast each); shot: the look of its shots. walk: s between attacks; recover: s after one. nova (rings of shots all round it, `waves` of `count`, each turned half a step), homing (orbs thrown out wide that turn toward Mano at most turn rad/s for seek s), cage (a ring of blows round Mano with `gap` places left open, then its inside after `after` s), stalk (circles that follow her, each where she is and lead s ahead), beam (narrow fans side by side in turn: a beam swinging sweepDeg through her, and back after `back` s). phases (scripts/survivor-extra-bosses.py): every boss's attack lists by the HP share left (above): four phases, its own attack and three more from the start, a fourth and two-part combos below 75%, a fifth below 50%, only three-part combos close together below 25%, walking less each time; harder each episode (asked for twice: much harder, many more patterns); the last boss: five phases, every kind of attack, three-part combos at the end. Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4 (then ×2 again: the attacks that show their safe gaps in green fly twice as fast, asked for), combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
+    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (18, from 15 for a longer fight with more of its phases; 15 was six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart), volley (fans of `shots` shots at Mano, `bursts` of them `step` s apart, each aimed where she is when its thin lanes show, laneWarn s before), spiral (`arms` streams of shots wheeling out of it, one each `every` s for `seconds`, turning spin rad/s; twin: a second wheel the other way), dash (it charges straight through where Mano is to the area's edge: the lane warned, the blow along it as it runs, `count` times from where each ends), rain (circles over the area in quick turns: where Mano is, where she is heading, then spread), cross (a + then an × through where she is, across the whole area, `count` in turn). Shots are many small blows (about half a blast each); shot: the look of its shots. walk: s between attacks; recover: s after one. nova (rings of shots all round it, `waves` of `count`, each turned half a step), homing (orbs thrown out wide that turn toward Mano at most turn rad/s for seek s), cage (a ring of blows round Mano with `gap` places left open, then its inside after `after` s), stalk (circles that follow her, each where she is and lead s ahead), lances (`count` lances across the whole area out of it, one each `step` s, each aimed where Mano is when it shows: a step aside clears it; it replaced the swinging beam, which could not be dodged, asked for). phases (scripts/survivor-extra-bosses.py): every boss's attack lists by the HP share left (above): four phases, its own attack and three more from the start, a fourth and two-part combos below 75%, a fifth below 50%, only three-part combos close together below 25%, walking less each time; harder each episode (asked for twice: much harder, many more patterns); the last boss: five phases, every kind of attack, three-part combos at the end. Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4 (then ×2 again: the attacks that show their safe gaps in green fly twice as fast, asked for), combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
     "chapters": {
       "3": "x_snail",
       "5": "x_moth",
@@ -1456,12 +1454,11 @@
                 "damage": 24
               },
               {
-                "type": "beam",
-                "warn": 0.95,
-                "widthDeg": 12,
-                "sweepDeg": 130,
-                "step": 0.057,
-                "back": 0,
+                "type": "lances",
+                "warn": 0.9,
+                "count": 3,
+                "width": 40,
+                "step": 0.405,
                 "damage": 24
               },
               {
@@ -1523,12 +1520,11 @@
                     "damage": 24
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.95,
-                    "widthDeg": 12,
-                    "sweepDeg": 130,
-                    "step": 0.057,
-                    "back": 0,
+                    "type": "lances",
+                    "warn": 0.9,
+                    "count": 3,
+                    "width": 40,
+                    "step": 0.405,
                     "damage": 24
                   }
                 ]
@@ -1588,12 +1584,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.95,
-                    "widthDeg": 12,
-                    "sweepDeg": 140,
-                    "step": 0.054,
-                    "back": 0,
+                    "type": "lances",
+                    "warn": 0.9,
+                    "count": 4,
+                    "width": 40,
+                    "step": 0.39,
                     "damage": 24
                   }
                 ]
@@ -1704,12 +1699,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.95,
-                    "widthDeg": 12,
-                    "sweepDeg": 150,
-                    "step": 0.051,
-                    "back": 0,
+                    "type": "lances",
+                    "warn": 0.9,
+                    "count": 4,
+                    "width": 40,
+                    "step": 0.375,
                     "damage": 24
                   }
                 ]
@@ -1775,12 +1769,11 @@
                     "damage": 24
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.95,
-                    "widthDeg": 12,
-                    "sweepDeg": 150,
-                    "step": 0.051,
-                    "back": 0,
+                    "type": "lances",
+                    "warn": 0.9,
+                    "count": 4,
+                    "width": 40,
+                    "step": 0.375,
                     "damage": 24
                   },
                   {
@@ -2662,12 +2655,11 @@
                 "damage": 24
               },
               {
-                "type": "beam",
-                "warn": 0.91,
-                "widthDeg": 12,
-                "sweepDeg": 150,
-                "step": 0.051,
-                "back": 0,
+                "type": "lances",
+                "warn": 0.86,
+                "count": 4,
+                "width": 40,
+                "step": 0.375,
                 "damage": 24
               },
               {
@@ -2724,12 +2716,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.91,
-                    "widthDeg": 12,
-                    "sweepDeg": 150,
-                    "step": 0.051,
-                    "back": 0,
+                    "type": "lances",
+                    "warn": 0.86,
+                    "count": 4,
+                    "width": 40,
+                    "step": 0.375,
                     "damage": 24
                   }
                 ]
@@ -2782,12 +2773,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.91,
-                    "widthDeg": 12,
-                    "sweepDeg": 160,
-                    "step": 0.048,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.86,
+                    "count": 5,
+                    "width": 40,
+                    "step": 0.36,
                     "damage": 24
                   }
                 ]
@@ -2887,12 +2877,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.91,
-                    "widthDeg": 12,
-                    "sweepDeg": 170,
-                    "step": 0.045,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.86,
+                    "count": 5,
+                    "width": 40,
+                    "step": 0.345,
                     "damage": 24
                   }
                 ]
@@ -2951,12 +2940,11 @@
                     "damage": 11
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.91,
-                    "widthDeg": 12,
-                    "sweepDeg": 170,
-                    "step": 0.045,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.86,
+                    "count": 5,
+                    "width": 40,
+                    "step": 0.345,
                     "damage": 24
                   },
                   {
@@ -3788,12 +3776,11 @@
                 "damage": 24
               },
               {
-                "type": "beam",
-                "warn": 0.89,
-                "widthDeg": 12,
-                "sweepDeg": 150,
-                "step": 0.051,
-                "back": 0,
+                "type": "lances",
+                "warn": 0.84,
+                "count": 4,
+                "width": 40,
+                "step": 0.375,
                 "damage": 24
               },
               {
@@ -3857,12 +3844,11 @@
                 ]
               },
               {
-                "type": "beam",
-                "warn": 0.89,
-                "widthDeg": 12,
-                "sweepDeg": 160,
-                "step": 0.048,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.84,
+                "count": 5,
+                "width": 40,
+                "step": 0.36,
                 "damage": 24
               },
               {
@@ -3970,12 +3956,11 @@
                 ],
                 "parts": [
                   {
-                    "type": "beam",
-                    "warn": 0.89,
-                    "widthDeg": 12,
-                    "sweepDeg": 170,
-                    "step": 0.045,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.84,
+                    "count": 5,
+                    "width": 40,
+                    "step": 0.345,
                     "damage": 24
                   },
                   {
@@ -4094,12 +4079,11 @@
                     "damage": 24
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.89,
-                    "widthDeg": 12,
-                    "sweepDeg": 180,
-                    "step": 0.042,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.84,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.33,
                     "damage": 24
                   }
                 ]
@@ -4573,12 +4557,11 @@
                 "damage": 12
               },
               {
-                "type": "beam",
-                "warn": 0.87,
-                "widthDeg": 12,
-                "sweepDeg": 160,
-                "step": 0.048,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.82,
+                "count": 5,
+                "width": 40,
+                "step": 0.36,
                 "damage": 24
               },
               {
@@ -4646,12 +4629,11 @@
                 ]
               },
               {
-                "type": "beam",
-                "warn": 0.87,
-                "widthDeg": 12,
-                "sweepDeg": 170,
-                "step": 0.045,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.82,
+                "count": 5,
+                "width": 40,
+                "step": 0.345,
                 "damage": 24
               },
               {
@@ -4763,12 +4745,11 @@
                 ],
                 "parts": [
                   {
-                    "type": "beam",
-                    "warn": 0.87,
-                    "widthDeg": 12,
-                    "sweepDeg": 180,
-                    "step": 0.042,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.82,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.33,
                     "damage": 24
                   },
                   {
@@ -4888,12 +4869,11 @@
                     "damage": 24
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.87,
-                    "widthDeg": 12,
-                    "sweepDeg": 190,
-                    "step": 0.039,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.82,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.315,
                     "damage": 24
                   }
                 ]
@@ -5009,12 +4989,11 @@
                 "damage": 24
               },
               {
-                "type": "beam",
-                "warn": 0.85,
-                "widthDeg": 12,
-                "sweepDeg": 180,
-                "step": 0.042,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.8,
+                "count": 6,
+                "width": 40,
+                "step": 0.33,
                 "damage": 24
               },
               {
@@ -5071,12 +5050,11 @@
                     "damage": 12
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 180,
-                    "step": 0.042,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.33,
                     "damage": 24
                   }
                 ]
@@ -5128,12 +5106,11 @@
                     "damage": 28
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 190,
-                    "step": 0.039,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.315,
                     "damage": 24
                   }
                 ]
@@ -5235,12 +5212,11 @@
                     "damage": 28
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 200,
-                    "step": 0.036,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.3,
                     "damage": 24
                   }
                 ]
@@ -5301,12 +5277,11 @@
                     "damage": 12
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 200,
-                    "step": 0.036,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.3,
                     "damage": 24
                   },
                   {
@@ -5359,12 +5334,11 @@
                 "damage": 12
               },
               {
-                "type": "beam",
-                "warn": 0.85,
-                "widthDeg": 12,
-                "sweepDeg": 170,
-                "step": 0.045,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.8,
+                "count": 5,
+                "width": 40,
+                "step": 0.345,
                 "damage": 24
               },
               {
@@ -5434,12 +5408,11 @@
                 ]
               },
               {
-                "type": "beam",
-                "warn": 0.85,
-                "widthDeg": 12,
-                "sweepDeg": 180,
-                "step": 0.042,
-                "back": 0.3,
+                "type": "lances",
+                "warn": 0.8,
+                "count": 6,
+                "width": 40,
+                "step": 0.33,
                 "damage": 24
               },
               {
@@ -5549,12 +5522,11 @@
                 ],
                 "parts": [
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 190,
-                    "step": 0.039,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 6,
+                    "width": 40,
+                    "step": 0.315,
                     "damage": 24
                   },
                   {
@@ -5667,12 +5639,11 @@
                     "damage": 24
                   },
                   {
-                    "type": "beam",
-                    "warn": 0.85,
-                    "widthDeg": 12,
-                    "sweepDeg": 200,
-                    "step": 0.036,
-                    "back": 0.3,
+                    "type": "lances",
+                    "warn": 0.8,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.3,
                     "damage": 24
                   }
                 ]
@@ -6330,12 +6301,11 @@
                 ]
               },
               {
-                "type": "beam",
+                "type": "lances",
                 "warn": 0.8,
-                "widthDeg": 12,
-                "sweepDeg": 220,
-                "step": 0.035,
-                "back": 0.3,
+                "count": 7,
+                "width": 40,
+                "step": 0.27,
                 "damage": 32
               }
             ]
@@ -6455,12 +6425,11 @@
                 ],
                 "parts": [
                   {
-                    "type": "beam",
+                    "type": "lances",
                     "warn": 0.8,
-                    "widthDeg": 12,
-                    "sweepDeg": 220,
-                    "step": 0.035,
-                    "back": 0.3,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.255,
                     "damage": 32
                   },
                   {
@@ -6591,12 +6560,11 @@
                     "damage": 14
                   },
                   {
-                    "type": "beam",
+                    "type": "lances",
                     "warn": 0.8,
-                    "widthDeg": 12,
-                    "sweepDeg": 220,
-                    "step": 0.035,
-                    "back": 0.3,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.24,
                     "damage": 32
                   }
                 ]
@@ -6767,12 +6735,11 @@
                 ],
                 "parts": [
                   {
-                    "type": "beam",
+                    "type": "lances",
                     "warn": 0.8,
-                    "widthDeg": 12,
-                    "sweepDeg": 220,
-                    "step": 0.035,
-                    "back": 0.3,
+                    "count": 7,
+                    "width": 40,
+                    "step": 0.225,
                     "damage": 32
                   },
                   {
