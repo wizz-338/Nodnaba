@@ -16,6 +16,8 @@ export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
 // the progress a backup import replaced, kept in case it was a mistake
 export const BEFORE_IMPORT_KEY = 'nodnaba:survivor:before-import'
+// the progress a reset (설정 → 진행 초기화) replaced, kept the same way
+export const BEFORE_RESET_KEY = 'nodnaba:survivor:before-reset'
 const GAME_ID = 'mano-survivor'
 export const SCHEMA = 2
 const KEEP_KEYS = 400
@@ -277,6 +279,24 @@ export function createProgress(D, storage) {
       return write(d)
     },
     available: !!storage,
+
+    // Start over (설정 → 진행 초기화): a new save as on the very first visit,
+    // only the sound setting kept. What it replaces is kept under
+    // BEFORE_RESET_KEY first, never thrown away.
+    resetAll() {
+      const sound = read().sound
+      if (storage) {
+        try {
+          const cur = storage.getItem(KEY)
+          if (cur) storage.setItem(BEFORE_RESET_KEY, cur)
+        } catch {
+          /* nowhere to keep it */
+        }
+      }
+      const d = fresh(D)
+      d.sound = sound
+      return write(d)
+    },
 
     // On opening the game: a run that never finished (page closed) ends;
     // everything already earned stays.

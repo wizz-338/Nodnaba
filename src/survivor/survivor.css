@@ -3360,3 +3360,34 @@
 .ms--pc .ms-reachguide--room {
   display: block;
 }
+
+/* 설정 → 진행 초기화: the warning before it, in red */
+.ms-reset__warn {
+  border-color: #e2564b;
+}
+
+.ms-reset__list {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.ms-reset__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.ms-reset__check input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  flex: none;
+}

@@ -3,7 +3,7 @@
 import { D } from './survivor-data.mjs'
 import { createRun, step, choose, reroll, makeTurret, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
-import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
+import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf } from '../src/survivor/bosses.js'
@@ -734,6 +734,27 @@ const still = { x: 0, y: 0 }
   ok(mem2.getItem(BEFORE_IMPORT_KEY) === before, 'the replaced progress is kept aside, not deleted')
   ok(mem.getItem('nodnaba:colony:save') === 'COLONY', "exporting never touches the other games' saves")
   ok(P2.savedAt() > 0, 'the last save time is known')
+}
+
+// 설정 → 진행 초기화: back to the first visit, the old progress kept aside
+{
+  const mem = new Mem()
+  mem.setItem('nodnaba:colony:save', 'COLONY')
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  Object.assign(d, { currency: 98765, unlockedChapter: 21, sound: false })
+  d.perma.damage = 40
+  d.cats.unlocked = true
+  mem.setItem(KEY, JSON.stringify(d))
+  const before = mem.getItem(KEY)
+  const ok1 = P.resetAll()
+  const now = P.get()
+  const first = createProgress(D, new Mem()).boot().data
+  ok(ok1 && now.currency === 0 && now.unlockedChapter === 1 && now.perma.damage === 0 && !now.cats.unlocked && now.inventory.length === first.inventory.length && now.sound === false, 'reset: coins, chapters, coin stats, the cats … all as on the first visit; only the sound setting kept')
+  ok(mem.getItem(BEFORE_RESET_KEY) === before && mem.getItem('nodnaba:colony:save') === 'COLONY', "reset: the progress it replaced is kept aside, not deleted; the other games' saves are untouched")
+  const again = createProgress(D, mem).boot().data
+  ok(again.currency === 0 && again.unlockedChapter === 1, 'reset: it stays reset after a reload')
 }
 
 // fuse everything at once
