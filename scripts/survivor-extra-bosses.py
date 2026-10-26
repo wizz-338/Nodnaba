@@ -187,6 +187,17 @@ for b in X['bosses'].values():
         ph['attacks'] = json.loads(json.dumps(ph['attacks']))
         for a in ph['attacks']: fast(a)
 
+# the last boss's rings and bands: ×LAST_WAVE faster again (asked for: in
+# chapter 35 the green-gap attacks pass quicker)
+LAST_WAVE = 1.5
+def last(a):
+    if a['type'] == 'combo':
+        for q in a['parts']: last(q)
+    elif a['type'] in ('ringwave', 'sweep'):
+        a['speed'] = round(a['speed'] * LAST_WAVE)
+for ph in E['phases']:
+    for a in ph['attacks']: last(a)
+
 json.dump(bal, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 open(p, 'a').write('\n')
 print('ok')
