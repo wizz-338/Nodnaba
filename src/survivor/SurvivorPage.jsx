@@ -12,7 +12,7 @@ import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { createRoom } from './room.js'
 import { roomTotal, roomProgress } from './room-items.js'
-import { testerStorage, setupTest, testTick, testPhase, skipPhase, testBosses, TEST_BUILDS, TEST_TIMES, TEST_PERMA, TEST_LEVEL } from './tester.js'
+import { testerStorage, setupTest, testTick, testPhase, skipPhase, testBosses, TEST_BUILDS, TEST_TIMES, TEST_PERMA, TEST_LEVEL, TEST_POWER } from './tester.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
@@ -969,7 +969,9 @@ function TesterLobby({ save, exitHref, last, onStart }) {
             </button>
           ))}
         </div>
-        <p className="ms-dim">전직 카드는 Lv.{TEST_LEVEL}에 골라요 (실제 게임에서 보통 전직하는 즈음). 카드 고르는 과정 없이 시작하자마자 WARNING이 뜨고 바로 특수보스전이에요.</p>
+        <p className="ms-dim">
+          전직 후 전직 카드(전투력)를 {TEST_POWER}번 고른 상태, 마노 Lv.{TEST_LEVEL}이에요 (나머지 레벨업은 치명타 피해·체력·방어·회복 등). 카드 고르는 과정 없이 시작하자마자 WARNING이 뜨고 바로 특수보스전이에요.
+        </p>
       </div>
       <div className="ms-panel">
         <p className="ms-sub">3. 보스 버티는 시간</p>

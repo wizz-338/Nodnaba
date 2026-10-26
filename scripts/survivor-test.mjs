@@ -12,7 +12,7 @@ import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '..
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 import { roomTotal, roomStage, roomProgress } from '../src/survivor/room-items.js'
-import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, TEST_PERMA, TEST_LEVEL } from '../src/survivor/tester.js'
+import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, TEST_PERMA, TEST_LEVEL, TEST_POWER } from '../src/survivor/tester.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -2969,6 +2969,7 @@ const still = { x: 0, y: 0 }
   for (const k of ['A', 'D']) {
     const run = fight(k, 10, 60)
     const lv = run.level
+    const power = run.picks.power || 0
     const atOnce = run.extra && run.extra.phase === 'calm' && run.state === 'play' && !run.choices
     const seen = []
     const phases = new Set()
@@ -2992,7 +2993,7 @@ const still = { x: 0, y: 0 }
       run.events.length = 0
     }
     const took = run.t - start
-    ok(run.cls && run.cls.k === k && lv === TEST_LEVEL && atOnce && onBoss && seen.join() === 'extra,fit' && phases.size === 4 && run.result.cleared && took > 50 && took < 90, `tester: class ${k} made at Lv.${lv}; the special boss's turn has begun when the test starts (no card to choose), it comes and lasts ${took.toFixed(0)} s (asked: 60), through all ${phases.size} phases, then the clear; with nothing else to hit, all its ${run.cls.units.length} ${run.cls.form === 'ball' ? 'giant balls' : 'ninjas'} go at the boss (none left idling by Mano)`)
+    ok(run.cls && run.cls.k === k && lv === TEST_LEVEL && power === TEST_POWER && atOnce && onBoss && seen.join() === 'extra,fit' && phases.size === 4 && run.result.cleared && took > 50 && took < 90, `tester: class ${k}, its growth card picked ${power} times, Mano Lv.${lv}; the special boss's turn has begun when the test starts (no card to choose), it comes and lasts ${took.toFixed(0)} s (asked: 60), through all ${phases.size} phases, then the clear; with nothing else to hit, all its ${run.cls.units.length} ${run.cls.form === 'ball' ? 'giant balls' : 'ninjas'} go at the boss (none left idling by Mano)`)
   }
   {
     const run = fight('C', 35, 0)

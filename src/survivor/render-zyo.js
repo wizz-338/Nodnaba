@@ -306,7 +306,9 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   // always seen (asked for: a ball by her hid her in a boss's pattern)
   function giant(run, u, r, now, c, L, key) {
     const p = run.player
-    const A = Math.hypot(u.x - p.x, u.y - p.y) < r + 26 ? 0.3 : 1
+    // (회전 방어막's balls round her: half see-through in a special boss's
+    // fight, so the shots coming at her through them are seen)
+    const A = Math.hypot(u.x - p.x, u.y - p.y) < r + 26 ? 0.3 : key[0] === 's' && run.extra && run.extra.boss ? 0.55 : 1
     let tr = trails.get(key)
     if (!tr) trails.set(key, (tr = []))
     tr.push(u.x, u.y)
