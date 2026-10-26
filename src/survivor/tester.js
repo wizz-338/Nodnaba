@@ -5,18 +5,19 @@
 //
 // A test: Mano with high coin stats (이동 속도 and 치명타 확률 at their top),
 // an SSS ball, every companion; a class change already made (one of the four:
-// two of the ball, two of the cats) at level 15; the chosen boss's chapter
-// run straight to its boss, which falls at once, so the special boss's
-// WARNING comes as soon as the test starts. Its fight lasts about the chosen time (its guard: it
+// two of the ball, two of the cats) with its growth card picked 15 times,
+// Mano at Lv.45; the chosen boss's chapter run straight to its boss, which
+// falls at once, so the special boss's WARNING comes as soon as the test
+// starts. Its fight lasts about the chosen time (its guard: it
 // loses at most 1/seconds of its HP a second; and its HP made what the build
 // takes in that time, once its first seconds have shown how hard the build
 // hits), and the tester's bar can
 // jump it to its next phase, make Mano unhurtable, or end the test.
-// Pure, but for the storage. The class change is made at Lv.15; the run
-// is played on (off screen, a moment) to the special boss's WARNING.
+// Pure, but for the storage. The run is played on (off screen, a moment) to
+// the special boss's WARNING.
 
 import { fresh, KEY } from './progress.js'
-import { choose, step, nextNeed, FIXED } from './game.js'
+import { choose, step, nextNeed, maxed, FIXED } from './game.js'
 import { CLASS_CARDS } from './zyo.js'
 
 // the coin stats of the test: high, 이동 속도 and 치명타 확률 at their top
@@ -81,18 +82,31 @@ export function buildPicks(D, k) {
 // the lowest level a build stands at once it is made
 export const buildLevel = (D, k) => 1 + buildPicks(D, k).length
 
-// the level the class change is made at in a test (asked for: about where a
-// player gets the class card in a real run)
-export const TEST_LEVEL = 15
+// where a test stands (asked for: about where a player is when it meets a
+// late special boss): the class's growth card (its 전투력, shown under the
+// class's name) picked TEST_POWER times, Mano at Lv.TEST_LEVEL, the other
+// level-ups on the cards a class keeps (KEEP_PICKS, by turns)
+export const TEST_POWER = 15
+export const TEST_LEVEL = 45
+const KEEP_PICKS = ['critDamage', 'maxHp', 'armor', 'regen', 'move', 'luck', 'critDamage', 'maxHp', 'regen', 'armor']
 
-// A run set up for the test: the build made (its cards, then the class card
-// at Lv.TEST_LEVEL), then straight on to the chapter's boss, which falls at
-// once, so that the special boss's WARNING is the first thing seen (no card
-// to choose on the way: the monsters met give nothing).
+// A run set up for the test: the build made (its cards, then its class
+// card), the growth card TEST_POWER times, the kept cards up to Lv.TEST_LEVEL;
+// then straight on to the chapter's boss, which falls at once, so that the
+// special boss's WARNING is the first thing seen (no card to choose on the
+// way: the monsters met give nothing).
 // test: { k, seconds, god }
 export function setupTest(run, test) {
   const D = run.D
-  for (const id of buildPicks(D, test.k)) pick(run, id)
+  const build = buildPicks(D, test.k)
+  for (const id of build) pick(run, id)
+  for (let i = 0; i < TEST_POWER; i++) pick(run, 'power')
+  for (let n = 1 + build.length + TEST_POWER, i = 0; n < TEST_LEVEL; i++) {
+    const id = KEEP_PICKS[i % KEEP_PICKS.length]
+    if (!run.pool.includes(id) || maxed(run, id)) continue
+    pick(run, id)
+    n++
+  }
   run.level = TEST_LEVEL
   run.xp = 0
   run.need = Infinity
