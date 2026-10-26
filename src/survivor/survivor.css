@@ -3297,3 +3297,56 @@
 .ms--pc .ms-stats-room .ms-stats-list {
   grid-template-columns: 1fr;
 }
+
+/* what each coin stat reaches (Stats): small chips under its numbers, and a
+   short guide under the list */
+.ms-reach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+  margin: 2px 0 0;
+  color: #5a3d2b;
+  font-size: 0.72rem;
+}
+
+.ms-reach > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ms-reach > span > b {
+  margin: 0 2px;
+  color: #8a6a4f;
+}
+
+.ms-reach > span.is-off {
+  opacity: 0.45;
+}
+
+.ms-reachguide {
+  padding: 8px 10px;
+  border: 2px dashed #c2a985;
+  border-radius: 8px;
+  color: #4a3528;
+  background: #fff6e0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.ms-reachguide__title {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+}
+
+.ms-reachguide ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.ms-reachguide .ms-sprite {
+  vertical-align: -2px;
+}

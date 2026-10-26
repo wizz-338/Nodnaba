@@ -1528,9 +1528,20 @@ function Room({ save, img, roomRef }) {
       <div className="ms-room__grow" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(P.share * 100)} aria-label="다음 성장 단계까지">
         <span style={{ width: `${P.share * 100}%` }} />
       </div>
-      <p className="ms-room__next">{P.next ? `다음 단계 「${P.next.name}」까지 강화 ${P.left}번 더 (모든 능력치 강화 횟수 합 ${total} / ${P.next.need})` : D.room.completeLine}</p>
+      <p className="ms-room__next">{P.next ? `다음 단계 「${P.next.name}」까지 강화 ${P.left}번 더 (모든 능력치 강화 횟수 합 ${total} / ${P.next.need})` : `${D.room.completeLine} (모든 능력치 강화 횟수 합 ${total})`}</p>
     </div>
   )
+}
+
+// what each coin stat reaches in a fight (game.js, friends.js): the ball and
+// the cats share 공격 피해, 공격 주기 and 치명타 확률, in the same proportion
+const STAT_REACH = {
+  hp: [['idle_s_0', '마노 체력']],
+  damage: [['ball', '탱탱볼 피해'], ['cat', '냥이 할퀴기 피해']],
+  move: [['idle_s_0', '마노 걷는 속도']],
+  interval: [['ball', '탱탱볼 던지는 간격'], ['cat', '냥이 할퀴는 간격']],
+  crit: [['ball', '탱탱볼'], ['cat', '냥이']],
+  coins: [['coin', '판에서 받는 코인']],
 }
 
 function Stats({ save, img, onBuy }) {
@@ -1562,6 +1573,15 @@ function Stats({ save, img, onBuy }) {
                   {s.name} <small>Lv.{L}</small>
                 </p>
                 <p className="ms-dim">{atMax ? `${now} (최대)` : `${now} → ${next}`}</p>
+                <p className="ms-reach">
+                  {STAT_REACH[k].map(([icon, text], i) => (
+                    <span key={icon} className={icon === 'cat' && !save.cats.unlocked ? 'is-off' : ''}>
+                      {i > 0 && <b>+</b>}
+                      <Sprite name={icon === 'cat' ? 'cat_hodu_r_0' : icon} size={14} />
+                      {text}
+                    </span>
+                  ))}
+                </p>
               </div>
               <button
                 type="button"
@@ -1590,6 +1610,21 @@ function Stats({ save, img, onBuy }) {
         })}
       </ul>
       {msg && <p className="ms-ok">{msg}</p>}
+      <div className="ms-reachguide">
+        <p className="ms-reachguide__title">마노 강화는 어디에 들어가요?</p>
+        <ul>
+          <li>
+            <b>공격 피해 · 공격 주기 · 치명타 확률</b>은 <Sprite name="ball" size={14} /> 탱탱볼과 <Sprite name="cat_hodu_r_0" size={14} /> 친구냥이에 <b>같은 비율로 함께</b> 들어가요. 예) 공격 피해 ×{D.balance.perma.stats.damage.mul} → 탱탱볼도 냥이도 {Math.round((D.balance.perma.stats.damage.mul - 1) * 100)}% 더 아프게
+          </li>
+          <li>
+            <b>판 안의 카드는 따로</b>예요. 탱탱볼 카드는 탱탱볼만, 냥이 카드는 냥이만 세져요.
+          </li>
+          <li>
+            <b>전직</b>하면 그때까지의 탱탱볼 + 냥이 힘이 전직 공격으로 넘어가요. 그래서 마노 강화는 전직 뒤에도 그대로 도움이 돼요.
+          </li>
+          {!save.cats.unlocked && <li>친구냥이는 5장을 처음 깨면 합류해요. 그 전에는 냥이 쪽 효과가 쓰이지 않아요.</li>}
+        </ul>
+      </div>
       <p className="ms-dim">
         치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요. 치명타 확률이 {pctOf(D.balance.perma.stats.crit.max)}가 되면 판 안에서 치명타 확률 카드가 더는 나오지 않아요.
       </p>

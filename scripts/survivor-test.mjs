@@ -2901,7 +2901,7 @@ const still = { x: 0, y: 0 }
   ok(Object.keys(B.perma.stats).every((k) => R.reactions[k]), 'room: Mano has a line for every coin stat')
   ok(roomTotal({}) === 0 && roomTotal({ hp: 3, damage: 2, crit: 0, junk: -4, bad: NaN }) === 5, 'room: the levels added up (bad numbers count as 0)')
   // an old save with levels: its stage at once
-  ok(roomStage(D, roomTotal({ hp: 66, damage: 68, move: 10, interval: 68, crit: 40, coins: 8 })) === 4, 'room: a save that already has 260 levels opens on stage 5')
+  ok(roomStage(D, roomTotal({ hp: 66, damage: 68, move: 10, interval: 68, crit: 40, coins: 8 })) === 3 && roomStage(D, 400) === 4 && roomStage(D, 509) === 4, 'room: a save that already has 260 levels opens on stage 4; 400 levels (about chapter 25) is stage 5, not yet complete')
   // the room is made from the save, never kept in it, and changes no number
   const mem = new Mem()
   const P = createProgress(D, mem)

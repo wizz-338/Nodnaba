@@ -30,12 +30,13 @@ DATA = os.path.join(ROOT, 'src', 'survivor', 'data', 'room.json')
 SIZE = (1672, 941)
 # each pose: its file, the picture's name, and how tall (or wide) it shows in
 # the room (room pixels): Mano sits a little lower than she stands (about 180
-# in the room); the cats about two thirds of her, as in the fight
+# in the room); the cats about half of her (asked for: smaller than in the
+# fight, where they are two thirds)
 POSES = [
     ('mano.png', 'mano_sit', ('h', 162)),
-    ('danchu.png', 'danchu_play', ('h', 120)),
-    ('hodu.png', 'hodu_belly', ('h', 110)),
-    ('moru.png', 'moru_sleep', ('w', 158)),
+    ('danchu.png', 'danchu_play', ('h', 86)),
+    ('hodu.png', 'hodu_belly', ('h', 80)),
+    ('moru.png', 'moru_sleep', ('w', 114)),
 ]
 KEEP = 2  # stored at twice its size in the room (sharp on a dense screen)
 
