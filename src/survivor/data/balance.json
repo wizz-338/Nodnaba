@@ -6160,7 +6160,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.552,
-                "speed": 420,
+                "speed": 630,
                 "width": 36,
                 "gaps": 1,
                 "gapDeg": 49,
@@ -6182,7 +6182,7 @@
                 "type": "sweep",
                 "warn": 0.552,
                 "width": 84,
-                "speed": 570,
+                "speed": 855,
                 "gaps": 1,
                 "gap": 83,
                 "damage": 32
@@ -6232,7 +6232,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.552,
-                    "speed": 420,
+                    "speed": 630,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6276,7 +6276,7 @@
                     "type": "sweep",
                     "warn": 0.552,
                     "width": 84,
-                    "speed": 570,
+                    "speed": 855,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
@@ -6321,7 +6321,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.552,
-                    "speed": 420,
+                    "speed": 630,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6354,7 +6354,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.552,
-                    "speed": 420,
+                    "speed": 630,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6376,7 +6376,7 @@
                     "type": "sweep",
                     "warn": 0.552,
                     "width": 84,
-                    "speed": 570,
+                    "speed": 855,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
@@ -6497,7 +6497,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.552,
-                    "speed": 420,
+                    "speed": 630,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6534,7 +6534,7 @@
                     "type": "sweep",
                     "warn": 0.552,
                     "width": 84,
-                    "speed": 570,
+                    "speed": 855,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
@@ -6570,7 +6570,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.55,
-                    "speed": 462,
+                    "speed": 693,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6671,7 +6671,7 @@
                     "type": "sweep",
                     "warn": 0.552,
                     "width": 84,
-                    "speed": 570,
+                    "speed": 855,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
@@ -6695,7 +6695,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.55,
-                    "speed": 462,
+                    "speed": 693,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6717,7 +6717,7 @@
                     "type": "sweep",
                     "warn": 0.55,
                     "width": 84,
-                    "speed": 627,
+                    "speed": 940,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
@@ -6786,7 +6786,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.55,
-                    "speed": 462,
+                    "speed": 693,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 49,
@@ -6847,7 +6847,7 @@
                     "type": "sweep",
                     "warn": 0.55,
                     "width": 84,
-                    "speed": 627,
+                    "speed": 940,
                     "gaps": 1,
                     "gap": 83,
                     "damage": 32
