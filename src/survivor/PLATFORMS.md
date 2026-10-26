@@ -62,9 +62,9 @@ only in its platform-specific part.
   and the room show the same Mano.
 - `tester.js` — the special-boss tester, at `#/game/mano-survivor-test`
   (phone) and `#/game/mano-survivor-pc-test` (PC), in no menu: pick a
-  special boss, a class change (two of the ball, two of the cats) and its
-  level, how long the boss lasts; the fight starts at the chapter's boss,
-  which falls at once. Its save is in memory only (`testerStorage`): the
+  special boss, a class change (two of the ball, two of the cats; made at
+  Lv.15), how long the boss lasts; the test starts at the special boss's
+  WARNING (no card to choose on the way). Its save is in memory only (`testerStorage`): the
   real save is never read or written. Its lobby and bar are in
   `SurvivorPage.jsx` (`TesterLobby`, `TesterBar`).
 - `perma.js` — the coin stats' numbers and prices (the shop and the run):

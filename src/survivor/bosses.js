@@ -621,12 +621,101 @@ function plan(run, e, spec, at0 = 0) {
 }
 
 // one of an extra boss's own shots, at angle a, of `damage` (already capped)
-// (more: { turn, seek } for a seeking orb)
+// (more: { turn, seek } for a seeking orb). An extra boss's shots look and
+// fly its own way (balance.json → extraBosses.bosses[*].shot, shotMove:
+// shotMove below)
 function bullet(run, e, a, spec, damage, more = null) {
   const dx = Math.cos(a)
   const dy = Math.sin(a)
-  const kind = spec.look || (e.extra && run.D.balance.extraBosses.bosses[e.extra].shot) || 'spark'
-  run.shots.push({ owner: e.id, x: e.x + dx * e.r * 0.6, y: e.y + dy * e.r * 0.6, vx: dx * spec.speed, vy: dy * spec.speed, r: spec.r, damage, ttl: spec.ttl ?? 5, kind, ...more })
+  const B = e.extra && run.D.balance.extraBosses.bosses[e.extra]
+  const kind = spec.look || (B && B.shot) || 'spark'
+  let mv = !more && B && B.shotMove
+  if (mv && mv.type === 'mix') mv = mv.of[Math.floor(run.rng() * mv.of.length)]
+  // (every other one turns the other way)
+  const side = (e.shotNo = (e.shotNo || 0) + 1) % 2 ? 1 : -1
+  run.shots.push({ owner: e.id, x: e.x + dx * e.r * 0.6, y: e.y + dy * e.r * 0.6, vx: dx * spec.speed, vy: dy * spec.speed, r: spec.r, damage, ttl: spec.ttl ?? 5, kind, age: 0, sp: spec.speed, mv: mv || null, side, ...more })
+}
+
+// how an extra boss's shot flies, each step before it moves (s.mv; fair as
+// any shot: it is always seen, and hurts as any other). Returns the shots
+// it splits into, if it does
+function shotMove(run, s, dt) {
+  const m = s.mv
+  const age = (s.age += dt)
+  const turnBy = (a) => {
+    const c = Math.cos(a)
+    const n = Math.sin(a)
+    ;[s.vx, s.vy] = [s.vx * c - s.vy * n, s.vx * n + s.vy * c]
+  }
+  const setSpeed = (v) => {
+    const d = Math.hypot(s.vx, s.vy) || 1
+    s.vx = (s.vx / d) * v
+    s.vy = (s.vy / d) * v
+  }
+  switch (m.type) {
+    case 'curve':
+      turnBy(m.turn * s.side * dt)
+      break
+    case 'accel':
+    case 'decel':
+      setSpeed(s.sp * (m.from + (m.to - m.from) * Math.min(1, age / m.over)))
+      break
+    case 'wave': {
+      // side to side about its straight line
+      const d = Math.hypot(s.vx, s.vy) || 1
+      const w = m.amp * Math.PI * 2 * m.freq * Math.cos(age * Math.PI * 2 * m.freq) * s.side * dt
+      s.x += (-s.vy / d) * w
+      s.y += (s.vx / d) * w
+      break
+    }
+    case 'return':
+      if (!s.back && age >= m.at) (s.back = true), turnBy(Math.PI)
+      break
+    case 'zigzag':
+      if (age >= (s.zig ?? m.every)) (s.zig = age + m.every), turnBy(((m.deg * Math.PI) / 180) * (s.side = -s.side))
+      break
+    case 'turn':
+      if (!s.turned && age >= m.at) (s.turned = true), turnBy(((m.deg * Math.PI) / 180) * s.side)
+      break
+    case 'tick':
+      // stops a moment every so often, then goes on as it was
+      if ((age % m.every) > m.every - m.hold) return (s.held = true), null
+      s.held = false
+      break
+    case 'retarget':
+      // stops, then flies at where Mano is now
+      if (age >= m.at && age < m.at + m.hold) return (s.held = true), null
+      if (age >= m.at + m.hold && !s.aimed) {
+        s.aimed = true
+        s.held = false
+        const p = run.player
+        const d = Math.hypot(p.x - s.x, p.y - s.y) || 1
+        s.vx = ((p.x - s.x) / d) * s.sp
+        s.vy = ((p.y - s.y) / d) * s.sp
+      }
+      break
+    case 'bounce': {
+      const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
+      if (!s.bounced && (s.x < x0 + s.r || s.x > x1 - s.r)) (s.vx = -s.vx), (s.bounced = true)
+      if (!s.bounced && (s.y < y0 + s.r || s.y > y1 - s.r)) (s.vy = -s.vy), (s.bounced = true)
+      break
+    }
+    case 'split':
+      if (age >= m.at) {
+        // into n smaller ones, fanned out (360: all round)
+        const a0 = Math.atan2(s.vy, s.vx)
+        const spread = (m.spreadDeg * Math.PI) / 180
+        const full = m.spreadDeg >= 360
+        const out = []
+        for (let i = 0; i < m.n; i++) {
+          const a = full ? a0 + (i / m.n) * Math.PI * 2 : a0 + (m.n > 1 ? (i / (m.n - 1) - 0.5) * spread : 0)
+          out.push({ ...s, vx: Math.cos(a) * s.sp, vy: Math.sin(a) * s.sp, r: s.r * 0.75, damage: s.damage * 0.6, mv: null, age: 0 })
+        }
+        return out
+      }
+      break
+  }
+  return null
 }
 // (the ordinary bosses' shooter, type C, puts its lanes and shots here too: game.js)
 function shot(run, e, dx, dy, spec) {
@@ -668,6 +757,13 @@ export function updateHazards(run, dt, hurt) {
     const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
     const out = []
     for (const s of run.shots) {
+      if (s.mv) {
+        const parts = shotMove(run, s, dt)
+        if (parts) {
+          out.push(...parts)
+          continue
+        }
+      }
       if (s.seek > 0) {
         // a seeking orb turns toward Mano, at most `turn` rad/s
         s.seek -= dt
@@ -679,8 +775,10 @@ export function updateHazards(run, dt, hurt) {
         s.vx = Math.cos(a) * v
         s.vy = Math.sin(a) * v
       }
-      s.x += s.vx * dt
-      s.y += s.vy * dt
+      if (!s.held) {
+        s.x += s.vx * dt
+        s.y += s.vy * dt
+      }
       s.ttl -= dt
       if (s.ttl <= 0 || s.x < x0 - 30 || s.x > x1 + 30 || s.y < y0 - 30 || s.y > y1 + 30) continue
       if (live && (s.x - p.x) ** 2 + (s.y - p.y) ** 2 < (s.r + p.hitR) ** 2) {
