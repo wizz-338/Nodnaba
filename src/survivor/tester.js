@@ -5,17 +5,18 @@
 //
 // A test: Mano with high coin stats (이동 속도 and 치명타 확률 at their top),
 // an SSS ball, every companion; a class change already made (one of the four:
-// two of the ball, two of the cats) at about level 15; the chosen boss's
-// chapter run straight to its boss, which falls at once, so the special boss
-// comes as it would. Its fight lasts about the chosen time (its guard: it
+// two of the ball, two of the cats) at level 15; the chosen boss's chapter
+// run straight to its boss, which falls at once, so the special boss's
+// WARNING comes as soon as the test starts. Its fight lasts about the chosen time (its guard: it
 // loses at most 1/seconds of its HP a second; and its HP made what the build
 // takes in that time, once its first seconds have shown how hard the build
 // hits), and the tester's bar can
 // jump it to its next phase, make Mano unhurtable, or end the test.
-// Pure, but for the storage.
+// Pure, but for the storage. The class change is made at Lv.15; the run
+// is played on (off screen, a moment) to the special boss's WARNING.
 
 import { fresh, KEY } from './progress.js'
-import { choose } from './game.js'
+import { choose, step, nextNeed, FIXED } from './game.js'
 import { CLASS_CARDS } from './zyo.js'
 
 // the coin stats of the test: high, 이동 속도 and 치명타 확률 at their top
@@ -80,22 +81,43 @@ export function buildPicks(D, k) {
 // the lowest level a build stands at once it is made
 export const buildLevel = (D, k) => 1 + buildPicks(D, k).length
 
-// A run set up for the test: the build made (the class change done), the
-// class's growth card for the levels above that, the clock at the boss.
-// test: { k, level, seconds, god }
+// the level the class change is made at in a test (asked for: about where a
+// player gets the class card in a real run)
+export const TEST_LEVEL = 15
+
+// A run set up for the test: the build made (its cards, then the class card
+// at Lv.TEST_LEVEL), then straight on to the chapter's boss, which falls at
+// once, so that the special boss's WARNING is the first thing seen (no card
+// to choose on the way: the monsters met give nothing).
+// test: { k, seconds, god }
 export function setupTest(run, test) {
   const D = run.D
   for (const id of buildPicks(D, test.k)) pick(run, id)
-  const at = buildLevel(D, test.k)
-  for (let L = at; L < test.level; L++) if (run.pool.includes('power')) pick(run, 'power')
-  run.level = Math.max(at, test.level)
+  run.level = TEST_LEVEL
+  run.xp = 0
+  run.need = Infinity
   run.state = 'play'
   run.pending = 0
   run.choices = null
-  // straight to the chapter's boss (the elites before it skipped)
   run.t = Math.max(run.t, D.balance.chapter.events.find((e) => e.key === 'boss').at - 0.01)
   run.nextEvent = D.balance.chapter.events.findIndex((e) => e.key === 'boss')
   run.test = { ...test, killed: false, set: false }
+  // (on to the special boss's turn, Mano out of harm's way meanwhile)
+  const still = { x: 0, y: 0 }
+  // (stopping at its quiet moment: the WARNING itself, its banner and siren,
+  // play in the page as in a run; the step that began it keeps its events)
+  for (let i = 0; i < 60 * 10 && !run.extra; i++) {
+    run.events.length = 0
+    run.player.inv = 1
+    step(run, FIXED, still)
+    testTick(run)
+  }
+  run.player.inv = 0
+  run.player.hp = run.player.maxHp
+  // the experience a level from here would take, as in a run
+  let need = D.balance.xp.startThreshold
+  for (let L = 1; L < TEST_LEVEL; L++) need = nextNeed(D, need)
+  run.need = need
   return run
 }
 

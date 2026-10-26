@@ -295,26 +295,34 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     const L = classLevel(run)
     const c = tierColor(L, now)
     const G = growth(run)
-    if (C.form !== 'ninja') for (const u of C.units) glow(u.x, u.y - lift, run.D.balance.zyo.ball.radius * 2 * G, c, 0.28 + 0.08 * Math.sin(now / 120 + u.id))
+    // (faint over Mano: giant() below)
+    const p = run.player
+    const R = run.D.balance.zyo.ball.radius * G
+    if (C.form !== 'ninja') for (const u of C.units) glow(u.x, u.y - lift, R * 2, c, (0.28 + 0.08 * Math.sin(now / 120 + u.id)) * (Math.hypot(u.x - p.x, u.y - p.y) < R + 26 ? 0.3 : 1))
   }
 
-  // one giant ball: its trail, its glow, the ball, a turning shine, embers
+  // one giant ball: its trail, its glow, the ball, a turning shine, embers.
+  // Over Mano it is see-through, so she and the warnings round her are
+  // always seen (asked for: a ball by her hid her in a boss's pattern)
   function giant(run, u, r, now, c, L, key) {
+    const p = run.player
+    const A = Math.hypot(u.x - p.x, u.y - p.y) < r + 26 ? 0.3 : 1
     let tr = trails.get(key)
     if (!tr) trails.set(key, (tr = []))
     tr.push(u.x, u.y)
     if (tr.length > 14) tr.splice(0, 2)
     for (let i = 0; i + 1 < tr.length - 2; i += 2) {
       const k = i / tr.length
-      ctx.globalAlpha = 0.1 + 0.35 * k
+      ctx.globalAlpha = (0.1 + 0.35 * k) * A
       ctx.fillStyle = rgba(c, 1)
       ctx.beginPath()
       ctx.arc(tr[i], tr[i + 1] - lift, r * (0.45 + 0.5 * k), 0, TAU)
       ctx.fill()
     }
-    ctx.globalAlpha = 1
-    put('ball', u.x, u.y - lift, (r * 2) / 24)
+    ctx.globalAlpha = A
+    put('ball', u.x, u.y - lift, (r * 2) / 24, { alpha: A })
     world()
+    ctx.globalAlpha = A
     // the shine: a bright arc turning over the ball
     const a = now / 140 + (u.id || 0)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)'
@@ -339,7 +347,8 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       ctx.arc(x, y, 2.2, 0, TAU)
       ctx.fill()
     }
-    if (Math.random() < 0.35 * budget) spark(u.x + (Math.random() - 0.5) * r, u.y - lift + (Math.random() - 0.5) * r, (Math.random() - 0.5) * 30, -20 - Math.random() * 30, 0.5, 2 + L * 0.15, c, -20)
+    ctx.globalAlpha = 1
+    if (A === 1 && Math.random() < 0.35 * budget) spark(u.x + (Math.random() - 0.5) * r, u.y - lift + (Math.random() - 0.5) * r, (Math.random() - 0.5) * 30, -20 - Math.random() * 30, 0.5, 2 + L * 0.15, c, -20)
   }
 
   // the units, over the monsters

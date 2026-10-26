@@ -30,7 +30,32 @@ PLAN = {
     'x_clock': ['volley', 'beam', 'spiral', 'cage', 'cross'],
     'x_queen': ['volley', 'cage', 'cross', 'homing', 'spiral'],
 }
-SHOT = {'bell': 'spark', 'flower': 'seed', 'spore': 'seed', 'web': 'bone', 'ghost': 'void', 'organ': 'spark', 'sun': 'spark', 'sand': 'bone', 'snow': 'ice', 'ice': 'crystal', 'storm': 'spark', 'clock': 'crystal', 'chess': 'void', 'eclipse': 'void'}
+# each boss's own shots (asked for: not the same white balls everywhere, a way
+# of flying that suits it): their look (render.js) and how they fly
+# (bosses.js → shotMove): curve (turning turn rad/s, every other one the
+# other way), split (into n at `at` s, over spreadDeg), retarget (stops at
+# `at` for hold s, then flies at where Mano is then), wave (side to side,
+# amp px, freq a second), accel / decel (speed × from → to over `over` s),
+# return (back the way it came at `at` s), bounce (off the area's edges,
+# once), zigzag (turns deg every `every` s, by turns), tick (stops for hold
+# s every `every` s), turn (turns deg once at `at` s: a knight's move), mix
+# (each shot one of the others)
+SHOT = {
+    'x_snail': ('leaf', {'type': 'curve', 'turn': 1.1}),
+    'x_moth': ('petal', {'type': 'split', 'at': 0.55, 'n': 3, 'spreadDeg': 50}),
+    'x_toad': ('spore', {'type': 'split', 'at': 0.7, 'n': 5, 'spreadDeg': 360}),
+    'x_spider': ('silk', {'type': 'retarget', 'at': 0.4, 'hold': 0.45}),
+    'x_bellkeeper': ('wisp', {'type': 'wave', 'amp': 34, 'freq': 1.4}),
+    'x_organ': ('note', {'type': 'wave', 'amp': 20, 'freq': 2.6}),
+    'x_scarab': ('sunfire', {'type': 'accel', 'from': 0.45, 'to': 1.7, 'over': 1.0}),
+    'x_sultan': ('sandblade', {'type': 'return', 'at': 0.8}),
+    'x_jelly': ('snowflake', {'type': 'decel', 'from': 1.4, 'to': 0.35, 'over': 1.1}),
+    'x_peacock': ('shard', {'type': 'bounce'}),
+    'x_ray': ('bolt', {'type': 'zigzag', 'every': 0.16, 'deg': 40}),
+    'x_clock': ('gear', {'type': 'tick', 'every': 0.45, 'hold': 0.22}),
+    'x_queen': ('pawn', {'type': 'turn', 'at': 0.45, 'deg': 90}),
+    'x_eclipse': ('void', {'type': 'mix', 'of': [{'type': 'accel', 'from': 0.45, 'to': 1.8, 'over': 1.1}, {'type': 'curve', 'turn': 1.3}, {'type': 'wave', 'amp': 30, 'freq': 1.6}, {'type': 'retarget', 'at': 0.45, 'hold': 0.35}]}),
+}
 # each boss's own attack (the one it had alone before the phases)
 SIG = {
     'x_snail': {"type": "ringwave", "warn": 0.975, "speed": 210, "width": 30, "gaps": 2, "gapDeg": 58, "damage": 24},
@@ -48,8 +73,15 @@ SIG = {
     'x_queen': {"type": "chess", "warn": 0.975, "cols": 6, "rows": 5, "lines": 3, "damage": 26},
 }
 # the rings and bands (the attacks that show their safe gaps in green) fly
-# this much faster than first written (asked for: twice)
-WAVE = 2
+# this much faster than first written (asked for: twice, then ×0.75 of
+# that), and show their safe ground for less (TIGHT × their warning, never
+# under WAVE_WARN) in narrower gaps (GAP ×): hard to dodge because the gap is
+# short and small, not because the band flies past
+WAVE = 1.5
+TIGHT = 0.65
+WAVE_WARN = 0.55
+GAP = 0.7
+X['waveWarn'] = WAVE_WARN
 W = lambda w: round(max(MINW, w), 3)
 
 def shared(kind, t, dmg, hard=0):
@@ -115,7 +147,7 @@ for t2, bid in enumerate(ORDER):
     walk = round(0.45 - 0.03 * t, 2)
     gap = lambda k: round(max(0.25, 0.55 - 0.03 * t - 0.08 * k), 2)
     b.pop('attacks', None)
-    b['shot'] = SHOT[b['look']]
+    b['shot'], b['shotMove'] = SHOT[bid]
     # four phases by HP: more attacks each, combos from the second, only
     # three-part combos close together in the last
     b['phases'] = [
@@ -131,7 +163,7 @@ ring = {'type': 'ringwave', 'warn': 0.85, 'speed': 280, 'width': 36, 'gaps': 1, 
 sweep = {'type': 'sweep', 'warn': 0.85, 'width': 84, 'speed': 380, 'gaps': 1, 'gap': 118, 'damage': 32}
 T = 9
 def sh(kind, hard): return shared(kind, T, 32, hard)
-E['shot'] = 'void'
+E['shot'], E['shotMove'] = SHOT['x_eclipse']
 E['hpMul'] = 26.0 # (the others' ×1.44, as before)
 E['phases'] = [
     {'above': 0.75, 'walk': 0.35, 'attacks': [ring, sh('volley', 0), sweep, sh('nova', 0), sh('spiral', 0), sh('dash', 0)]},
@@ -145,8 +177,14 @@ def fast(a):
         for q in a['parts']: fast(q)
     elif a['type'] in ('ringwave', 'sweep'):
         a['speed'] = round(a['speed'] * WAVE)
+        a['warn'] = round(max(WAVE_WARN, a['warn'] * TIGHT), 3)
+        if 'gapDeg' in a: a['gapDeg'] = round(a['gapDeg'] * GAP)
+        if 'gap' in a: a['gap'] = round(a['gap'] * GAP)
+# (each attack its own copy first: the last boss's ring and sweep are used in
+# many places, and must be made faster once, not once for each place)
 for b in X['bosses'].values():
     for ph in b['phases']:
+        ph['attacks'] = json.loads(json.dumps(ph['attacks']))
         for a in ph['attacks']: fast(a)
 
 json.dump(bal, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)

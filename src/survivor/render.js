@@ -107,7 +107,29 @@ const spawnK = (e) => {
 const MOVE_PACE = 6 // px/s: slower than this a walking monster stands (its feet stop)
 const DANGER = '214, 58, 58' // the colour of a blow to come
 // the special bosses' shots: core and glow
-const SHOT_LOOK = { seed: ['#7a5a2a', '#cbe58a'], spark: ['#fff6b0', '#ffd23f'], bone: ['#f4ecd8', '#9c8f7a'], crystal: ['#e9fbff', '#7fd4f0'], ice: ['#f2fbff', '#9fdcff'], void: ['#e6c8ff', '#7a3fc4'] }
+// (each special boss its own: balance.json → extraBosses.bosses[*].shot; drawn
+// by drawShot below in its own shape)
+const SHOT_LOOK = {
+  seed: ['#7a5a2a', '#cbe58a'],
+  spark: ['#fff6b0', '#ffd23f'],
+  bone: ['#f4ecd8', '#9c8f7a'],
+  crystal: ['#e9fbff', '#7fd4f0'],
+  ice: ['#f2fbff', '#9fdcff'],
+  void: ['#2a1240', '#b06cff'],
+  leaf: ['#5fae4a', '#c9f08a'],
+  petal: ['#ff8fb8', '#ffd3e6'],
+  spore: ['#8fc95a', '#e2ff9e'],
+  silk: ['#ffffff', '#c9c9d6'],
+  wisp: ['#9fe8ff', '#3b7cff'],
+  note: ['#3a2a55', '#ffb44a'],
+  sunfire: ['#ffef8a', '#ff7a1a'],
+  sandblade: ['#e9c27a', '#8a5a2a'],
+  snowflake: ['#ffffff', '#a9dcff'],
+  shard: ['#d8f6ff', '#4fb6e6'],
+  bolt: ['#fffbd0', '#ffd400'],
+  gear: ['#d7a64a', '#6b4a1a'],
+  pawn: ['#1c1c22', '#f4f0e6'],
+}
 
 // idle frames there are: S/SE/E two, NE/N one; the left side mirrors the right
 const IDLE = { S: ['idle_s', false], SE: ['idle_se', false], E: ['idle_e', false], NE: ['idle_ne', false], N: ['idle_n', false], SW: ['idle_se', true], W: ['idle_e', true], NW: ['idle_ne', true] }
@@ -903,23 +925,170 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       ctx.fillText(h.order, x, y)
     }
     ctx.textBaseline = 'alphabetic'
-    // shots, over the warnings
-    for (const sh of run.shots) {
-      const [core, glow] = SHOT_LOOK[sh.kind] || SHOT_LOOK.seed
+    // shots, over the warnings (each kind its own shape, turned the way it flies)
+    const now = performance.now()
+    for (const sh of run.shots) drawShot(sh, now)
+  }
+
+  function drawShot(sh, now) {
+    const [core, glow] = SHOT_LOOK[sh.kind] || SHOT_LOOK.seed
+    const r = sh.r
+    const a = Math.atan2(sh.vy, sh.vx)
+    const spin = now / 90
+    // the glow behind it (every kind: a shot is always seen)
+    ctx.beginPath()
+    ctx.arc(sh.x, sh.y, r + 3, 0, Math.PI * 2)
+    ctx.fillStyle = glow
+    ctx.globalAlpha = sh.held ? 0.85 : 0.5
+    ctx.fill()
+    ctx.globalAlpha = 1
+    ctx.save()
+    ctx.translate(sh.x, sh.y)
+    ctx.lineWidth = 1.2
+    ctx.strokeStyle = 'rgba(30, 20, 30, 0.75)'
+    ctx.fillStyle = core
+    const poly = (pts) => {
       ctx.beginPath()
-      ctx.arc(sh.x, sh.y, sh.r + 2, 0, Math.PI * 2)
-      ctx.fillStyle = glow
-      ctx.globalAlpha = 0.55
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+      ctx.closePath()
       ctx.fill()
-      ctx.globalAlpha = 1
-      ctx.beginPath()
-      ctx.arc(sh.x, sh.y, sh.r, 0, Math.PI * 2)
-      ctx.fillStyle = core
-      ctx.fill()
-      ctx.lineWidth = 1
-      ctx.strokeStyle = 'rgba(40, 30, 40, 0.6)'
       ctx.stroke()
     }
+    const star = (n, ro, ri, turn = 0) => poly(Array.from({ length: n * 2 }, (_, i) => [Math.cos(turn + (i * Math.PI) / n) * (i % 2 ? ri : ro), Math.sin(turn + (i * Math.PI) / n) * (i % 2 ? ri : ro)]))
+    switch (sh.kind) {
+      case 'leaf':
+      case 'petal':
+        // a leaf / a petal along its way, a vein down it
+        ctx.rotate(a)
+        ctx.beginPath()
+        ctx.ellipse(0, 0, r * 1.5, r * (sh.kind === 'petal' ? 0.85 : 0.65), 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(-r * 1.3, 0)
+        ctx.lineTo(r * 1.3, 0)
+        ctx.strokeStyle = glow
+        ctx.stroke()
+        break
+      case 'spore':
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = glow
+        for (let i = 0; i < 5; i++) {
+          const q = spin * 0.3 + (i / 5) * Math.PI * 2
+          ctx.beginPath()
+          ctx.arc(Math.cos(q) * r * 0.5, Math.sin(q) * r * 0.5, r * 0.22, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        break
+      case 'silk':
+        // a ball of thread with its strands
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.strokeStyle = glow
+        for (let i = 0; i < 4; i++) {
+          const q = (i / 4) * Math.PI
+          ctx.beginPath()
+          ctx.moveTo(Math.cos(q) * r * 1.6, Math.sin(q) * r * 1.6)
+          ctx.lineTo(-Math.cos(q) * r * 1.6, -Math.sin(q) * r * 1.6)
+          ctx.stroke()
+        }
+        break
+      case 'wisp':
+        // a ghost flame, its tail behind it
+        ctx.rotate(a)
+        poly([[r * 1.1, 0], [r * 0.2, -r], [-r * 2.2, -r * 0.2 + Math.sin(spin) * r * 0.4], [-r * 1.2, 0], [-r * 2.2, r * 0.2 - Math.sin(spin) * r * 0.4], [r * 0.2, r]])
+        break
+      case 'note':
+        // a music note
+        ctx.beginPath()
+        ctx.ellipse(-r * 0.2, r * 0.4, r * 0.75, r * 0.55, -0.4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillRect(r * 0.4, -r * 1.5, r * 0.3, r * 1.9)
+        ctx.fillStyle = glow
+        ctx.fillRect(r * 0.4, -r * 1.5, r * 0.9, r * 0.35)
+        break
+      case 'sunfire':
+        star(8, r * 1.35, r * 0.7, spin)
+        break
+      case 'sandblade':
+        // a spinning crescent blade
+        ctx.rotate(spin * 2)
+        ctx.beginPath()
+        ctx.arc(0, 0, r * 1.3, 0.3, Math.PI * 2 - 0.3)
+        ctx.arc(r * 0.45, 0, r * 0.95, Math.PI * 2 - 0.5, 0.5, true)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        break
+      case 'snowflake':
+        ctx.rotate(spin * 0.4)
+        ctx.strokeStyle = core
+        ctx.lineWidth = Math.max(1.5, r * 0.35)
+        for (let i = 0; i < 3; i++) {
+          ctx.rotate(Math.PI / 3)
+          ctx.beginPath()
+          ctx.moveTo(-r * 1.4, 0)
+          ctx.lineTo(r * 1.4, 0)
+          ctx.stroke()
+        }
+        ctx.beginPath()
+        ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2)
+        ctx.fill()
+        break
+      case 'shard':
+        ctx.rotate(a)
+        poly([[r * 1.8, 0], [0, -r * 0.7], [-r * 1.2, 0], [0, r * 0.7]])
+        break
+      case 'bolt':
+        // a little lightning stroke
+        ctx.rotate(a)
+        poly([[r * 1.6, -r * 0.2], [r * 0.1, -r * 0.2], [r * 0.5, -r * 1.0], [-r * 1.6, r * 0.2], [-r * 0.1, r * 0.2], [-r * 0.5, r * 1.0]])
+        break
+      case 'gear':
+        star(8, r * 1.3, r * 0.95, sh.held ? 0 : spin)
+        ctx.beginPath()
+        ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2)
+        ctx.fillStyle = glow
+        ctx.fill()
+        break
+      case 'pawn':
+        // a chess piece: a black and white token with a knob
+        ctx.beginPath()
+        ctx.arc(0, r * 0.3, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.arc(0, -r * 0.7, r * 0.55, 0, Math.PI * 2)
+        ctx.fillStyle = glow
+        ctx.fill()
+        ctx.stroke()
+        break
+      case 'void':
+        // a dark orb in a turning purple ring
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.lineWidth = 2
+        ctx.strokeStyle = glow
+        ctx.beginPath()
+        ctx.arc(0, 0, r + 1.5, spin, spin + Math.PI * 1.4)
+        ctx.stroke()
+        break
+      default:
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(40, 30, 40, 0.6)'
+        ctx.stroke()
+    }
+    ctx.restore()
   }
 
   // the PC game: an elite or a boss out of sight (monsters live in the whole

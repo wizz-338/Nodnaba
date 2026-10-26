@@ -12,7 +12,7 @@ import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '..
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 import { roomTotal, roomStage, roomProgress } from '../src/survivor/room-items.js'
-import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, buildLevel, TEST_PERMA } from '../src/survivor/tester.js'
+import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, TEST_PERMA, TEST_LEVEL } from '../src/survivor/tester.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -1618,7 +1618,8 @@ const still = { x: 0, y: 0 }
         if (!xb || h.owner !== xb.id || seen.has(h)) continue
         seen.add(h)
         if (h.harmless) continue
-        if (h.at - h.born < X.minWarn - 1e-9) early++
+        // (a ring or a band: its own shorter warning, waveWarn)
+        if (h.at - h.born < (h.kind === 'wave' || h.kind === 'band' ? X.waveWarn : X.minWarn) - 1e-9) early++
         const Bx = r.extra.box
         const size = Math.max(Bx[2] - Bx[0], Bx[3] - Bx[1])
         if (h.kind === 'wave') span = Math.max(span, (h.speed * (h.until - h.at)) / size)
@@ -1663,7 +1664,7 @@ const still = { x: 0, y: 0 }
       `ch${ch}: its own boss falls, the chapter goes on: field cleared, quiet, WARNING!, ${WANT[ch]} comes in ${spawnGap.toFixed(0)} px from Mano (not hurt, not hittable while it comes), once; the boss's reward once`,
     )
     const want = new Set((X.bosses[WANT[ch]].attacks || X.bosses[WANT[ch]].phases[0].attacks).map((a) => a.type))
-    ok([...want].every((t) => seenTypes.has(t)) && !early && !noGap && !farGap && span >= 0.85, `ch${ch} ${WANT[ch]}: ${[...seenTypes].join(' ')} over ${Math.round(span * 100)}% of the area, every blow warned ≥ ${X.minWarn} s${early ? ` (${early} early)` : ''}, a gap within reach every time${noGap || farGap ? ` (${noGap} without, ${farGap} out of reach)` : ''}`)
+    ok([...want].every((t) => seenTypes.has(t)) && !early && !noGap && !farGap && span >= 0.85, `ch${ch} ${WANT[ch]}: ${[...seenTypes].join(' ')} over ${Math.round(span * 100)}% of the area, every blow warned ≥ ${X.minWarn} s (rings and bands ≥ ${X.waveWarn} s)${early ? ` (${early} early)` : ''}, a gap within reach every time${noGap || farGap ? ` (${noGap} without, ${farGap} out of reach)` : ''}`)
     // now it falls: its attacks go with it, then the clear (once)
     b.hp = 1
     run.hurt(b, 5, b.x, b.y)
@@ -1688,6 +1689,7 @@ const still = { x: 0, y: 0 }
   {
     const bad = []
     let blows = 0
+    const shotsOf = {} // boss → its shots' looks and ways of flying seen
     for (const ch of Object.keys(WANT).map(Number)) {
       const run = toBoss(ch, 9)
       killBoss(run)
@@ -1703,13 +1705,14 @@ const still = { x: 0, y: 0 }
           each: (r) => {
             b.hp = b.maxHp * share
             r.player.inv = 1e9
+            for (const sh of r.shots) if (sh.owner === b.id && !sh.turn) (shotsOf[WANT[ch]] ??= new Set()).add(sh.kind + ':' + (sh.mv ? sh.mv.type : 'plain'))
             if (b.atk && b.phase === k) kinds.add(b.atk.spec.type === 'combo' ? b.atk.spec.parts.map((q) => q.type).join('+') : b.atk.spec.type)
             for (const h of r.hazards) {
               if (h.owner !== b.id || seenH.has(h)) continue
               seenH.add(h)
               if (h.harmless) continue
               blows++
-              if (h.at - h.born < X.minWarn - 1e-9) bad.push(`ch${ch} phase ${k + 1}: ${(h.at - h.born).toFixed(2)} s`)
+              if (h.at - h.born < (h.kind === 'wave' || h.kind === 'band' ? X.waveWarn : X.minWarn) - 1e-9) bad.push(`ch${ch} phase ${k + 1}: ${(h.at - h.born).toFixed(2)} s`)
             }
           },
         })
@@ -1717,7 +1720,17 @@ const still = { x: 0, y: 0 }
         if (!want.every((w) => kinds.has(w))) bad.push(`ch${ch} phase ${k + 1}: only ${[...kinds].join(', ')}`)
       })
     }
-    ok(!bad.length, `every special boss in each of its phases: all its attacks come, ${blows} blows, every one warned ≥ ${X.minWarn} s${bad.length ? ' — ' + bad.slice(0, 6).join('; ') : ''}`)
+    // each its own shots: their look, and a way of flying of its own (asked
+    // for: not the same white balls, only faster)
+    const own = Object.entries(WANT).map(([, id]) => {
+      const B = X.bosses[id]
+      const types = B.shotMove.type === 'mix' ? B.shotMove.of.map((m) => m.type) : [B.shotMove.type]
+      const got = [...(shotsOf[id] || [])]
+      return { id, ok: got.length > 0 && got.every((g) => g.startsWith(B.shot + ':') && (types.includes(g.split(':')[1]) || g.endsWith(':plain'))) && got.some((g) => !g.endsWith(':plain')), shot: B.shot, types }
+    })
+    const looks = new Set(own.map((o) => o.shot))
+    ok(own.every((o) => o.ok) && looks.size === own.length, `the special bosses' shots: ${own.map((o) => `${o.shot} (${o.types.join('/')})`).join(', ')} — ${looks.size} looks, each its own${own.some((o) => !o.ok) ? ' — wrong: ' + own.filter((o) => !o.ok).map((o) => o.id + ' ' + [...(shotsOf[o.id] || [])].join(',')).join('; ') : ''}`)
+    ok(!bad.length, `every special boss in each of its phases: all its attacks come, ${blows} blows, every one warned ≥ ${X.minWarn} s (rings and bands ≥ ${X.waveWarn} s)${bad.length ? ' — ' + bad.slice(0, 6).join('; ') : ''}`)
   }
 
   // an ordinary chapter: cleared when its boss falls, no warning
@@ -2950,27 +2963,36 @@ const still = { x: 0, y: 0 }
   const fight = (k, ch, seconds) => {
     const s = P.startRun(ch)
     const run = createRun(D, { chapter: ch, weaponId: s.weapon.weaponId, grade: s.weapon.grade, seed: 7, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, zyo: s.zyo, turret: s.turret, blessings: s.blessings, rerolls: s.rerolls })
-    setupTest(run, { k, level: 0, seconds, god: true })
+    setupTest(run, { k, seconds, god: true })
     return run
   }
   for (const k of ['A', 'D']) {
     const run = fight(k, 10, 60)
     const lv = run.level
+    const atOnce = run.extra && run.extra.phase === 'calm' && run.state === 'play' && !run.choices
     const seen = []
     const phases = new Set()
     let start = null
+    let onBoss = false
     for (let i = 0; i < 60 * 120 && run.state !== 'over'; i++) {
       if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
       step(run, FIXED, still)
       const e = testTick(run)
       if (e) seen.push(e)
       if (run.extra && run.extra.phase === 'fight' && start === null) start = run.t
+      // (a few seconds in, Mano far from it: every unit is at the boss)
+      if (start !== null && run.t - start > 4 && run.t - start < 4 + FIXED) {
+        const x = run.extra.boss
+        run.player.x = x.x < (run.extra.box[0] + run.extra.box[2]) / 2 ? run.extra.box[2] - 20 : run.extra.box[0] + 20
+        for (let j = 0; j < 60; j++) step(run, FIXED, still)
+        onBoss = run.cls.units.length > 1 && run.cls.units.every((u) => u.target === x)
+      }
       const ph = testPhase(run)
       if (ph) phases.add(ph.i)
       run.events.length = 0
     }
     const took = run.t - start
-    ok(run.cls && run.cls.k === k && lv === buildLevel(D, k) && seen.join() === 'boss,extra,fit' && phases.size === 4 && run.result.cleared && took > 50 && took < 90, `tester: class ${k} made at Lv.${lv}; the chapter's boss falls at once, the special boss comes and lasts ${took.toFixed(0)} s (asked: 60), through all ${phases.size} phases, then the clear`)
+    ok(run.cls && run.cls.k === k && lv === TEST_LEVEL && atOnce && onBoss && seen.join() === 'extra,fit' && phases.size === 4 && run.result.cleared && took > 50 && took < 90, `tester: class ${k} made at Lv.${lv}; the special boss's turn has begun when the test starts (no card to choose), it comes and lasts ${took.toFixed(0)} s (asked: 60), through all ${phases.size} phases, then the clear; with nothing else to hit, all its ${run.cls.units.length} ${run.cls.form === 'ball' ? 'giant balls' : 'ninjas'} go at the boss (none left idling by Mano)`)
   }
   {
     const run = fight('C', 35, 0)

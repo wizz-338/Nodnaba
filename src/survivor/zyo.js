@@ -233,7 +233,8 @@ function deploy(run) {
 // ── a target near Mano, on the field (as the cats: never far off) ──────────
 // The first half of the units (rounded up) go for a boss or an elite within
 // HUNT leashes of Mano, while there is one: the giant balls and the ninjas
-// never leave the chapter's boss alone while Mano keeps away from it.
+// never leave the chapter's boss alone while Mano keeps away from it. The
+// others take the monsters near her, and the boss too when there are none.
 
 const hunter = (run, u) => u.id < Math.ceil(run.cls.units.length / 2)
 // where the units may go after monsters: the whole field (the extra special
@@ -277,7 +278,10 @@ function findTarget(run, x, y, u) {
     })
     if (best) break
   }
-  return best
+  // nothing to hit near Mano: off to the boss or an elite rather than idling
+  // by her (in a special boss's fight there is nothing else, and a giant ball
+  // waiting by her hid her and its warnings)
+  return best || (u ? bigOne(run, x, y) : null)
 }
 const alive = (e) => e && e.state === 'live' && !e.under
 

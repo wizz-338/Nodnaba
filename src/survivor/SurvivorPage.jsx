@@ -12,7 +12,7 @@ import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { createRoom } from './room.js'
 import { roomTotal, roomProgress } from './room-items.js'
-import { testerStorage, setupTest, testTick, testPhase, skipPhase, testBosses, buildLevel, TEST_BUILDS, TEST_TIMES, TEST_PERMA } from './tester.js'
+import { testerStorage, setupTest, testTick, testPhase, skipPhase, testBosses, TEST_BUILDS, TEST_TIMES, TEST_PERMA, TEST_LEVEL } from './tester.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
@@ -933,11 +933,8 @@ const testClassName = (k) => `${D.zyo.forms[D.balance.zyo.recipes[k].form]} ▪ 
 function TesterLobby({ save, exitHref, last, onStart }) {
   const pf = usePlatform()
   const bosses = testBosses(D)
-  const [o, setO] = useState(() => last || { chapter: bosses[0].chapter, k: 'C', level: 0, seconds: 120, god: false })
+  const [o, setO] = useState(() => last || { chapter: bosses[0].chapter, k: 'C', seconds: 120, god: false })
   const set = (p) => setO((x) => ({ ...x, ...p }))
-  const minL = buildLevel(D, o.k)
-  const levels = [minL, 20, 25, 30].filter((L, i, a) => L >= minL && a.indexOf(L) === i)
-  const level = Math.max(minL, o.level)
   const other = pf.id === 'pc' ? '#/game/mano-survivor-test' : '#/game/mano-survivor-pc-test'
   const P = TEST_PERMA
   const stat = (k) => D.balance.perma.stats[k].name
@@ -972,15 +969,7 @@ function TesterLobby({ save, exitHref, last, onStart }) {
             </button>
           ))}
         </div>
-        <p className="ms-sub">레벨</p>
-        <div className="ms-tester__grid ms-tester__grid--four">
-          {levels.map((L) => (
-            <button key={L} type="button" className={`ms-btn ms-btn--small ${level === L ? 'ms-btn--primary' : ''}`} aria-pressed={level === L} onClick={() => set({ level: L })}>
-              Lv.{L}
-              {L === minL ? ' (전직 직후)' : ''}
-            </button>
-          ))}
-        </div>
+        <p className="ms-dim">전직 카드는 Lv.{TEST_LEVEL}에 골라요 (실제 게임에서 보통 전직하는 즈음). 카드 고르는 과정 없이 시작하자마자 WARNING이 뜨고 바로 특수보스전이에요.</p>
       </div>
       <div className="ms-panel">
         <p className="ms-sub">3. 보스 버티는 시간</p>
@@ -999,7 +988,7 @@ function TesterLobby({ save, exitHref, last, onStart }) {
         </p>
         <p className="ms-dim">보스 체력은 고른 시간쯤 버티도록 맞춰져요. 싸우는 중에는 위쪽 테스트 막대로 다음 단계로 넘기거나 무적을 켜고 끌 수 있어요.</p>
       </div>
-      <button type="button" className="ms-btn ms-btn--primary ms-startbtn" onClick={() => onStart({ ...o, level })}>
+      <button type="button" className="ms-btn ms-btn--primary ms-startbtn" onClick={() => onStart(o)}>
         {o.chapter}장 특수보스 테스트 시작
       </button>
     </section>

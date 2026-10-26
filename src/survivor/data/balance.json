@@ -1009,7 +1009,7 @@
       "x_snail": {
         "line": "숲 전체에 커다란 종소리가 울려요!",
         "look": "bell",
-        "shot": "spark",
+        "shot": "leaf",
         "phases": [
           {
             "above": 0.75,
@@ -1017,11 +1017,11 @@
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.975,
-                "speed": 420,
+                "warn": 0.634,
+                "speed": 315,
                 "width": 30,
                 "gaps": 2,
-                "gapDeg": 58,
+                "gapDeg": 41,
                 "damage": 24
               },
               {
@@ -1061,11 +1061,11 @@
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.916,
-                "speed": 462,
+                "warn": 0.595,
+                "speed": 346,
                 "width": 30,
                 "gaps": 2,
-                "gapDeg": 58,
+                "gapDeg": 41,
                 "damage": 24
               },
               {
@@ -1086,11 +1086,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.916,
-                    "speed": 462,
+                    "warn": 0.595,
+                    "speed": 346,
                     "width": 30,
                     "gaps": 2,
-                    "gapDeg": 58,
+                    "gapDeg": 41,
                     "damage": 24
                   },
                   {
@@ -1156,11 +1156,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.858,
-                    "speed": 504,
+                    "warn": 0.558,
+                    "speed": 378,
                     "width": 30,
                     "gaps": 2,
-                    "gapDeg": 58,
+                    "gapDeg": 41,
                     "damage": 24
                   },
                   {
@@ -1205,11 +1205,11 @@
               },
               {
                 "type": "ringwave",
-                "warn": 0.858,
-                "speed": 504,
+                "warn": 0.558,
+                "speed": 378,
                 "width": 30,
                 "gaps": 2,
-                "gapDeg": 58,
+                "gapDeg": 41,
                 "damage": 24
               },
               {
@@ -1253,11 +1253,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.858,
-                    "speed": 504,
+                    "warn": 0.558,
+                    "speed": 378,
                     "width": 30,
                     "gaps": 2,
-                    "gapDeg": 58,
+                    "gapDeg": 41,
                     "damage": 24
                   }
                 ]
@@ -1277,11 +1277,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 546,
+                    "warn": 0.55,
+                    "speed": 410,
                     "width": 30,
                     "gaps": 2,
-                    "gapDeg": 58,
+                    "gapDeg": 41,
                     "damage": 24
                   },
                   {
@@ -1325,11 +1325,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 546,
+                    "warn": 0.55,
+                    "speed": 410,
                     "width": 30,
                     "gaps": 2,
-                    "gapDeg": 58,
+                    "gapDeg": 41,
                     "damage": 24
                   },
                   {
@@ -1380,12 +1380,16 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "curve",
+          "turn": 1.1
+        }
       },
       "x_moth": {
         "line": "꽃가루 폭풍이 피어나요!",
         "look": "flower",
-        "shot": "seed",
+        "shot": "petal",
         "phases": [
           {
             "above": 0.75,
@@ -1795,12 +1799,18 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "split",
+          "at": 0.55,
+          "n": 3,
+          "spreadDeg": 50
+        }
       },
       "x_toad": {
         "line": "목이 부풀어 올라요… 포자를 조심해!",
         "look": "spore",
-        "shot": "seed",
+        "shot": "spore",
         "phases": [
           {
             "above": 0.75,
@@ -2163,12 +2173,18 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "split",
+          "at": 0.7,
+          "n": 5,
+          "spreadDeg": 360
+        }
       },
       "x_spider": {
         "line": "유적의 룬 거미줄이 깨어나요!",
         "look": "web",
-        "shot": "bone",
+        "shot": "silk",
         "phases": [
           {
             "above": 0.75,
@@ -2575,12 +2591,17 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "retarget",
+          "at": 0.4,
+          "hold": 0.45
+        }
       },
       "x_bellkeeper": {
         "line": "망자의 종이 울려요!",
         "look": "ghost",
-        "shot": "void",
+        "shot": "wisp",
         "phases": [
           {
             "above": 0.75,
@@ -2588,11 +2609,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.91,
+                "warn": 0.592,
                 "width": 64,
-                "speed": 644,
+                "speed": 483,
                 "gaps": 1,
-                "gap": 130,
+                "gap": 91,
                 "damage": 24
               },
               {
@@ -2633,11 +2654,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.855,
+                "warn": 0.556,
                 "width": 64,
-                "speed": 708,
+                "speed": 531,
                 "gaps": 1,
-                "gap": 130,
+                "gap": 91,
                 "damage": 24
               },
               {
@@ -2657,11 +2678,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.855,
+                    "warn": 0.556,
                     "width": 64,
-                    "speed": 708,
+                    "speed": 531,
                     "gaps": 1,
-                    "gap": 130,
+                    "gap": 91,
                     "damage": 24
                   },
                   {
@@ -2727,11 +2748,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 64,
-                    "speed": 772,
+                    "speed": 579,
                     "gaps": 1,
-                    "gap": 130,
+                    "gap": 91,
                     "damage": 24
                   },
                   {
@@ -2773,11 +2794,11 @@
               },
               {
                 "type": "sweep",
-                "warn": 0.801,
+                "warn": 0.55,
                 "width": 64,
-                "speed": 772,
+                "speed": 579,
                 "gaps": 1,
-                "gap": 130,
+                "gap": 91,
                 "damage": 24
               },
               {
@@ -2824,11 +2845,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 64,
-                    "speed": 772,
+                    "speed": 579,
                     "gaps": 1,
-                    "gap": 130,
+                    "gap": 91,
                     "damage": 24
                   }
                 ]
@@ -2848,11 +2869,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 64,
-                    "speed": 838,
+                    "speed": 628,
                     "gaps": 1,
-                    "gap": 130,
+                    "gap": 91,
                     "damage": 24
                   },
                   {
@@ -2893,11 +2914,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 64,
-                    "speed": 838,
+                    "speed": 628,
                     "gaps": 1,
-                    "gap": 130,
+                    "gap": 91,
                     "damage": 24
                   },
                   {
@@ -2950,12 +2971,17 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "wave",
+          "amp": 34,
+          "freq": 1.4
+        }
       },
       "x_organ": {
         "line": "죽음의 선율이 시작돼요!",
         "look": "organ",
-        "shot": "spark",
+        "shot": "note",
         "phases": [
           {
             "above": 0.75,
@@ -2991,11 +3017,11 @@
               },
               {
                 "type": "ringwave",
-                "warn": 0.91,
-                "speed": 488,
+                "warn": 0.592,
+                "speed": 366,
                 "width": 32,
                 "gaps": 2,
-                "gapDeg": 60,
+                "gapDeg": 42,
                 "damage": 24
               }
             ]
@@ -3068,11 +3094,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.91,
-                    "speed": 512,
+                    "warn": 0.592,
+                    "speed": 384,
                     "width": 32,
                     "gaps": 2,
-                    "gapDeg": 60,
+                    "gapDeg": 42,
                     "damage": 24
                   },
                   {
@@ -3181,11 +3207,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.91,
-                    "speed": 536,
+                    "warn": 0.592,
+                    "speed": 402,
                     "width": 32,
                     "gaps": 2,
-                    "gapDeg": 60,
+                    "gapDeg": 42,
                     "damage": 24
                   }
                 ]
@@ -3309,11 +3335,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.91,
-                    "speed": 560,
+                    "warn": 0.592,
+                    "speed": 420,
                     "width": 32,
                     "gaps": 2,
-                    "gapDeg": 60,
+                    "gapDeg": 42,
                     "damage": 24
                   },
                   {
@@ -3346,12 +3372,17 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "wave",
+          "amp": 20,
+          "freq": 2.6
+        }
       },
       "x_scarab": {
         "line": "태양이 땅으로 내려와요!",
         "look": "sun",
-        "shot": "spark",
+        "shot": "sunfire",
         "phases": [
           {
             "above": 0.75,
@@ -3359,11 +3390,11 @@
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.975,
-                "speed": 476,
+                "warn": 0.634,
+                "speed": 357,
                 "width": 36,
                 "gaps": 1,
-                "gapDeg": 84,
+                "gapDeg": 59,
                 "damage": 26
               },
               {
@@ -3403,11 +3434,11 @@
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.916,
-                "speed": 524,
+                "warn": 0.595,
+                "speed": 393,
                 "width": 36,
                 "gaps": 1,
-                "gapDeg": 84,
+                "gapDeg": 59,
                 "damage": 26
               },
               {
@@ -3428,11 +3459,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.916,
-                    "speed": 524,
+                    "warn": 0.595,
+                    "speed": 393,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 84,
+                    "gapDeg": 59,
                     "damage": 26
                   },
                   {
@@ -3498,11 +3529,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.858,
-                    "speed": 572,
+                    "warn": 0.558,
+                    "speed": 429,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 84,
+                    "gapDeg": 59,
                     "damage": 26
                   },
                   {
@@ -3547,11 +3578,11 @@
               },
               {
                 "type": "ringwave",
-                "warn": 0.858,
-                "speed": 572,
+                "warn": 0.558,
+                "speed": 429,
                 "width": 36,
                 "gaps": 1,
-                "gapDeg": 84,
+                "gapDeg": 59,
                 "damage": 26
               },
               {
@@ -3595,11 +3626,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.858,
-                    "speed": 572,
+                    "warn": 0.558,
+                    "speed": 429,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 84,
+                    "gapDeg": 59,
                     "damage": 26
                   }
                 ]
@@ -3619,11 +3650,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 618,
+                    "warn": 0.55,
+                    "speed": 464,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 84,
+                    "gapDeg": 59,
                     "damage": 26
                   },
                   {
@@ -3667,11 +3698,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 618,
+                    "warn": 0.55,
+                    "speed": 464,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 84,
+                    "gapDeg": 59,
                     "damage": 26
                   },
                   {
@@ -3722,12 +3753,18 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "accel",
+          "from": 0.45,
+          "to": 1.7,
+          "over": 1.0
+        }
       },
       "x_sultan": {
         "line": "시간의 모래가 쏟아져요!",
         "look": "sand",
-        "shot": "bone",
+        "shot": "sandblade",
         "phases": [
           {
             "above": 0.75,
@@ -3735,11 +3772,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.91,
+                "warn": 0.592,
                 "width": 84,
-                "speed": 560,
+                "speed": 420,
                 "gaps": 2,
-                "gap": 110,
+                "gap": 77,
                 "damage": 24
               },
               {
@@ -3779,11 +3816,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.855,
+                "warn": 0.556,
                 "width": 84,
-                "speed": 616,
+                "speed": 462,
                 "gaps": 2,
-                "gap": 110,
+                "gap": 77,
                 "damage": 24
               },
               {
@@ -3802,11 +3839,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.855,
+                    "warn": 0.556,
                     "width": 84,
-                    "speed": 616,
+                    "speed": 462,
                     "gaps": 2,
-                    "gap": 110,
+                    "gap": 77,
                     "damage": 24
                   },
                   {
@@ -3870,11 +3907,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 672,
+                    "speed": 504,
                     "gaps": 2,
-                    "gap": 110,
+                    "gap": 77,
                     "damage": 24
                   },
                   {
@@ -3919,11 +3956,11 @@
               },
               {
                 "type": "sweep",
-                "warn": 0.801,
+                "warn": 0.55,
                 "width": 84,
-                "speed": 672,
+                "speed": 504,
                 "gaps": 2,
-                "gap": 110,
+                "gap": 77,
                 "damage": 24
               },
               {
@@ -3977,11 +4014,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 672,
+                    "speed": 504,
                     "gaps": 2,
-                    "gap": 110,
+                    "gap": 77,
                     "damage": 24
                   }
                 ]
@@ -4001,11 +4038,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 728,
+                    "speed": 546,
                     "gaps": 2,
-                    "gap": 110,
+                    "gap": 77,
                     "damage": 24
                   },
                   {
@@ -4049,11 +4086,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 728,
+                    "speed": 546,
                     "gaps": 2,
-                    "gap": 110,
+                    "gap": 77,
                     "damage": 24
                   },
                   {
@@ -4112,12 +4149,16 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "return",
+          "at": 0.8
+        }
       },
       "x_jelly": {
         "line": "눈꽃이 피며 한기가 번져요!",
         "look": "snow",
-        "shot": "ice",
+        "shot": "snowflake",
         "phases": [
           {
             "above": 0.75,
@@ -4492,12 +4533,18 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "decel",
+          "from": 1.4,
+          "to": 0.35,
+          "over": 1.1
+        }
       },
       "x_peacock": {
         "line": "얼음 깃이 활짝 펼쳐져요!",
         "look": "ice",
-        "shot": "crystal",
+        "shot": "shard",
         "phases": [
           {
             "above": 0.75,
@@ -4892,12 +4939,15 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "bounce"
+        }
       },
       "x_ray": {
         "line": "폭풍이 하늘을 갈라요!",
         "look": "storm",
-        "shot": "spark",
+        "shot": "bolt",
         "phases": [
           {
             "above": 0.75,
@@ -4905,11 +4955,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.91,
+                "warn": 0.592,
                 "width": 80,
-                "speed": 644,
+                "speed": 483,
                 "gaps": 1,
-                "gap": 140,
+                "gap": 98,
                 "push": 55,
                 "damage": 24
               },
@@ -4950,11 +5000,11 @@
             "attacks": [
               {
                 "type": "sweep",
-                "warn": 0.855,
+                "warn": 0.556,
                 "width": 80,
-                "speed": 708,
+                "speed": 531,
                 "gaps": 1,
-                "gap": 140,
+                "gap": 98,
                 "push": 55,
                 "damage": 24
               },
@@ -4975,11 +5025,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.855,
+                    "warn": 0.556,
                     "width": 80,
-                    "speed": 708,
+                    "speed": 531,
                     "gaps": 1,
-                    "gap": 140,
+                    "gap": 98,
                     "push": 55,
                     "damage": 24
                   },
@@ -5045,11 +5095,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 80,
-                    "speed": 772,
+                    "speed": 579,
                     "gaps": 1,
-                    "gap": 140,
+                    "gap": 98,
                     "push": 55,
                     "damage": 24
                   },
@@ -5090,11 +5140,11 @@
               },
               {
                 "type": "sweep",
-                "warn": 0.801,
+                "warn": 0.55,
                 "width": 80,
-                "speed": 772,
+                "speed": 579,
                 "gaps": 1,
-                "gap": 140,
+                "gap": 98,
                 "push": 55,
                 "damage": 24
               },
@@ -5143,11 +5193,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.801,
+                    "warn": 0.55,
                     "width": 80,
-                    "speed": 772,
+                    "speed": 579,
                     "gaps": 1,
-                    "gap": 140,
+                    "gap": 98,
                     "push": 55,
                     "damage": 24
                   }
@@ -5168,11 +5218,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 80,
-                    "speed": 838,
+                    "speed": 628,
                     "gaps": 1,
-                    "gap": 140,
+                    "gap": 98,
                     "push": 55,
                     "damage": 24
                   },
@@ -5212,11 +5262,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 80,
-                    "speed": 838,
+                    "speed": 628,
                     "gaps": 1,
-                    "gap": 140,
+                    "gap": 98,
                     "push": 55,
                     "damage": 24
                   },
@@ -5271,12 +5321,17 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "zigzag",
+          "every": 0.16,
+          "deg": 40
+        }
       },
       "x_clock": {
         "line": "하늘의 시계가 움직이기 시작해요!",
         "look": "clock",
-        "shot": "crystal",
+        "shot": "gear",
         "phases": [
           {
             "above": 0.75,
@@ -5663,12 +5718,17 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "tick",
+          "every": 0.45,
+          "hold": 0.22
+        }
       },
       "x_queen": {
         "line": "공허의 체스판이 펼쳐져요!",
         "look": "chess",
-        "shot": "void",
+        "shot": "pawn",
         "phases": [
           {
             "above": 0.75,
@@ -6071,7 +6131,12 @@
               }
             ]
           }
-        ]
+        ],
+        "shotMove": {
+          "type": "turn",
+          "at": 0.45,
+          "deg": 90
+        }
       },
       "x_eclipse": {
         "line": "별이 삼켜져요. 마지막 싸움이에요!",
@@ -6094,11 +6159,11 @@
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.85,
-                "speed": 8960,
+                "warn": 0.552,
+                "speed": 420,
                 "width": 36,
                 "gaps": 1,
-                "gapDeg": 70,
+                "gapDeg": 49,
                 "damage": 32
               },
               {
@@ -6115,11 +6180,11 @@
               },
               {
                 "type": "sweep",
-                "warn": 0.85,
+                "warn": 0.552,
                 "width": 84,
-                "speed": 12160,
+                "speed": 570,
                 "gaps": 1,
-                "gap": 118,
+                "gap": 83,
                 "damage": 32
               },
               {
@@ -6166,11 +6231,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.85,
-                    "speed": 8960,
+                    "warn": 0.552,
+                    "speed": 420,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   },
                   {
@@ -6209,11 +6274,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.85,
+                    "warn": 0.552,
                     "width": 84,
-                    "speed": 12160,
+                    "speed": 570,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   },
                   {
@@ -6255,11 +6320,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.85,
-                    "speed": 8960,
+                    "warn": 0.552,
+                    "speed": 420,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   }
                 ]
@@ -6288,11 +6353,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.85,
-                    "speed": 8960,
+                    "warn": 0.552,
+                    "speed": 420,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   },
                   {
@@ -6309,11 +6374,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.85,
+                    "warn": 0.552,
                     "width": 84,
-                    "speed": 12160,
+                    "speed": 570,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   }
                 ]
@@ -6431,11 +6496,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.85,
-                    "speed": 8960,
+                    "warn": 0.552,
+                    "speed": 420,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   },
                   {
@@ -6467,11 +6532,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.85,
+                    "warn": 0.552,
                     "width": 84,
-                    "speed": 12160,
+                    "speed": 570,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   },
                   {
@@ -6504,11 +6569,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 616,
+                    "warn": 0.55,
+                    "speed": 462,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   },
                   {
@@ -6604,11 +6669,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.85,
+                    "warn": 0.552,
                     "width": 84,
-                    "speed": 12160,
+                    "speed": 570,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   }
                 ]
@@ -6629,11 +6694,11 @@
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 616,
+                    "warn": 0.55,
+                    "speed": 462,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   },
                   {
@@ -6650,11 +6715,11 @@
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 836,
+                    "speed": 627,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   }
                 ]
@@ -6720,11 +6785,11 @@
                   },
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 616,
+                    "warn": 0.55,
+                    "speed": 462,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 70,
+                    "gapDeg": 49,
                     "damage": 32
                   }
                 ]
@@ -6780,11 +6845,11 @@
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.8,
+                    "warn": 0.55,
                     "width": 84,
-                    "speed": 836,
+                    "speed": 627,
                     "gaps": 1,
-                    "gap": 118,
+                    "gap": 83,
                     "damage": 32
                   },
                   {
@@ -6816,9 +6881,35 @@
             ]
           }
         ],
-        "shot": "void"
+        "shot": "void",
+        "shotMove": {
+          "type": "mix",
+          "of": [
+            {
+              "type": "accel",
+              "from": 0.45,
+              "to": 1.8,
+              "over": 1.1
+            },
+            {
+              "type": "curve",
+              "turn": 1.3
+            },
+            {
+              "type": "wave",
+              "amp": 30,
+              "freq": 1.6
+            },
+            {
+              "type": "retarget",
+              "at": 0.45,
+              "hold": 0.35
+            }
+          ]
+        }
       }
-    }
+    },
+    "waveWarn": 0.55
   },
   "zyo": {
     "note": "zyo_'s class change (zyo.js; her names and words: zyo.json). From activeFromChapter on, in a run with her (chapter 15's reward), each recipe's two cards picked `need` times each (run.picks: a card Tizzzz rewrote counts its times) put its class card in the draw, at random among the others. zyo_ adds a card of her own beside the three drawn only `offer` of the time (0: never; asked for: her cards come at random, she marks those that came — her recipe's cards, a class card, after the change the growth card). Once a run. The change ends the ball and the fighting cats; base = the ball's damage × count ÷ gap + one cat's scratch × cats ÷ its gap (no crit) is what the class starts from, never under floor: the run's firepower at its start × e^(floor.perLevel × the levels gone by) (a bot's usual build grows about e^0.26 a level; with need 7 at random a build that put its picks into its recipe can be far behind): on one target with all of it there it deals bonus × base a second (× the recipe's own bonus: B and C, whose ×0.7 gaps add far less than A's and D's ×2 counts and claws, would otherwise change into a class many times weaker; bots: with it, runs that changed class clear about as often whichever it was) × the 전투력 card (shown under the class's own name; in the pool with the eight left, about one level-up in three; damage × (damageMul + damageMulPerLevel × the run's levels past damageMulFrom), rate × rateMul each, to the power `pow` (3: it comes about one level-up in three), so the later in the run the more one adds (by the run's level: a class taken late catches up) and the class keeps up with the attack cards it gave up, whose ×2 and ×1.5 multiply on each other ever faster (bots, levels 30–70, the same seeds: the class ahead of the same run without it on one boss and on a crowd); the rate past rateCap turns into damage). Each unit group deals `share` of that, split over its count, one hit each hitGap (÷ rate). ball: the giant balls that chase (speed px/s, roll: rad/s round their target, radius px); shield (A): giant balls circling Mano at orbit px, spin rad/s, pushing the monsters they touch out by push px, and every monster (not a boss) inside their ring out at pushSpeed px/s; ninja: dash speed, reach px from a target's edge, slashR: the slash's circle round the target; leash: how far from Mano they go (on screen only); the first half of the units (rounded up) go for a boss or an elite anywhere on screen while there is one. revive (B): once a run (times), the blast hits within radius px with `seconds` of the class's one-target damage, a boss at most bossCap of its HP (through a guard), then full HP and inv s safe. lifesteal (C): a monster's whole HP taken heals mob (a boss's, an elite's: boss) × Mano's full HP; never more than perSecond of it a second. warp (D): holes at `at` (shares of the field; the extra boss's area during its fight), radius px; after a warp she must leave the exit hole and cooldown s pass; clear px round the exit cleared of monsters; inv s safe. keep: the cards left after the change (with 전투력). fxSeconds: the notes' moment (she cannot be hurt; the new attack starts after it). skill: every `every` s (÷ the rate, first after `first` s) the class casts over the screen — 탱탱 메테오 or 그림자 분신: count strikes (+1 each perLevels 전투력, up to max) on monsters on screen (a boss or an elite first), each landing delay s later (stagger s apart) and hitting every monster within radius px; together share × the class's one-target damage a second. growth: each 전투력 picked makes the giant balls, the shield balls, the slashes and the skill's circles perLevel bigger (up to maxLevels), never more units.",
