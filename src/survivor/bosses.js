@@ -1,6 +1,7 @@
-// MANO SURVIVOR — the extra special bosses (balance.json → extraBosses) and
-// the warnings, blows and shots any boss puts on the field. Pure rules, no
-// drawing.
+// MANO SURVIVOR — the extra special bosses (balance.json → extraBosses), the
+// ordinary bosses' skills (balance.json → bossSkills: the same attacks,
+// smaller, run by game.js between their own moves) and the warnings, blows
+// and shots any boss puts on the field. Pure rules, no drawing.
 //
 // In the chapters the data lists, after the chapter's own boss has fallen,
 // one more boss comes (game.js runs the field around it: the clearing, the
@@ -138,11 +139,24 @@ export function updateExtra(run, e, dt, api) {
       e.walkT = 0
       const list = ph.attacks
       const spec = list[(e.atkNo = ((e.atkNo ?? -1) + 1) % list.length)]
-      e.atk = plan(run, e, spec)
+      startAttack(run, e, spec)
     }
     return
   }
+  tickAttack(run, e, dt)
+}
+
+// any boss's attack (an extra boss's, or an ordinary boss's skill: game.js):
+// planned whole now, then run by tickAttack until it ends
+export function startAttack(run, e, spec) {
+  e.atk = plan(run, e, spec)
+  return e.atk
+}
+
+// one tick of the attack under way; false once it has ended
+export function tickAttack(run, e, dt) {
   const a = e.atk
+  if (!a) return false
   a.t += dt
   // (a dash under way: it runs its lane)
   if (e.dash) {
@@ -157,7 +171,9 @@ export function updateExtra(run, e, dt, api) {
     e.atk = null
     e.stage = null
     e.dash = null
+    return false
   }
+  return true
 }
 
 // a boss down: nothing of its attack stays
@@ -165,6 +181,43 @@ export function clearOwned(run, id) {
   run.hazards = run.hazards.filter((h) => h.owner !== id)
   run.shots = run.shots.filter((s) => s.owner !== id)
   run.floors = run.floors.filter((f) => f.owner !== id)
+}
+
+// ── the ordinary bosses' skills (balance.json → bossSkills) ─────────────────
+
+// the episode a chapter is in, from 0 (chapters 1–5) to 6 (31–35)
+export const tierOf = (chapter) => Math.max(0, Math.min(6, Math.floor((chapter - 1) / 5)))
+
+// the skills an ordinary boss of this way (A B C D) and kind (the mid-boss,
+// the boss) has in a chapter, in the order it uses them
+export function bossSkills(D, btype, type, chapter) {
+  const S = D.balance.bossSkills
+  const n = (S.count[type] || S.count.boss)[tierOf(chapter)]
+  return S.byType[btype].slice(0, n)
+}
+
+// (the numbers that count things: whole)
+const COUNTS = new Set(['count', 'waves', 'bursts', 'shots', 'arms', 'salvos', 'ring', 'gap', 'reach', 'sweepDeg'])
+
+// one of its skills as an attack (plan's spec): the skill's numbers at the
+// chapter's tier (each `per` a tier added), its warning never under minWarn,
+// its blows `hit` × the boss's own charge hit
+export function bossSkill(D, name, chapter, def) {
+  const S = D.balance.bossSkills
+  const base = S.skills[name]
+  const t = tierOf(chapter)
+  const spec = { ...base }
+  for (const [k, per] of Object.entries(base.per || {})) {
+    const v = base[k] + per * t
+    spec[k] = COUNTS.has(k) ? Math.round(v) : Math.round(v * 1000) / 1000
+  }
+  spec.warn = Math.max(S.minWarn, Math.round((base.warn - S.warnPerTier * t) * 1000) / 1000)
+  if (spec.speed) spec.speed = Math.round(spec.speed * (1 + S.speedPerTier * t))
+  spec.damage = def.chargeDamage * base.hit
+  if (base.width === 'body') spec.width = def.radius * 2
+  delete spec.per
+  delete spec.hit
+  return spec
 }
 
 // ── planning an attack ──────────────────────────────────────────────────────
@@ -363,7 +416,10 @@ function plan(run, e, spec, at0 = 0) {
         const fireAt = warn + k * spec.step
         const dirs = []
         at(k ? fireAt - spec.laneWarn : 0, (run, e) => {
-          const a = Math.atan2(run.player.y - e.y, run.player.x - e.x)
+          // (lead: at where she will be that many seconds on, if she keeps going)
+          const q = run.player
+          const L = spec.lead || 0
+          const a = Math.atan2(q.y + (q.vy || 0) * L - e.y, q.x + (q.vx || 0) * L - e.x)
           const spread = (spec.spreadDeg * Math.PI) / 180
           for (let j = 0; j < spec.shots; j++) {
             const d = a + (spec.shots > 1 ? (j / (spec.shots - 1) - 0.5) * spread : 0)
@@ -447,6 +503,95 @@ function plan(run, e, spec, at0 = 0) {
       endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
       break
     }
+    case 'nova': {
+      // rings of shots out of it all round: `waves` rings of `count`, `every`
+      // s apart, each turned half a step from the last (so standing still
+      // between two shots of one ring is no shelter from the next); a ring
+      // round it while it gathers
+      put({ kind: 'circle', x: e.x, y: e.y, r: e.r + 40, harmless: true, thread: true, keep: 0 }, warn)
+      const a0 = rnd() * Math.PI * 2
+      for (let k = 0; k < spec.waves; k++)
+        at(warn + k * spec.every, (run, e) => {
+          for (let j = 0; j < spec.count; j++) bullet(run, e, a0 + ((j + (k % 2) * 0.5) / spec.count) * Math.PI * 2, spec, dmg(spec.damage))
+          run.events.push({ type: 'bossShot', x: e.x, y: e.y, look: e.look })
+        })
+      endAt = warn + (spec.waves - 1) * spec.every + (spec.recover ?? X.recover)
+      break
+    }
+    case 'homing': {
+      // seeking orbs: `count` of them thrown out wide (away from Mano's side,
+      // then round), each turning toward her at most `turn` rad/s for `seek`
+      // s, then flying straight on: a quick step aside lets them pass
+      put({ kind: 'circle', x: e.x, y: e.y, r: e.r + 30, harmless: true, thread: true, keep: 0 }, warn)
+      for (let k = 0; k < (spec.salvos || 1); k++)
+        at(warn + k * (spec.every || 0.6), (run, e) => {
+          const toMano = Math.atan2(run.player.y - e.y, run.player.x - e.x)
+          const spread = (spec.spreadDeg * Math.PI) / 180
+          for (let j = 0; j < spec.count; j++) {
+            const a = toMano + Math.PI + (spec.count > 1 ? (j / (spec.count - 1) - 0.5) * spread : 0)
+            bullet(run, e, a, spec, dmg(spec.damage), { turn: spec.turn, seek: spec.seek })
+          }
+          run.events.push({ type: 'bossShot', x: e.x, y: e.y, look: e.look })
+        })
+      endAt = warn + ((spec.salvos || 1) - 1) * (spec.every || 0.6) + (spec.recover ?? X.recover)
+      break
+    }
+    case 'cage': {
+      // a ring of blows round where Mano is with one way out (`gap` places
+      // left out side by side), then, `after` s later, all of its inside
+      const R = spec.ring
+      const [cx0, cy0] = clampTo(B, p.x, p.y, Math.min(R * 0.6, Math.min(W, H) / 2 - 1))
+      const g0 = Math.floor(rnd() * spec.count)
+      for (let k = 0; k < spec.count; k++) {
+        if ((k - g0 + spec.count) % spec.count < spec.gap) continue
+        const a = (k / spec.count) * Math.PI * 2
+        put({ kind: 'circle', x: cx0 + Math.cos(a) * R, y: cy0 + Math.sin(a) * R, r: spec.r, damage: dmg(spec.damage), order: 1, puff: true }, warn)
+      }
+      put({ kind: 'circle', x: cx0, y: cy0, r: R - spec.r * 0.5, damage: dmg(spec.damage), order: 2 }, warn + spec.after)
+      endAt = warn + spec.after + (spec.recover ?? X.recover)
+      break
+    }
+    case 'stalk': {
+      // blows that follow her: `count` circles, each shown where she is (and
+      // a little ahead, lead s) when its turn comes, `step` s apart
+      for (let k = 0; k < spec.count; k++)
+        at(k * spec.step, (run, e) => {
+          const q = run.player
+          const L = spec.lead || 0
+          const [x, y] = clampTo(B, q.x + (q.vx || 0) * L, q.y + (q.vy || 0) * L, spec.r * 0.5)
+          hazard(run, e, { kind: 'circle', x, y, r: spec.r, damage: dmg(spec.damage), puff: true }, warn)
+        })
+      endAt = (spec.count - 1) * spec.step + warn + (spec.recover ?? X.recover)
+      break
+    }
+    case 'beam': {
+      // a beam that swings round it: narrow fans side by side, each striking
+      // `step` s after the last, `sweepDeg` in all through where Mano is (a
+      // swing, then, at `back`, the same swing back)
+      const width = (spec.widthDeg * Math.PI) / 180
+      const n = Math.max(2, Math.round(spec.sweepDeg / spec.widthDeg))
+      const turn = rnd() < 0.5 ? -1 : 1
+      const toMano = Math.atan2(uy, ux)
+      const from = toMano - (turn * (n - 1) * width) / 2
+      const legs = spec.back ? 2 : 1
+      for (let l = 0; l < legs; l++)
+        for (let k = 0; k < n; k++) {
+          const i = l ? n - 1 - k : k
+          put({ kind: 'cone', x: e.x, y: e.y, dir: from + turn * i * width, angle: width * 1.05, range: far, inner: e.r, damage: dmg(spec.damage), beam: true }, warn + (l * n + k) * spec.step + l * (spec.back || 0))
+        }
+      endAt = warn + (legs * n - 1) * spec.step + (spec.back || 0) * (legs - 1) + (spec.recover ?? X.recover)
+      break
+    }
+    case 'slam': {
+      // a blow all round it (radius reach), and on it `ring` shots out of it
+      put({ kind: 'circle', x: e.x, y: e.y, r: spec.reach, damage: dmg(spec.damage), slam: true }, warn)
+      if (spec.ring)
+        at(warn, (run, e) => {
+          const a0 = Math.atan2(run.player.y - e.y, run.player.x - e.x) + Math.PI / spec.ring
+          for (let j = 0; j < spec.ring; j++) bullet(run, e, a0 + (j / spec.ring) * Math.PI * 2, spec, dmg(spec.shotDamage ?? spec.damage * 0.5))
+        })
+      break
+    }
     case 'combo': {
       // attacks it has already shown, one after the other: the next is
       // planned (and shown) only when its time comes, from where things are then
@@ -476,10 +621,12 @@ function plan(run, e, spec, at0 = 0) {
 }
 
 // one of an extra boss's own shots, at angle a, of `damage` (already capped)
-function bullet(run, e, a, spec, damage) {
+// (more: { turn, seek } for a seeking orb)
+function bullet(run, e, a, spec, damage, more = null) {
   const dx = Math.cos(a)
   const dy = Math.sin(a)
-  run.shots.push({ owner: e.id, x: e.x + dx * e.r * 0.6, y: e.y + dy * e.r * 0.6, vx: dx * spec.speed, vy: dy * spec.speed, r: spec.r, damage, ttl: spec.ttl ?? 5, kind: spec.look || run.D.balance.extraBosses.bosses[e.extra].shot || 'spark' })
+  const kind = spec.look || (e.extra && run.D.balance.extraBosses.bosses[e.extra].shot) || 'spark'
+  run.shots.push({ owner: e.id, x: e.x + dx * e.r * 0.6, y: e.y + dy * e.r * 0.6, vx: dx * spec.speed, vy: dy * spec.speed, r: spec.r, damage, ttl: spec.ttl ?? 5, kind, ...more })
 }
 // (the ordinary bosses' shooter, type C, puts its lanes and shots here too: game.js)
 function shot(run, e, dx, dy, spec) {
@@ -521,6 +668,17 @@ export function updateHazards(run, dt, hurt) {
     const [x0, y0, x1, y1] = (run.extra && run.extra.box) || run.arena.bounds
     const out = []
     for (const s of run.shots) {
+      if (s.seek > 0) {
+        // a seeking orb turns toward Mano, at most `turn` rad/s
+        s.seek -= dt
+        const cur = Math.atan2(s.vy, s.vx)
+        let d = Math.atan2(p.y - s.y, p.x - s.x) - cur
+        d = Math.atan2(Math.sin(d), Math.cos(d))
+        const a = cur + Math.max(-s.turn * dt, Math.min(s.turn * dt, d))
+        const v = Math.hypot(s.vx, s.vy)
+        s.vx = Math.cos(a) * v
+        s.vy = Math.sin(a) * v
+      }
       s.x += s.vx * dt
       s.y += s.vy * dt
       s.ttl -= dt

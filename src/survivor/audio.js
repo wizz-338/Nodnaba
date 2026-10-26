@@ -368,6 +368,8 @@ const FIGHT = {
   // a turret's shot: a small, round pop
   turret: [0.08, (t) => (tone(t, { type: 'sine', f0: 420, f1: 220, glide: 0.06, peak: 0.05, len: 0.07 }), noise(t, { len: 0.04, freq: 1500, q: 1, peak: 0.03 })), 90],
   // a special boss's shots leaving it: a low thump with a hiss
+  // an ordinary boss enraged: a low growl
+  rage: [0.5, (t) => (tone(t, { type: 'sawtooth', f0: 110, f1: 70, glide: 0.4, peak: 0.08, len: 0.45, lowpass: 700 }), noise(t, { len: 0.35, freq: 420, q: 0.7, peak: 0.07 })), 400],
   bossShot: [0.14, (t) => (tone(t, { type: 'triangle', f0: 180, f1: 90, glide: 0.1, peak: 0.08, len: 0.12 }), noise(t, { len: 0.08, freq: 900, q: 1, peak: 0.04 })), 120],
   // a shadow ninja's cut
   slash: [0.1, (t) => (noise(t, { len: 0.07, freq: 4400, q: 2, peak: 0.08 }), tone(t, { type: 'sine', f0: 2300, f1: 1400, glide: 0.07, peak: 0.03, len: 0.08 })), 50],
