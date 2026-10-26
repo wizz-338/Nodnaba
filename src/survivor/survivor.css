@@ -3350,3 +3350,13 @@
 .ms-reachguide .ms-sprite {
   vertical-align: -2px;
 }
+
+/* (the guide: under the list on the phone, under the room on the PC) */
+.ms-reachguide--room,
+.ms--pc .ms-reachguide--shop {
+  display: none;
+}
+
+.ms--pc .ms-reachguide--room {
+  display: block;
+}

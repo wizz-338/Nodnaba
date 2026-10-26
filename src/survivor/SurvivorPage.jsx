@@ -1544,6 +1544,28 @@ const STAT_REACH = {
   coins: [['coin', '판에서 받는 코인']],
 }
 
+// what the coin stats reach (under the list; on the PC under the room, where
+// there is room for it: survivor.css shows the one for the platform)
+function ReachGuide({ save, className = '' }) {
+  return (
+    <div className={`ms-reachguide ${className}`}>
+      <p className="ms-reachguide__title">마노 강화는 어디에 들어가요?</p>
+      <ul>
+        <li>
+          <b>공격 피해 · 공격 주기 · 치명타 확률</b>은 <Sprite name="ball" size={14} /> 탱탱볼과 <Sprite name="cat_hodu_r_0" size={14} /> 친구냥이에 <b>같은 비율로 함께</b> 들어가요. 예) 공격 피해 ×{D.balance.perma.stats.damage.mul} → 탱탱볼도 냥이도 {Math.round((D.balance.perma.stats.damage.mul - 1) * 100)}% 더 아프게
+        </li>
+        <li>
+          <b>판 안의 카드는 따로</b>예요. 탱탱볼 카드는 탱탱볼만, 냥이 카드는 냥이만 세져요.
+        </li>
+        <li>
+          <b>전직</b>하면 그때까지의 탱탱볼 + 냥이 힘이 전직 공격으로 넘어가요. 그래서 마노 강화는 전직 뒤에도 그대로 도움이 돼요.
+        </li>
+        {!save.cats.unlocked && <li>친구냥이는 5장을 처음 깨면 합류해요. 그 전에는 냥이 쪽 효과가 쓰이지 않아요.</li>}
+      </ul>
+    </div>
+  )
+}
+
 function Stats({ save, img, onBuy }) {
   const last = useRef(0)
   const room = useRef(null)
@@ -1554,6 +1576,7 @@ function Stats({ save, img, onBuy }) {
         <h3 className="ms-sub">마노의 방</h3>
         <Room save={save} img={img} roomRef={room} />
         <p className="ms-dim">어느 능력치든 강화할 때마다 방이 조금씩 자라요. 방은 꾸미기일 뿐, 능력치는 그대로예요.</p>
+        <ReachGuide save={save} className="ms-reachguide--room" />
       </div>
       <div className="ms-stats-room__shop">
       <h3 className="ms-sub">마노 강화 (코인으로 영구 강화)</h3>
@@ -1610,21 +1633,7 @@ function Stats({ save, img, onBuy }) {
         })}
       </ul>
       {msg && <p className="ms-ok">{msg}</p>}
-      <div className="ms-reachguide">
-        <p className="ms-reachguide__title">마노 강화는 어디에 들어가요?</p>
-        <ul>
-          <li>
-            <b>공격 피해 · 공격 주기 · 치명타 확률</b>은 <Sprite name="ball" size={14} /> 탱탱볼과 <Sprite name="cat_hodu_r_0" size={14} /> 친구냥이에 <b>같은 비율로 함께</b> 들어가요. 예) 공격 피해 ×{D.balance.perma.stats.damage.mul} → 탱탱볼도 냥이도 {Math.round((D.balance.perma.stats.damage.mul - 1) * 100)}% 더 아프게
-          </li>
-          <li>
-            <b>판 안의 카드는 따로</b>예요. 탱탱볼 카드는 탱탱볼만, 냥이 카드는 냥이만 세져요.
-          </li>
-          <li>
-            <b>전직</b>하면 그때까지의 탱탱볼 + 냥이 힘이 전직 공격으로 넘어가요. 그래서 마노 강화는 전직 뒤에도 그대로 도움이 돼요.
-          </li>
-          {!save.cats.unlocked && <li>친구냥이는 5장을 처음 깨면 합류해요. 그 전에는 냥이 쪽 효과가 쓰이지 않아요.</li>}
-        </ul>
-      </div>
+      <ReachGuide save={save} className="ms-reachguide--shop" />
       <p className="ms-dim">
         치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요. 치명타 확률이 {pctOf(D.balance.perma.stats.crit.max)}가 되면 판 안에서 치명타 확률 카드가 더는 나오지 않아요.
       </p>
