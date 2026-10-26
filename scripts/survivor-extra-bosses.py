@@ -28,6 +28,25 @@ PLAN = {
     'x_queen': ['volley', 'cross', 'spiral'],
 }
 SHOT = {'bell': 'spark', 'flower': 'seed', 'spore': 'seed', 'web': 'bone', 'ghost': 'void', 'organ': 'spark', 'sun': 'spark', 'sand': 'bone', 'snow': 'ice', 'ice': 'crystal', 'storm': 'spark', 'clock': 'crystal', 'chess': 'void', 'eclipse': 'void'}
+# each boss's own attack (the one it had alone before the phases)
+SIG = {
+    'x_snail': {"type": "ringwave", "warn": 0.975, "speed": 210, "width": 30, "gaps": 2, "gapDeg": 58, "damage": 24},
+    'x_moth': {"type": "bloom", "warn": 0.845, "petals": 6, "petalDeg": 46, "skip": 2, "inner": 34, "step": 0.132, "damage": 24},
+    'x_toad': {"type": "spores", "warn": 0.91, "count": 6, "r": 48, "step": 0.144, "damage": 22},
+    'x_spider': {"type": "web", "warn": 0.91, "threads": 6, "fire": 3, "width": 30, "step": 0.18, "damage": 24},
+    'x_bellkeeper': {"type": "sweep", "warn": 0.91, "width": 64, "speed": 322, "gaps": 1, "gap": 130, "damage": 24},
+    'x_organ': {"type": "rows", "warn": 0.91, "rows": 6, "damage": 24},
+    'x_scarab': {"type": "ringwave", "warn": 0.975, "speed": 238, "width": 36, "gaps": 1, "gapDeg": 84, "damage": 26},
+    'x_sultan': {"type": "sweep", "warn": 0.91, "width": 84, "speed": 280, "gaps": 2, "gap": 110, "damage": 24},
+    'x_jelly': {"type": "branches", "warn": 0.91, "count": 6, "branchDeg": 26, "damage": 24},
+    'x_peacock': {"type": "pillars", "warn": 0.845, "rays": 5, "spreadDeg": 110, "perRay": 4, "r": 28, "step": 0.108, "damage": 24},
+    'x_ray': {"type": "sweep", "warn": 0.91, "width": 80, "speed": 322, "gaps": 1, "gap": 140, "push": 55, "damage": 24},
+    'x_clock': {"type": "clock", "warn": 0.845, "sectors": 12, "lit": 4, "inner": 40, "step": 0.18, "damage": 24},
+    'x_queen': {"type": "chess", "warn": 0.975, "cols": 6, "rows": 5, "lines": 3, "damage": 26},
+}
+# the rings and bands (the attacks that show their safe gaps in green) fly
+# this much faster than first written (asked for: twice)
+WAVE = 2
 W = lambda w: round(max(MINW, w), 3)
 
 def shared(kind, t, dmg, hard=0):
@@ -71,7 +90,7 @@ def combo(parts, after):
 for t2, bid in enumerate(ORDER):
     t = t2 // 2  # the episode
     b = X['bosses'][bid]
-    sig = b['attacks'][0] if 'attacks' in b else b['phases'][0]['attacks'][0]
+    sig = SIG[bid]
     dmg = sig['damage']
     e1, e2, e3 = PLAN[bid]
     walk = round(0.55 - 0.03 * t, 2)
@@ -96,6 +115,15 @@ E['phases'] = [
     {'above': 0.15, 'walk': 0.2, 'attacks': [combo([ring, sh('spiral', 2), sweep], 0.3), combo([sh('cross', 2), sh('volley', 2), sh('dash', 2)], 0.3), combo([sh('rain', 2), ring, sh('spiral', 2)], 0.3), combo([sweep, sh('volley', 2), sh('cross', 2)], 0.3)]},
     {'above': 0, 'walk': 0.12, 'core': True, 'attacks': [combo([harder(ring, 1), sh('spiral', 3), harder(sweep, 1)], 0.24), combo([sh('dash', 3), sh('volley', 3), sh('rain', 3)], 0.24), combo([sh('spiral', 3), sh('cross', 3), harder(ring, 1)], 0.24), combo([harder(sweep, 1), sh('volley', 3), sh('spiral', 3)], 0.24)]},
 ]
+def fast(a):
+    if a['type'] == 'combo':
+        for q in a['parts']: fast(q)
+    elif a['type'] in ('ringwave', 'sweep'):
+        a['speed'] = round(a['speed'] * WAVE)
+for b in X['bosses'].values():
+    for ph in b['phases']:
+        for a in ph['attacks']: fast(a)
+
 json.dump(bal, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
 open(p, 'a').write('\n')
 print('ok')

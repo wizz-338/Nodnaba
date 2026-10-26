@@ -733,7 +733,7 @@
     }
   },
   "extraBosses": {
-    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (15: six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart), volley (fans of `shots` shots at Mano, `bursts` of them `step` s apart, each aimed where she is when its thin lanes show, laneWarn s before), spiral (`arms` streams of shots wheeling out of it, one each `every` s for `seconds`, turning spin rad/s; twin: a second wheel the other way), dash (it charges straight through where Mano is to the area's edge: the lane warned, the blow along it as it runs, `count` times from where each ends), rain (circles over the area in quick turns: where Mano is, where she is heading, then spread), cross (a + then an × through where she is, across the whole area, `count` in turn). Shots are many small blows (about half a blast each); shot: the look of its shots. walk: s between attacks; recover: s after one. phases: every boss's attack lists by the HP share left (above): its own attack and two more from the start, a third and a combo below 60%, combos and the hardest of each below 30%, walking less each time; harder each episode (asked for: they had one attack each and were too slow); the last boss: four phases, every kind of attack, three-part combos close together at the end. Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4, combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
+    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (15: six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart), volley (fans of `shots` shots at Mano, `bursts` of them `step` s apart, each aimed where she is when its thin lanes show, laneWarn s before), spiral (`arms` streams of shots wheeling out of it, one each `every` s for `seconds`, turning spin rad/s; twin: a second wheel the other way), dash (it charges straight through where Mano is to the area's edge: the lane warned, the blow along it as it runs, `count` times from where each ends), rain (circles over the area in quick turns: where Mano is, where she is heading, then spread), cross (a + then an × through where she is, across the whole area, `count` in turn). Shots are many small blows (about half a blast each); shot: the look of its shots. walk: s between attacks; recover: s after one. phases: every boss's attack lists by the HP share left (above): its own attack and two more from the start, a third and a combo below 60%, combos and the hardest of each below 30%, walking less each time; harder each episode (asked for: they had one attack each and were too slow); the last boss: four phases, every kind of attack, three-part combos close together at the end. Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4 (then ×2 again: the attacks that show their safe gaps in green fly twice as fast, asked for), combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
     "chapters": {
       "3": "x_snail",
       "5": "x_moth",
@@ -778,7 +778,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.975,
-                "speed": 210,
+                "speed": 420,
                 "width": 30,
                 "gaps": 2,
                 "gapDeg": 58,
@@ -813,7 +813,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.916,
-                "speed": 231,
+                "speed": 462,
                 "width": 30,
                 "gaps": 2,
                 "gapDeg": 58,
@@ -848,7 +848,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.916,
-                    "speed": 231,
+                    "speed": 462,
                     "width": 30,
                     "gaps": 2,
                     "gapDeg": 58,
@@ -887,7 +887,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.858,
-                    "speed": 252,
+                    "speed": 504,
                     "width": 30,
                     "gaps": 2,
                     "gapDeg": 58,
@@ -924,7 +924,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.858,
-                    "speed": 252,
+                    "speed": 504,
                     "width": 30,
                     "gaps": 2,
                     "gapDeg": 58,
@@ -1631,7 +1631,7 @@
                 "type": "sweep",
                 "warn": 0.91,
                 "width": 64,
-                "speed": 322,
+                "speed": 644,
                 "gaps": 1,
                 "gap": 130,
                 "damage": 24
@@ -1666,7 +1666,7 @@
                 "type": "sweep",
                 "warn": 0.855,
                 "width": 64,
-                "speed": 354,
+                "speed": 708,
                 "gaps": 1,
                 "gap": 130,
                 "damage": 24
@@ -1697,7 +1697,7 @@
                     "type": "sweep",
                     "warn": 0.855,
                     "width": 64,
-                    "speed": 354,
+                    "speed": 708,
                     "gaps": 1,
                     "gap": 130,
                     "damage": 24
@@ -1744,7 +1744,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 64,
-                    "speed": 386,
+                    "speed": 772,
                     "gaps": 1,
                     "gap": 130,
                     "damage": 24
@@ -1777,7 +1777,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 64,
-                    "speed": 386,
+                    "speed": 772,
                     "gaps": 1,
                     "gap": 130,
                     "damage": 24
@@ -1854,7 +1854,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.91,
-                "speed": 244,
+                "speed": 488,
                 "width": 32,
                 "gaps": 2,
                 "gapDeg": 60,
@@ -1911,7 +1911,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.91,
-                    "speed": 256,
+                    "speed": 512,
                     "width": 32,
                     "gaps": 2,
                     "gapDeg": 60,
@@ -1922,7 +1922,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.91,
-                "speed": 256,
+                "speed": 512,
                 "width": 32,
                 "gaps": 2,
                 "gapDeg": 60,
@@ -1989,7 +1989,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.91,
-                "speed": 268,
+                "speed": 536,
                 "width": 32,
                 "gaps": 2,
                 "gapDeg": 60,
@@ -2043,7 +2043,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.975,
-                "speed": 238,
+                "speed": 476,
                 "width": 36,
                 "gaps": 1,
                 "gapDeg": 84,
@@ -2078,7 +2078,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.916,
-                "speed": 262,
+                "speed": 524,
                 "width": 36,
                 "gaps": 1,
                 "gapDeg": 84,
@@ -2113,7 +2113,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.916,
-                    "speed": 262,
+                    "speed": 524,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 84,
@@ -2152,7 +2152,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.858,
-                    "speed": 286,
+                    "speed": 572,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 84,
@@ -2189,7 +2189,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.858,
-                    "speed": 286,
+                    "speed": 572,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 84,
@@ -2250,7 +2250,7 @@
                 "type": "sweep",
                 "warn": 0.91,
                 "width": 84,
-                "speed": 280,
+                "speed": 560,
                 "gaps": 2,
                 "gap": 110,
                 "damage": 24
@@ -2285,7 +2285,7 @@
                 "type": "sweep",
                 "warn": 0.855,
                 "width": 84,
-                "speed": 308,
+                "speed": 616,
                 "gaps": 2,
                 "gap": 110,
                 "damage": 24
@@ -2316,7 +2316,7 @@
                     "type": "sweep",
                     "warn": 0.855,
                     "width": 84,
-                    "speed": 308,
+                    "speed": 616,
                     "gaps": 2,
                     "gap": 110,
                     "damage": 24
@@ -2363,7 +2363,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 84,
-                    "speed": 336,
+                    "speed": 672,
                     "gaps": 2,
                     "gap": 110,
                     "damage": 24
@@ -2396,7 +2396,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 84,
-                    "speed": 336,
+                    "speed": 672,
                     "gaps": 2,
                     "gap": 110,
                     "damage": 24
@@ -2875,7 +2875,7 @@
                 "type": "sweep",
                 "warn": 0.91,
                 "width": 80,
-                "speed": 322,
+                "speed": 644,
                 "gaps": 1,
                 "gap": 140,
                 "push": 55,
@@ -2911,7 +2911,7 @@
                 "type": "sweep",
                 "warn": 0.855,
                 "width": 80,
-                "speed": 354,
+                "speed": 708,
                 "gaps": 1,
                 "gap": 140,
                 "push": 55,
@@ -2943,7 +2943,7 @@
                     "type": "sweep",
                     "warn": 0.855,
                     "width": 80,
-                    "speed": 354,
+                    "speed": 708,
                     "gaps": 1,
                     "gap": 140,
                     "push": 55,
@@ -2991,7 +2991,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 80,
-                    "speed": 386,
+                    "speed": 772,
                     "gaps": 1,
                     "gap": 140,
                     "push": 55,
@@ -3025,7 +3025,7 @@
                     "type": "sweep",
                     "warn": 0.801,
                     "width": 80,
-                    "speed": 386,
+                    "speed": 772,
                     "gaps": 1,
                     "gap": 140,
                     "push": 55,
@@ -3530,7 +3530,7 @@
               {
                 "type": "ringwave",
                 "warn": 0.85,
-                "speed": 280,
+                "speed": 8960,
                 "width": 36,
                 "gaps": 1,
                 "gapDeg": 70,
@@ -3552,7 +3552,7 @@
                 "type": "sweep",
                 "warn": 0.85,
                 "width": 84,
-                "speed": 380,
+                "speed": 6080,
                 "gaps": 1,
                 "gap": 118,
                 "damage": 32
@@ -3592,7 +3592,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.85,
-                    "speed": 280,
+                    "speed": 8960,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3630,7 +3630,7 @@
                     "type": "sweep",
                     "warn": 0.85,
                     "width": 84,
-                    "speed": 380,
+                    "speed": 6080,
                     "gaps": 1,
                     "gap": 118,
                     "damage": 32
@@ -3674,7 +3674,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.85,
-                    "speed": 280,
+                    "speed": 8960,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3698,7 +3698,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.85,
-                    "speed": 280,
+                    "speed": 8960,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3720,7 +3720,7 @@
                     "type": "sweep",
                     "warn": 0.85,
                     "width": 84,
-                    "speed": 380,
+                    "speed": 6080,
                     "gaps": 1,
                     "gap": 118,
                     "damage": 32
@@ -3782,7 +3782,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.85,
-                    "speed": 280,
+                    "speed": 8960,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3813,7 +3813,7 @@
                     "type": "sweep",
                     "warn": 0.85,
                     "width": 84,
-                    "speed": 380,
+                    "speed": 6080,
                     "gaps": 1,
                     "gap": 118,
                     "damage": 32
@@ -3857,7 +3857,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.8,
-                    "speed": 308,
+                    "speed": 616,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3879,7 +3879,7 @@
                     "type": "sweep",
                     "warn": 0.8,
                     "width": 84,
-                    "speed": 418,
+                    "speed": 836,
                     "gaps": 1,
                     "gap": 118,
                     "damage": 32
@@ -3953,7 +3953,7 @@
                   {
                     "type": "ringwave",
                     "warn": 0.8,
-                    "speed": 308,
+                    "speed": 616,
                     "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
@@ -3972,7 +3972,7 @@
                     "type": "sweep",
                     "warn": 0.8,
                     "width": 84,
-                    "speed": 418,
+                    "speed": 836,
                     "gaps": 1,
                     "gap": 118,
                     "damage": 32
