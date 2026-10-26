@@ -733,7 +733,7 @@
     }
   },
   "extraBosses": {
-    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (15: six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart). walk: s between attacks; recover: s after one. phases: the last boss's attack lists by HP share left (above). Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4, combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
+    "note": "The extra special bosses (MANO_EXTRA_BOSSES; bosses.js): in the chapters listed, after the chapter's own boss has fallen, one more boss comes, and the chapter is cleared only when it falls too. The field is cleared first (the monsters fade, their attacks go), then intro: calm s of quiet, warn s of WARNING! with a siren and its name and line, appear s of it coming in (Mano cannot be hurt and it cannot be hit until it stands); its fight is in the play area as it was then (box: the PC camera holds still). hpMul: its HP is the chapter boss's (its chapter and late-game strength) × this (15: six times the 2.5 it had, which was still too quick a fight; it was 0.8 before that), never capped; from lateGame.bossGuard.fromChapter on it has the boss's guard too (it loses at most maxShare of its HP a second), so it is never easier than the boss it follows. damage: each blow's base, × the boss's hit strength. Attacks (each warned from the start in its real shape, the safe ground shown, blows landing once): ringwave (rings out of it across the whole area, gaps of gapDeg° to stand in, one near Mano), bloom (petal fans from it in turn, skip of them left out), spores (big circles over the area in turn), web (beams across the whole area through it, fire of threads), sweep (a band crossing the whole area, gaps of gap px to stand in, push px/s while inside), rows (every other row of the area), branches (fans from it, every other one), pillars (circles along a fan of rays toward Mano), clock (fans from the area's middle in turn round the dial), chess (rows and columns of a board over the area), combo (parts one after another, after s apart), volley (fans of `shots` shots at Mano, `bursts` of them `step` s apart, each aimed where she is when its thin lanes show, laneWarn s before), spiral (`arms` streams of shots wheeling out of it, one each `every` s for `seconds`, turning spin rad/s; twin: a second wheel the other way), dash (it charges straight through where Mano is to the area's edge: the lane warned, the blow along it as it runs, `count` times from where each ends), rain (circles over the area in quick turns: where Mano is, where she is heading, then spread), cross (a + then an × through where she is, across the whole area, `count` in turn). Shots are many small blows (about half a blast each); shot: the look of its shots. walk: s between attacks; recover: s after one. phases: every boss's attack lists by the HP share left (above): its own attack and two more from the start, a third and a combo below 60%, combos and the hardest of each below 30%, walking less each time; harder each episode (asked for: they had one attack each and were too slow); the last boss: four phases, every kind of attack, three-part combos close together at the end. Tempo (asked for: the patterns were too slow): warnings ×0.65 (never under minWarn 0.8 s), the steps of a pattern ×0.6, ring and band speeds ×1.4, combos' gaps ×0.65, walk (s between attacks) and recover halved, its walk ×1.5 faster.",
     "chapters": {
       "3": "x_snail",
       "5": "x_moth",
@@ -769,191 +769,2742 @@
       "x_snail": {
         "line": "숲 전체에 커다란 종소리가 울려요!",
         "look": "bell",
-        "attacks": [
+        "shot": "spark",
+        "phases": [
           {
-            "type": "ringwave",
-            "warn": 0.975,
-            "speed": 210,
-            "width": 30,
-            "gaps": 2,
-            "gapDeg": 58,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.55,
+            "attacks": [
+              {
+                "type": "ringwave",
+                "warn": 0.975,
+                "speed": 210,
+                "width": 30,
+                "gaps": 2,
+                "gapDeg": 58,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.9,
+                "bursts": 2,
+                "shots": 3,
+                "spreadDeg": 34,
+                "speed": 230,
+                "r": 7,
+                "step": 0.5,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "dash",
+                "warn": 0.88,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.41,
+            "attacks": [
+              {
+                "type": "ringwave",
+                "warn": 0.916,
+                "speed": 231,
+                "width": 30,
+                "gaps": 2,
+                "gapDeg": 58,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.9,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 37,
+                "speed": 242,
+                "r": 7,
+                "step": 0.475,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "rain",
+                "warn": 0.9,
+                "count": 10,
+                "r": 46,
+                "step": 0.104,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.6
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 0.916,
+                    "speed": 231,
+                    "width": 30,
+                    "gaps": 2,
+                    "gapDeg": 58,
+                    "damage": 24
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.88,
+                    "count": 2,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  }
+                ]
+              },
+              {
+                "type": "dash",
+                "warn": 0.88,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.3,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 0.858,
+                    "speed": 252,
+                    "width": 30,
+                    "gaps": 2,
+                    "gapDeg": 58,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.9,
+                    "bursts": 3,
+                    "shots": 3,
+                    "spreadDeg": 40,
+                    "speed": 254,
+                    "r": 7,
+                    "step": 0.45,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "rain",
+                    "warn": 0.9,
+                    "count": 12,
+                    "r": 46,
+                    "step": 0.098,
+                    "damage": 24
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.858,
+                    "speed": 252,
+                    "width": 30,
+                    "gaps": 2,
+                    "gapDeg": 58,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "dash",
+                "warn": 0.88,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.9,
+                    "bursts": 3,
+                    "shots": 3,
+                    "spreadDeg": 40,
+                    "speed": 254,
+                    "r": 7,
+                    "step": 0.45,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.9,
+                    "count": 12,
+                    "r": 46,
+                    "step": 0.098,
+                    "damage": 24
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_moth": {
         "line": "꽃가루 폭풍이 피어나요!",
         "look": "flower",
-        "attacks": [
+        "shot": "seed",
+        "phases": [
           {
-            "type": "bloom",
-            "warn": 0.845,
-            "petals": 6,
-            "petalDeg": 46,
-            "skip": 2,
-            "inner": 34,
-            "step": 0.132,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.55,
+            "attacks": [
+              {
+                "type": "bloom",
+                "warn": 0.845,
+                "petals": 6,
+                "petalDeg": 46,
+                "skip": 2,
+                "inner": 34,
+                "step": 0.132,
+                "damage": 24
+              },
+              {
+                "type": "spiral",
+                "warn": 0.9,
+                "arms": 2,
+                "every": 0.16,
+                "seconds": 1.4,
+                "spin": 1.5,
+                "speed": 140,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "rain",
+                "warn": 0.9,
+                "count": 8,
+                "r": 46,
+                "step": 0.11,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.41,
+            "attacks": [
+              {
+                "type": "bloom",
+                "warn": 0.8,
+                "petals": 7,
+                "petalDeg": 46,
+                "skip": 2,
+                "inner": 34,
+                "step": 0.116,
+                "damage": 24
+              },
+              {
+                "type": "spiral",
+                "warn": 0.9,
+                "arms": 3,
+                "every": 0.154,
+                "seconds": 1.58,
+                "spin": 1.62,
+                "speed": 148,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "volley",
+                "warn": 0.9,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 37,
+                "speed": 242,
+                "r": 7,
+                "step": 0.475,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.6
+                ],
+                "parts": [
+                  {
+                    "type": "bloom",
+                    "warn": 0.8,
+                    "petals": 7,
+                    "petalDeg": 46,
+                    "skip": 2,
+                    "inner": 34,
+                    "step": 0.116,
+                    "damage": 24
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.9,
+                    "count": 10,
+                    "r": 46,
+                    "step": 0.104,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "rain",
+                "warn": 0.9,
+                "count": 10,
+                "r": 46,
+                "step": 0.104,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.3,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "bloom",
+                    "warn": 0.8,
+                    "petals": 8,
+                    "petalDeg": 46,
+                    "skip": 2,
+                    "inner": 34,
+                    "step": 0.1,
+                    "damage": 24
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.9,
+                    "arms": 3,
+                    "every": 0.148,
+                    "seconds": 1.76,
+                    "spin": 1.74,
+                    "speed": 156,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.9,
+                    "bursts": 3,
+                    "shots": 3,
+                    "spreadDeg": 40,
+                    "speed": 254,
+                    "r": 7,
+                    "step": 0.45,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "bloom",
+                    "warn": 0.8,
+                    "petals": 8,
+                    "petalDeg": 46,
+                    "skip": 2,
+                    "inner": 34,
+                    "step": 0.1,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "rain",
+                "warn": 0.9,
+                "count": 12,
+                "r": 46,
+                "step": 0.098,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.9,
+                    "arms": 3,
+                    "every": 0.148,
+                    "seconds": 1.76,
+                    "spin": 1.74,
+                    "speed": 156,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.9,
+                    "bursts": 3,
+                    "shots": 3,
+                    "spreadDeg": 40,
+                    "speed": 254,
+                    "r": 7,
+                    "step": 0.45,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_toad": {
         "line": "목이 부풀어 올라요… 포자를 조심해!",
         "look": "spore",
-        "attacks": [
+        "shot": "seed",
+        "phases": [
           {
-            "type": "spores",
-            "warn": 0.91,
-            "count": 6,
-            "r": 48,
-            "step": 0.144,
-            "damage": 22
+            "above": 0.6,
+            "walk": 0.52,
+            "attacks": [
+              {
+                "type": "spores",
+                "warn": 0.91,
+                "count": 6,
+                "r": 48,
+                "step": 0.144,
+                "damage": 22
+              },
+              {
+                "type": "dash",
+                "warn": 0.86,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 26
+              },
+              {
+                "type": "volley",
+                "warn": 0.88,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 37,
+                "speed": 242,
+                "r": 7,
+                "step": 0.475,
+                "laneWarn": 0.34,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.39,
+            "attacks": [
+              {
+                "type": "spores",
+                "warn": 0.855,
+                "count": 8,
+                "r": 48,
+                "step": 0.127,
+                "damage": 22
+              },
+              {
+                "type": "dash",
+                "warn": 0.86,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 26
+              },
+              {
+                "type": "cross",
+                "warn": 0.88,
+                "count": 2,
+                "width": 44,
+                "step": 0.55,
+                "damage": 22
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.57
+                ],
+                "parts": [
+                  {
+                    "type": "spores",
+                    "warn": 0.855,
+                    "count": 8,
+                    "r": 48,
+                    "step": 0.127,
+                    "damage": 22
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.88,
+                    "bursts": 3,
+                    "shots": 3,
+                    "spreadDeg": 40,
+                    "speed": 254,
+                    "r": 7,
+                    "step": 0.45,
+                    "laneWarn": 0.34,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.88,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 40,
+                "speed": 254,
+                "r": 7,
+                "step": 0.45,
+                "laneWarn": 0.34,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.29,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "spores",
+                    "warn": 0.801,
+                    "count": 10,
+                    "r": 48,
+                    "step": 0.109,
+                    "damage": 22
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 26
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.88,
+                    "count": 3,
+                    "width": 44,
+                    "step": 0.515,
+                    "damage": 22
+                  },
+                  {
+                    "type": "spores",
+                    "warn": 0.801,
+                    "count": 10,
+                    "r": 48,
+                    "step": 0.109,
+                    "damage": 22
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.88,
+                "bursts": 4,
+                "shots": 4,
+                "spreadDeg": 43,
+                "speed": 266,
+                "r": 7,
+                "step": 0.425,
+                "laneWarn": 0.34,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 26
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.88,
+                    "count": 3,
+                    "width": 44,
+                    "step": 0.515,
+                    "damage": 22
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_spider": {
         "line": "유적의 룬 거미줄이 깨어나요!",
         "look": "web",
-        "attacks": [
+        "shot": "bone",
+        "phases": [
           {
-            "type": "web",
-            "warn": 0.91,
-            "threads": 6,
-            "fire": 3,
-            "width": 30,
-            "step": 0.18,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.52,
+            "attacks": [
+              {
+                "type": "web",
+                "warn": 0.91,
+                "threads": 6,
+                "fire": 3,
+                "width": 30,
+                "step": 0.18,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.88,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 37,
+                "speed": 242,
+                "r": 7,
+                "step": 0.475,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "spiral",
+                "warn": 0.88,
+                "arms": 3,
+                "every": 0.154,
+                "seconds": 1.58,
+                "spin": 1.62,
+                "speed": 148,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.39,
+            "attacks": [
+              {
+                "type": "web",
+                "warn": 0.855,
+                "threads": 6,
+                "fire": 3,
+                "width": 30,
+                "step": 0.158,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.88,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 40,
+                "speed": 254,
+                "r": 7,
+                "step": 0.45,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "dash",
+                "warn": 0.86,
+                "count": 2,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.57
+                ],
+                "parts": [
+                  {
+                    "type": "web",
+                    "warn": 0.855,
+                    "threads": 6,
+                    "fire": 3,
+                    "width": 30,
+                    "step": 0.158,
+                    "damage": 24
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.88,
+                    "arms": 3,
+                    "every": 0.148,
+                    "seconds": 1.76,
+                    "spin": 1.74,
+                    "speed": 156,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.88,
+                "arms": 3,
+                "every": 0.148,
+                "seconds": 1.76,
+                "spin": 1.74,
+                "speed": 156,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.29,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "web",
+                    "warn": 0.801,
+                    "threads": 6,
+                    "fire": 3,
+                    "width": 30,
+                    "step": 0.137,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.88,
+                    "bursts": 4,
+                    "shots": 4,
+                    "spreadDeg": 43,
+                    "speed": 266,
+                    "r": 7,
+                    "step": 0.425,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  },
+                  {
+                    "type": "web",
+                    "warn": 0.801,
+                    "threads": 6,
+                    "fire": 3,
+                    "width": 30,
+                    "step": 0.137,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.88,
+                "arms": 4,
+                "every": 0.142,
+                "seconds": 1.94,
+                "spin": 1.86,
+                "speed": 164,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.47
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.88,
+                    "bursts": 4,
+                    "shots": 4,
+                    "spreadDeg": 43,
+                    "speed": 266,
+                    "r": 7,
+                    "step": 0.425,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_bellkeeper": {
         "line": "망자의 종이 울려요!",
         "look": "ghost",
-        "attacks": [
+        "shot": "void",
+        "phases": [
           {
-            "type": "sweep",
-            "warn": 0.91,
-            "width": 64,
-            "speed": 322,
-            "gaps": 1,
-            "gap": 130,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.49,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.91,
+                "width": 64,
+                "speed": 322,
+                "gaps": 1,
+                "gap": 130,
+                "damage": 24
+              },
+              {
+                "type": "cross",
+                "warn": 0.86,
+                "count": 2,
+                "width": 44,
+                "step": 0.55,
+                "damage": 24
+              },
+              {
+                "type": "spiral",
+                "warn": 0.86,
+                "arms": 3,
+                "every": 0.148,
+                "seconds": 1.76,
+                "spin": 1.74,
+                "speed": 156,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.37,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.855,
+                "width": 64,
+                "speed": 354,
+                "gaps": 1,
+                "gap": 130,
+                "damage": 24
+              },
+              {
+                "type": "cross",
+                "warn": 0.86,
+                "count": 3,
+                "width": 44,
+                "step": 0.515,
+                "damage": 24
+              },
+              {
+                "type": "rain",
+                "warn": 0.86,
+                "count": 14,
+                "r": 46,
+                "step": 0.092,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.54
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.855,
+                    "width": 64,
+                    "speed": 354,
+                    "gaps": 1,
+                    "gap": 130,
+                    "damage": 24
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.86,
+                    "arms": 4,
+                    "every": 0.142,
+                    "seconds": 1.94,
+                    "spin": 1.86,
+                    "speed": 164,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.86,
+                "arms": 4,
+                "every": 0.142,
+                "seconds": 1.94,
+                "spin": 1.86,
+                "speed": 164,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.27,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 64,
+                    "speed": 386,
+                    "gaps": 1,
+                    "gap": 130,
+                    "damage": 24
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 44,
+                    "step": 0.48,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "rain",
+                    "warn": 0.86,
+                    "count": 16,
+                    "r": 46,
+                    "step": 0.086,
+                    "damage": 24
+                  },
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 64,
+                    "speed": 386,
+                    "gaps": 1,
+                    "gap": 130,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.86,
+                "arms": 4,
+                "every": 0.136,
+                "seconds": 2.12,
+                "spin": 1.98,
+                "speed": 172,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.86,
+                    "count": 3,
+                    "width": 44,
+                    "step": 0.48,
+                    "damage": 24
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.86,
+                    "count": 16,
+                    "r": 46,
+                    "step": 0.086,
+                    "damage": 24
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_organ": {
         "line": "죽음의 선율이 시작돼요!",
         "look": "organ",
-        "attacks": [
+        "shot": "spark",
+        "phases": [
           {
-            "type": "rows",
-            "warn": 0.91,
-            "rows": 6,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.49,
+            "attacks": [
+              {
+                "type": "rows",
+                "warn": 0.91,
+                "rows": 6,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.86,
+                "bursts": 3,
+                "shots": 3,
+                "spreadDeg": 40,
+                "speed": 254,
+                "r": 7,
+                "step": 0.45,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "ringwave",
+                "warn": 0.91,
+                "speed": 244,
+                "width": 32,
+                "gaps": 2,
+                "gapDeg": 60,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.37,
+            "attacks": [
+              {
+                "type": "rows",
+                "warn": 0.855,
+                "rows": 6,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.86,
+                "bursts": 4,
+                "shots": 4,
+                "spreadDeg": 43,
+                "speed": 266,
+                "r": 7,
+                "step": 0.425,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "spiral",
+                "warn": 0.86,
+                "arms": 4,
+                "every": 0.142,
+                "seconds": 1.94,
+                "spin": 1.86,
+                "speed": 164,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.54
+                ],
+                "parts": [
+                  {
+                    "type": "rows",
+                    "warn": 0.855,
+                    "rows": 6,
+                    "damage": 24
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.91,
+                    "speed": 256,
+                    "width": 32,
+                    "gaps": 2,
+                    "gapDeg": 60,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "ringwave",
+                "warn": 0.91,
+                "speed": 256,
+                "width": 32,
+                "gaps": 2,
+                "gapDeg": 60,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.27,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "rows",
+                    "warn": 0.801,
+                    "rows": 6,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.86,
+                    "bursts": 4,
+                    "shots": 4,
+                    "spreadDeg": 46,
+                    "speed": 278,
+                    "r": 7,
+                    "step": 0.4,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.86,
+                    "arms": 4,
+                    "every": 0.136,
+                    "seconds": 2.12,
+                    "spin": 1.98,
+                    "speed": 172,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  },
+                  {
+                    "type": "rows",
+                    "warn": 0.801,
+                    "rows": 6,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "ringwave",
+                "warn": 0.91,
+                "speed": 268,
+                "width": 32,
+                "gaps": 2,
+                "gapDeg": 60,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.44
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.86,
+                    "bursts": 4,
+                    "shots": 4,
+                    "spreadDeg": 46,
+                    "speed": 278,
+                    "r": 7,
+                    "step": 0.4,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.86,
+                    "arms": 4,
+                    "every": 0.136,
+                    "seconds": 2.12,
+                    "spin": 1.98,
+                    "speed": 172,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_scarab": {
         "line": "태양이 땅으로 내려와요!",
         "look": "sun",
-        "attacks": [
+        "shot": "spark",
+        "phases": [
           {
-            "type": "ringwave",
-            "warn": 0.975,
-            "speed": 238,
-            "width": 36,
-            "gaps": 1,
-            "gapDeg": 84,
-            "damage": 26
+            "above": 0.6,
+            "walk": 0.46,
+            "attacks": [
+              {
+                "type": "ringwave",
+                "warn": 0.975,
+                "speed": 238,
+                "width": 36,
+                "gaps": 1,
+                "gapDeg": 84,
+                "damage": 26
+              },
+              {
+                "type": "spiral",
+                "warn": 0.84,
+                "arms": 4,
+                "every": 0.142,
+                "seconds": 1.94,
+                "spin": 1.86,
+                "speed": 164,
+                "r": 6,
+                "twin": false,
+                "damage": 12
+              },
+              {
+                "type": "dash",
+                "warn": 0.82,
+                "count": 3,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 30
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.35,
+            "attacks": [
+              {
+                "type": "ringwave",
+                "warn": 0.916,
+                "speed": 262,
+                "width": 36,
+                "gaps": 1,
+                "gapDeg": 84,
+                "damage": 26
+              },
+              {
+                "type": "spiral",
+                "warn": 0.84,
+                "arms": 4,
+                "every": 0.136,
+                "seconds": 2.12,
+                "spin": 1.98,
+                "speed": 172,
+                "r": 6,
+                "twin": false,
+                "damage": 12
+              },
+              {
+                "type": "rain",
+                "warn": 0.84,
+                "count": 16,
+                "r": 46,
+                "step": 0.086,
+                "damage": 26
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.51
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 0.916,
+                    "speed": 262,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 84,
+                    "damage": 26
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.82,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 30
+                  }
+                ]
+              },
+              {
+                "type": "dash",
+                "warn": 0.82,
+                "count": 3,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 30
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.25,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 0.858,
+                    "speed": 286,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 84,
+                    "damage": 26
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.84,
+                    "arms": 4,
+                    "every": 0.13,
+                    "seconds": 2.3,
+                    "spin": 2.1,
+                    "speed": 180,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "rain",
+                    "warn": 0.84,
+                    "count": 18,
+                    "r": 46,
+                    "step": 0.08,
+                    "damage": 26
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.858,
+                    "speed": 286,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 84,
+                    "damage": 26
+                  }
+                ]
+              },
+              {
+                "type": "dash",
+                "warn": 0.82,
+                "count": 3,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 30
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.84,
+                    "arms": 4,
+                    "every": 0.13,
+                    "seconds": 2.3,
+                    "spin": 2.1,
+                    "speed": 180,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 12
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.84,
+                    "count": 18,
+                    "r": 46,
+                    "step": 0.08,
+                    "damage": 26
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_sultan": {
         "line": "시간의 모래가 쏟아져요!",
         "look": "sand",
-        "attacks": [
+        "shot": "bone",
+        "phases": [
           {
-            "type": "sweep",
-            "warn": 0.91,
-            "width": 84,
-            "speed": 280,
-            "gaps": 2,
-            "gap": 110,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.46,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.91,
+                "width": 84,
+                "speed": 280,
+                "gaps": 2,
+                "gap": 110,
+                "damage": 24
+              },
+              {
+                "type": "rain",
+                "warn": 0.84,
+                "count": 14,
+                "r": 46,
+                "step": 0.092,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.84,
+                "bursts": 4,
+                "shots": 4,
+                "spreadDeg": 43,
+                "speed": 266,
+                "r": 7,
+                "step": 0.425,
+                "laneWarn": 0.34,
+                "damage": 12
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.35,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.855,
+                "width": 84,
+                "speed": 308,
+                "gaps": 2,
+                "gap": 110,
+                "damage": 24
+              },
+              {
+                "type": "rain",
+                "warn": 0.84,
+                "count": 16,
+                "r": 46,
+                "step": 0.086,
+                "damage": 24
+              },
+              {
+                "type": "dash",
+                "warn": 0.82,
+                "count": 3,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.51
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.855,
+                    "width": 84,
+                    "speed": 308,
+                    "gaps": 2,
+                    "gap": 110,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.84,
+                    "bursts": 4,
+                    "shots": 4,
+                    "spreadDeg": 46,
+                    "speed": 278,
+                    "r": 7,
+                    "step": 0.4,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.84,
+                "bursts": 4,
+                "shots": 4,
+                "spreadDeg": 46,
+                "speed": 278,
+                "r": 7,
+                "step": 0.4,
+                "laneWarn": 0.34,
+                "damage": 12
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.25,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 84,
+                    "speed": 336,
+                    "gaps": 2,
+                    "gap": 110,
+                    "damage": 24
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.84,
+                    "count": 18,
+                    "r": 46,
+                    "step": 0.08,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.82,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  },
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 84,
+                    "speed": 336,
+                    "gaps": 2,
+                    "gap": 110,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.84,
+                "bursts": 5,
+                "shots": 4,
+                "spreadDeg": 49,
+                "speed": 290,
+                "r": 7,
+                "step": 0.375,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.41
+                ],
+                "parts": [
+                  {
+                    "type": "rain",
+                    "warn": 0.84,
+                    "count": 18,
+                    "r": 46,
+                    "step": 0.08,
+                    "damage": 24
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.82,
+                    "count": 3,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_jelly": {
         "line": "눈꽃이 피며 한기가 번져요!",
         "look": "snow",
-        "attacks": [
+        "shot": "ice",
+        "phases": [
           {
-            "type": "branches",
-            "warn": 0.91,
-            "count": 6,
-            "branchDeg": 26,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.43,
+            "attacks": [
+              {
+                "type": "branches",
+                "warn": 0.91,
+                "count": 6,
+                "branchDeg": 26,
+                "damage": 24
+              },
+              {
+                "type": "spiral",
+                "warn": 0.82,
+                "arms": 4,
+                "every": 0.136,
+                "seconds": 2.12,
+                "spin": 1.98,
+                "speed": 172,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "rain",
+                "warn": 0.82,
+                "count": 16,
+                "r": 46,
+                "step": 0.086,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.32,
+            "attacks": [
+              {
+                "type": "branches",
+                "warn": 0.855,
+                "count": 8,
+                "branchDeg": 26,
+                "damage": 24
+              },
+              {
+                "type": "spiral",
+                "warn": 0.82,
+                "arms": 4,
+                "every": 0.13,
+                "seconds": 2.3,
+                "spin": 2.1,
+                "speed": 180,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "cross",
+                "warn": 0.82,
+                "count": 3,
+                "width": 44,
+                "step": 0.445,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.48
+                ],
+                "parts": [
+                  {
+                    "type": "branches",
+                    "warn": 0.855,
+                    "count": 8,
+                    "branchDeg": 26,
+                    "damage": 24
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.82,
+                    "count": 18,
+                    "r": 46,
+                    "step": 0.08,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "rain",
+                "warn": 0.82,
+                "count": 18,
+                "r": 46,
+                "step": 0.08,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.24,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "branches",
+                    "warn": 0.801,
+                    "count": 10,
+                    "branchDeg": 26,
+                    "damage": 24
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.82,
+                    "arms": 4,
+                    "every": 0.124,
+                    "seconds": 2.4,
+                    "spin": 2.22,
+                    "speed": 188,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.82,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.41,
+                    "damage": 24
+                  },
+                  {
+                    "type": "branches",
+                    "warn": 0.801,
+                    "count": 10,
+                    "branchDeg": 26,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "rain",
+                "warn": 0.82,
+                "count": 20,
+                "r": 46,
+                "step": 0.074,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.82,
+                    "arms": 4,
+                    "every": 0.124,
+                    "seconds": 2.4,
+                    "spin": 2.22,
+                    "speed": 188,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.82,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.41,
+                    "damage": 24
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_peacock": {
         "line": "얼음 깃이 활짝 펼쳐져요!",
         "look": "ice",
-        "attacks": [
+        "shot": "crystal",
+        "phases": [
           {
-            "type": "pillars",
-            "warn": 0.845,
-            "rays": 5,
-            "spreadDeg": 110,
-            "perRay": 4,
-            "r": 28,
-            "step": 0.108,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.43,
+            "attacks": [
+              {
+                "type": "pillars",
+                "warn": 0.845,
+                "rays": 5,
+                "spreadDeg": 110,
+                "perRay": 4,
+                "r": 28,
+                "step": 0.108,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.82,
+                "bursts": 4,
+                "shots": 4,
+                "spreadDeg": 46,
+                "speed": 278,
+                "r": 7,
+                "step": 0.4,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "cross",
+                "warn": 0.82,
+                "count": 3,
+                "width": 44,
+                "step": 0.48,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.32,
+            "attacks": [
+              {
+                "type": "pillars",
+                "warn": 0.8,
+                "rays": 5,
+                "spreadDeg": 110,
+                "perRay": 5,
+                "r": 28,
+                "step": 0.095,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.82,
+                "bursts": 5,
+                "shots": 4,
+                "spreadDeg": 49,
+                "speed": 290,
+                "r": 7,
+                "step": 0.375,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "spiral",
+                "warn": 0.82,
+                "arms": 4,
+                "every": 0.13,
+                "seconds": 2.3,
+                "spin": 2.1,
+                "speed": 180,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.48
+                ],
+                "parts": [
+                  {
+                    "type": "pillars",
+                    "warn": 0.8,
+                    "rays": 5,
+                    "spreadDeg": 110,
+                    "perRay": 5,
+                    "r": 28,
+                    "step": 0.095,
+                    "damage": 24
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.82,
+                    "count": 3,
+                    "width": 44,
+                    "step": 0.445,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "cross",
+                "warn": 0.82,
+                "count": 3,
+                "width": 44,
+                "step": 0.445,
+                "damage": 24
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.24,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "pillars",
+                    "warn": 0.8,
+                    "rays": 5,
+                    "spreadDeg": 110,
+                    "perRay": 6,
+                    "r": 28,
+                    "step": 0.082,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.82,
+                    "bursts": 5,
+                    "shots": 5,
+                    "spreadDeg": 52,
+                    "speed": 302,
+                    "r": 7,
+                    "step": 0.35,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.82,
+                    "arms": 4,
+                    "every": 0.124,
+                    "seconds": 2.4,
+                    "spin": 2.22,
+                    "speed": 188,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  },
+                  {
+                    "type": "pillars",
+                    "warn": 0.8,
+                    "rays": 5,
+                    "spreadDeg": 110,
+                    "perRay": 6,
+                    "r": 28,
+                    "step": 0.082,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "cross",
+                "warn": 0.82,
+                "count": 4,
+                "width": 44,
+                "step": 0.41,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.38
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.82,
+                    "bursts": 5,
+                    "shots": 5,
+                    "spreadDeg": 52,
+                    "speed": 302,
+                    "r": 7,
+                    "step": 0.35,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.82,
+                    "arms": 4,
+                    "every": 0.124,
+                    "seconds": 2.4,
+                    "spin": 2.22,
+                    "speed": 188,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_ray": {
         "line": "폭풍이 하늘을 갈라요!",
         "look": "storm",
-        "attacks": [
+        "shot": "spark",
+        "phases": [
           {
-            "type": "sweep",
-            "warn": 0.91,
-            "width": 80,
-            "speed": 322,
-            "gaps": 1,
-            "gap": 140,
-            "push": 55,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.4,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.91,
+                "width": 80,
+                "speed": 322,
+                "gaps": 1,
+                "gap": 140,
+                "push": 55,
+                "damage": 24
+              },
+              {
+                "type": "dash",
+                "warn": 0.8,
+                "count": 3,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 5,
+                "shots": 4,
+                "spreadDeg": 49,
+                "speed": 290,
+                "r": 7,
+                "step": 0.375,
+                "laneWarn": 0.34,
+                "damage": 12
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.3,
+            "attacks": [
+              {
+                "type": "sweep",
+                "warn": 0.855,
+                "width": 80,
+                "speed": 354,
+                "gaps": 1,
+                "gap": 140,
+                "push": 55,
+                "damage": 24
+              },
+              {
+                "type": "dash",
+                "warn": 0.8,
+                "count": 4,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 28
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 4,
+                "width": 44,
+                "step": 0.41,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.45
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.855,
+                    "width": 80,
+                    "speed": 354,
+                    "gaps": 1,
+                    "gap": 140,
+                    "push": 55,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 5,
+                    "shots": 5,
+                    "spreadDeg": 52,
+                    "speed": 302,
+                    "r": 7,
+                    "step": 0.35,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 5,
+                "shots": 5,
+                "spreadDeg": 52,
+                "speed": 302,
+                "r": 7,
+                "step": 0.35,
+                "laneWarn": 0.34,
+                "damage": 12
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.22,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 80,
+                    "speed": 386,
+                    "gaps": 1,
+                    "gap": 140,
+                    "push": 55,
+                    "damage": 24
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.375,
+                    "damage": 24
+                  },
+                  {
+                    "type": "sweep",
+                    "warn": 0.801,
+                    "width": 80,
+                    "speed": 386,
+                    "gaps": 1,
+                    "gap": 140,
+                    "push": 55,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 6,
+                "shots": 5,
+                "spreadDeg": 55,
+                "speed": 314,
+                "r": 7,
+                "step": 0.325,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 28
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.375,
+                    "damage": 24
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_clock": {
         "line": "하늘의 시계가 움직이기 시작해요!",
         "look": "clock",
-        "attacks": [
+        "shot": "crystal",
+        "phases": [
           {
-            "type": "clock",
-            "warn": 0.845,
-            "sectors": 12,
-            "lit": 4,
-            "inner": 40,
-            "step": 0.18,
-            "damage": 24
+            "above": 0.6,
+            "walk": 0.4,
+            "attacks": [
+              {
+                "type": "clock",
+                "warn": 0.845,
+                "sectors": 12,
+                "lit": 4,
+                "inner": 40,
+                "step": 0.18,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 5,
+                "shots": 4,
+                "spreadDeg": 49,
+                "speed": 290,
+                "r": 7,
+                "step": 0.375,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "spiral",
+                "warn": 0.8,
+                "arms": 4,
+                "every": 0.13,
+                "seconds": 2.3,
+                "spin": 2.1,
+                "speed": 180,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.3,
+            "attacks": [
+              {
+                "type": "clock",
+                "warn": 0.8,
+                "sectors": 12,
+                "lit": 6,
+                "inner": 40,
+                "step": 0.158,
+                "damage": 24
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 5,
+                "shots": 5,
+                "spreadDeg": 52,
+                "speed": 302,
+                "r": 7,
+                "step": 0.35,
+                "laneWarn": 0.34,
+                "damage": 12
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 4,
+                "width": 44,
+                "step": 0.41,
+                "damage": 24
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.45
+                ],
+                "parts": [
+                  {
+                    "type": "clock",
+                    "warn": 0.8,
+                    "sectors": 12,
+                    "lit": 6,
+                    "inner": 40,
+                    "step": 0.158,
+                    "damage": 24
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.124,
+                    "seconds": 2.4,
+                    "spin": 2.22,
+                    "speed": 188,
+                    "r": 6,
+                    "twin": false,
+                    "damage": 11
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.8,
+                "arms": 4,
+                "every": 0.124,
+                "seconds": 2.4,
+                "spin": 2.22,
+                "speed": 188,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.22,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "clock",
+                    "warn": 0.8,
+                    "sectors": 12,
+                    "lit": 8,
+                    "inner": 40,
+                    "step": 0.137,
+                    "damage": 24
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 6,
+                    "shots": 5,
+                    "spreadDeg": 55,
+                    "speed": 314,
+                    "r": 7,
+                    "step": 0.325,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.375,
+                    "damage": 24
+                  },
+                  {
+                    "type": "clock",
+                    "warn": 0.8,
+                    "sectors": 12,
+                    "lit": 8,
+                    "inner": 40,
+                    "step": 0.137,
+                    "damage": 24
+                  }
+                ]
+              },
+              {
+                "type": "spiral",
+                "warn": 0.8,
+                "arms": 4,
+                "every": 0.12,
+                "seconds": 2.4,
+                "spin": 2.34,
+                "speed": 196,
+                "r": 6,
+                "twin": false,
+                "damage": 11
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.35
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 6,
+                    "shots": 5,
+                    "spreadDeg": 55,
+                    "speed": 314,
+                    "r": 7,
+                    "step": 0.325,
+                    "laneWarn": 0.34,
+                    "damage": 12
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.375,
+                    "damage": 24
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
       "x_queen": {
         "line": "공허의 체스판이 펼쳐져요!",
         "look": "chess",
-        "attacks": [
+        "shot": "void",
+        "phases": [
           {
-            "type": "chess",
-            "warn": 0.975,
-            "cols": 6,
-            "rows": 5,
-            "lines": 3,
-            "damage": 26
+            "above": 0.6,
+            "walk": 0.37,
+            "attacks": [
+              {
+                "type": "chess",
+                "warn": 0.975,
+                "cols": 6,
+                "rows": 5,
+                "lines": 3,
+                "damage": 26
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 5,
+                "shots": 5,
+                "spreadDeg": 52,
+                "speed": 302,
+                "r": 7,
+                "step": 0.35,
+                "laneWarn": 0.34,
+                "damage": 13
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 4,
+                "width": 44,
+                "step": 0.41,
+                "damage": 26
+              }
+            ]
+          },
+          {
+            "above": 0.3,
+            "walk": 0.28,
+            "attacks": [
+              {
+                "type": "chess",
+                "warn": 0.916,
+                "cols": 6,
+                "rows": 5,
+                "lines": 4,
+                "damage": 26
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 6,
+                "shots": 5,
+                "spreadDeg": 55,
+                "speed": 314,
+                "r": 7,
+                "step": 0.325,
+                "laneWarn": 0.34,
+                "damage": 13
+              },
+              {
+                "type": "spiral",
+                "warn": 0.8,
+                "arms": 4,
+                "every": 0.12,
+                "seconds": 2.4,
+                "spin": 2.34,
+                "speed": 196,
+                "r": 6,
+                "twin": false,
+                "damage": 12
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.42
+                ],
+                "parts": [
+                  {
+                    "type": "chess",
+                    "warn": 0.916,
+                    "cols": 6,
+                    "rows": 5,
+                    "lines": 4,
+                    "damage": 26
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 4,
+                    "width": 44,
+                    "step": 0.375,
+                    "damage": 26
+                  }
+                ]
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 4,
+                "width": 44,
+                "step": 0.375,
+                "damage": 26
+              }
+            ]
+          },
+          {
+            "above": 0,
+            "walk": 0.2,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.32
+                ],
+                "parts": [
+                  {
+                    "type": "chess",
+                    "warn": 0.858,
+                    "cols": 6,
+                    "rows": 5,
+                    "lines": 5,
+                    "damage": 26
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 6,
+                    "shots": 5,
+                    "spreadDeg": 58,
+                    "speed": 326,
+                    "r": 7,
+                    "step": 0.3,
+                    "laneWarn": 0.34,
+                    "damage": 13
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.32
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.46,
+                    "speed": 204,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 12
+                  },
+                  {
+                    "type": "chess",
+                    "warn": 0.858,
+                    "cols": 6,
+                    "rows": 5,
+                    "lines": 5,
+                    "damage": 26
+                  }
+                ]
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 4,
+                "width": 44,
+                "step": 0.34,
+                "damage": 26
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.32
+                ],
+                "parts": [
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 6,
+                    "shots": 5,
+                    "spreadDeg": 58,
+                    "speed": 326,
+                    "r": 7,
+                    "step": 0.3,
+                    "laneWarn": 0.34,
+                    "damage": 13
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.46,
+                    "speed": 204,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 12
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -973,82 +3524,319 @@
         },
         "phases": [
           {
-            "above": 0.65,
-            "walk": 0.8,
+            "above": 0.7,
+            "walk": 0.4,
             "attacks": [
               {
                 "type": "ringwave",
-                "warn": 0.845,
-                "speed": 266,
-                "width": 34,
+                "warn": 0.85,
+                "speed": 280,
+                "width": 36,
                 "gaps": 1,
-                "gapDeg": 72,
-                "damage": 30
+                "gapDeg": 70,
+                "damage": 32
+              },
+              {
+                "type": "volley",
+                "warn": 0.8,
+                "bursts": 7,
+                "shots": 5,
+                "spreadDeg": 61,
+                "speed": 338,
+                "r": 7,
+                "step": 0.275,
+                "laneWarn": 0.34,
+                "damage": 16
               },
               {
                 "type": "sweep",
-                "warn": 0.845,
-                "width": 80,
-                "speed": 364,
+                "warn": 0.85,
+                "width": 84,
+                "speed": 380,
                 "gaps": 1,
-                "gap": 120,
-                "damage": 30
+                "gap": 118,
+                "damage": 32
+              },
+              {
+                "type": "spiral",
+                "warn": 0.8,
+                "arms": 4,
+                "every": 0.12,
+                "seconds": 2.4,
+                "spin": 2.58,
+                "speed": 212,
+                "r": 6,
+                "twin": true,
+                "damage": 14
+              },
+              {
+                "type": "dash",
+                "warn": 0.8,
+                "count": 5,
+                "width": 52,
+                "dur": 0.2,
+                "damage": 36
               }
             ]
           },
           {
-            "above": 0.3,
-            "walk": 0.7,
+            "above": 0.4,
+            "walk": 0.3,
             "attacks": [
               {
                 "type": "combo",
                 "after": [
-                  0.91
+                  0.5
                 ],
                 "parts": [
                   {
                     "type": "ringwave",
-                    "warn": 0.8,
-                    "speed": 266,
-                    "width": 34,
+                    "warn": 0.85,
+                    "speed": 280,
+                    "width": 36,
                     "gaps": 1,
                     "gapDeg": 70,
-                    "damage": 30
+                    "damage": 32
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.7,
+                    "speed": 220,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
+                  }
+                ]
+              },
+              {
+                "type": "rain",
+                "warn": 0.8,
+                "count": 28,
+                "r": 46,
+                "step": 0.05,
+                "damage": 32
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.5
+                ],
+                "parts": [
+                  {
+                    "type": "sweep",
+                    "warn": 0.85,
+                    "width": 84,
+                    "speed": 380,
+                    "gaps": 1,
+                    "gap": 118,
+                    "damage": 32
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 7,
+                    "shots": 5,
+                    "spreadDeg": 64,
+                    "speed": 350,
+                    "r": 7,
+                    "step": 0.25,
+                    "laneWarn": 0.34,
+                    "damage": 16
+                  }
+                ]
+              },
+              {
+                "type": "cross",
+                "warn": 0.8,
+                "count": 5,
+                "width": 44,
+                "step": 0.27,
+                "damage": 32
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.45
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.8,
+                    "count": 5,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 36
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.85,
+                    "speed": 280,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 32
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "above": 0.15,
+            "walk": 0.2,
+            "attacks": [
+              {
+                "type": "combo",
+                "after": [
+                  0.3,
+                  0.3
+                ],
+                "parts": [
+                  {
+                    "type": "ringwave",
+                    "warn": 0.85,
+                    "speed": 280,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 32
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.82,
+                    "speed": 228,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
                   },
                   {
                     "type": "sweep",
-                    "warn": 0.8,
-                    "width": 80,
-                    "speed": 364,
+                    "warn": 0.85,
+                    "width": 84,
+                    "speed": 380,
                     "gaps": 1,
-                    "gap": 120,
-                    "damage": 30
+                    "gap": 118,
+                    "damage": 32
                   }
                 ]
               },
               {
                 "type": "combo",
                 "after": [
-                  0.91
+                  0.3,
+                  0.3
+                ],
+                "parts": [
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 5,
+                    "width": 44,
+                    "step": 0.235,
+                    "damage": 32
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 8,
+                    "shots": 5,
+                    "spreadDeg": 67,
+                    "speed": 362,
+                    "r": 7,
+                    "step": 0.225,
+                    "laneWarn": 0.34,
+                    "damage": 16
+                  },
+                  {
+                    "type": "dash",
+                    "warn": 0.8,
+                    "count": 5,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 36
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.3,
+                  0.3
+                ],
+                "parts": [
+                  {
+                    "type": "rain",
+                    "warn": 0.8,
+                    "count": 30,
+                    "r": 46,
+                    "step": 0.044,
+                    "damage": 32
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.85,
+                    "speed": 280,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 32
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.82,
+                    "speed": 228,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.3,
+                  0.3
                 ],
                 "parts": [
                   {
                     "type": "sweep",
-                    "warn": 0.8,
-                    "width": 80,
-                    "speed": 364,
+                    "warn": 0.85,
+                    "width": 84,
+                    "speed": 380,
                     "gaps": 1,
-                    "gap": 120,
-                    "damage": 30
+                    "gap": 118,
+                    "damage": 32
                   },
                   {
-                    "type": "ringwave",
+                    "type": "volley",
                     "warn": 0.8,
-                    "speed": 266,
-                    "width": 34,
-                    "gaps": 1,
-                    "gapDeg": 70,
-                    "damage": 30
+                    "bursts": 8,
+                    "shots": 5,
+                    "spreadDeg": 67,
+                    "speed": 362,
+                    "r": 7,
+                    "step": 0.225,
+                    "laneWarn": 0.34,
+                    "damage": 16
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 5,
+                    "width": 44,
+                    "step": 0.235,
+                    "damage": 32
                   }
                 ]
               }
@@ -1056,31 +3844,44 @@
           },
           {
             "above": 0,
-            "walk": 0.55,
+            "walk": 0.12,
             "core": true,
             "attacks": [
               {
                 "type": "combo",
                 "after": [
-                  0.65
+                  0.24,
+                  0.24
                 ],
                 "parts": [
                   {
                     "type": "ringwave",
                     "warn": 0.8,
-                    "speed": 294,
+                    "speed": 308,
                     "width": 36,
                     "gaps": 1,
-                    "gapDeg": 66,
+                    "gapDeg": 70,
                     "damage": 32
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.94,
+                    "speed": 236,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
                   },
                   {
                     "type": "sweep",
                     "warn": 0.8,
                     "width": 84,
-                    "speed": 392,
+                    "speed": 418,
                     "gaps": 1,
-                    "gap": 115,
+                    "gap": 118,
                     "damage": 32
                   }
                 ]
@@ -1088,32 +3889,124 @@
               {
                 "type": "combo",
                 "after": [
-                  0.65
+                  0.24,
+                  0.24
+                ],
+                "parts": [
+                  {
+                    "type": "dash",
+                    "warn": 0.8,
+                    "count": 6,
+                    "width": 52,
+                    "dur": 0.2,
+                    "damage": 36
+                  },
+                  {
+                    "type": "volley",
+                    "warn": 0.8,
+                    "bursts": 8,
+                    "shots": 5,
+                    "spreadDeg": 70,
+                    "speed": 374,
+                    "r": 7,
+                    "step": 0.2,
+                    "laneWarn": 0.34,
+                    "damage": 16
+                  },
+                  {
+                    "type": "rain",
+                    "warn": 0.8,
+                    "count": 32,
+                    "r": 46,
+                    "step": 0.038,
+                    "damage": 32
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.24,
+                  0.24
+                ],
+                "parts": [
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.94,
+                    "speed": 236,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
+                  },
+                  {
+                    "type": "cross",
+                    "warn": 0.8,
+                    "count": 6,
+                    "width": 44,
+                    "step": 0.2,
+                    "damage": 32
+                  },
+                  {
+                    "type": "ringwave",
+                    "warn": 0.8,
+                    "speed": 308,
+                    "width": 36,
+                    "gaps": 1,
+                    "gapDeg": 70,
+                    "damage": 32
+                  }
+                ]
+              },
+              {
+                "type": "combo",
+                "after": [
+                  0.24,
+                  0.24
                 ],
                 "parts": [
                   {
                     "type": "sweep",
                     "warn": 0.8,
                     "width": 84,
-                    "speed": 392,
+                    "speed": 418,
                     "gaps": 1,
-                    "gap": 115,
+                    "gap": 118,
                     "damage": 32
                   },
                   {
-                    "type": "ringwave",
+                    "type": "volley",
                     "warn": 0.8,
-                    "speed": 294,
-                    "width": 36,
-                    "gaps": 1,
-                    "gapDeg": 66,
-                    "damage": 32
+                    "bursts": 8,
+                    "shots": 5,
+                    "spreadDeg": 70,
+                    "speed": 374,
+                    "r": 7,
+                    "step": 0.2,
+                    "laneWarn": 0.34,
+                    "damage": 16
+                  },
+                  {
+                    "type": "spiral",
+                    "warn": 0.8,
+                    "arms": 4,
+                    "every": 0.12,
+                    "seconds": 2.4,
+                    "spin": 2.94,
+                    "speed": 236,
+                    "r": 6,
+                    "twin": true,
+                    "damage": 14
                   }
                 ]
               }
             ]
           }
-        ]
+        ],
+        "shot": "void"
       }
     }
   },

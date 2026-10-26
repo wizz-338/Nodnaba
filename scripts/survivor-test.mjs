@@ -1643,17 +1643,22 @@ const still = { x: 0, y: 0 }
     killBoss(run)
     tick(run, 60 * 6)
     const b = run.extra.boss
-    const used = [new Set(), new Set(), new Set()]
-    for (let i = 0; i < 60 * 60; i++) {
-      if (i === 60 * 20) b.hp = b.maxHp * 0.6
-      if (i === 60 * 40) b.hp = b.maxHp * 0.2
+    const used = [new Set(), new Set(), new Set(), new Set()]
+    for (let i = 0; i < 60 * 80; i++) {
+      if (i === 60 * 20) b.hp = b.maxHp * 0.55
+      if (i === 60 * 40) b.hp = b.maxHp * 0.25
+      if (i === 60 * 60) b.hp = b.maxHp * 0.1
       tick(run, 1, { noFire: true })
       if (b.atk) used[b.phase].add(b.atk.spec.type)
     }
-    ok(used[0].has('ringwave') && used[0].has('sweep') && !used[0].has('combo') && used[1].has('combo') && used[2].has('combo') && b.core, `the last boss: ${used.map((u) => [...u].join('+')).join(' → ')}; its core lights at the end`)
+    ok(['ringwave', 'sweep', 'volley', 'spiral', 'dash'].every((t) => used[0].has(t)) && !used[0].has('combo') && used[1].has('combo') && used[2].has('combo') && used[3].has('combo') && b.core, `the last boss: ${used.map((u) => [...u].join('+')).join(' → ')}; its core lights at the end`)
     const pX = B.extraBosses.bosses.x_eclipse
     const others = Object.entries(B.extraBosses.bosses).filter(([id]) => id !== 'x_eclipse')
-    ok((pX.hpMul ?? X.hpMul) > X.hpMul && others.every(([, o]) => !o.phases && o.attacks.length <= 2), `the last boss is the hardest (HP ×${pX.hpMul} against ×${X.hpMul}, three phases); the others have one or two attacks`)
+    const kinds = (o) => new Set(o.phases.flatMap((ph) => ph.attacks.flatMap((a) => (a.type === 'combo' ? a.parts.map((q) => q.type) : [a.type]))))
+    const varied = others.every(([, o]) => o.phases.length === 3 && new Set(o.phases[0].attacks.map((a) => a.type)).size >= 3 && kinds(o).size >= 4 && o.phases[2].attacks.some((a) => a.type === 'combo') && o.phases[2].walk < o.phases[0].walk)
+    const last = kinds(pX)
+    const triple = pX.phases[3].attacks.every((a) => a.type === 'combo' && a.parts.length === 3)
+    ok((pX.hpMul ?? X.hpMul) > X.hpMul && pX.phases.length === 4 && last.size >= 7 && triple && varied, `every special boss: three phases by HP, three attacks of its own kind and more from the start, combos at the end, faster each phase; the last is the hardest (HP ×${pX.hpMul} against ×${X.hpMul}, four phases, ${last.size} kinds of attack, only three-part combos at the end)`)
   }
 
   // the animation data: every monster has its frames; the old motion set's
