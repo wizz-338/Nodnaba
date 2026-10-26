@@ -651,7 +651,8 @@ function hurtEnemy(run, e, dmg, x, y, crit = false, by = 'ball') {
 // guard is lost
 function guarded(run, e, dmg) {
   const G = run.D.balance.lateGame.bossGuard
-  const rate = e.maxHp * G.maxShare
+  // (guardShare: its own share, the boss tester's: tester.js)
+  const rate = e.maxHp * (e.guardShare ?? G.maxShare)
   e.guardLeft = Math.min(rate * G.burst, e.guardLeft + (run.t - e.guardT) * rate)
   e.guardT = run.t
   const n = Math.min(dmg, Math.max(0, e.guardLeft))

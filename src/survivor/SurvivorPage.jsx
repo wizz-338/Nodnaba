@@ -12,6 +12,7 @@ import { PLATFORMS, MOVE_KEYS, keyVector, touchOnly } from './platform.js'
 import { FRAMES, ART, SHEET_URLS, loadImages, spriteStyle } from './sprites.js'
 import { createRoom } from './room.js'
 import { roomTotal, roomProgress } from './room-items.js'
+import { testerStorage, setupTest, testTick, testPhase, skipPhase, testBosses, buildLevel, TEST_BUILDS, TEST_TIMES, TEST_PERMA } from './tester.js'
 import { GAMES } from '../data/games.js'
 import * as audio from './audio.js'
 import './survivor.css'
@@ -545,16 +546,17 @@ function statText(stat, L) {
 }
 
 // platform: 'mobile' (#/game/mano-survivor) or 'pc' (#/game/mano-survivor-pc)
-export default function SurvivorPage({ platform = 'mobile', exitHref = '#/' }) {
+// tester: the special-boss tester (tester.js): its own save in memory only
+export default function SurvivorPage({ platform = 'mobile', exitHref = '#/', tester = false }) {
   const pf = PLATFORMS[platform] || PLATFORMS.mobile
   return (
     <PlatformCtx.Provider value={pf}>
-      <Game exitHref={exitHref} />
+      <Game exitHref={exitHref} tester={tester} />
     </PlatformCtx.Provider>
   )
 }
 
-function Game({ exitHref }) {
+function Game({ exitHref, tester }) {
   const pf = usePlatform()
   const P = useRef(null)
   const [img, setImg] = useState(null)
@@ -586,7 +588,8 @@ function Game({ exitHref }) {
 
   // boot: images and the saved pocket
   useEffect(() => {
-    P.current = createProgress(D, browserStorage())
+    // (the tester: a save in memory, never the real one)
+    P.current = createProgress(D, tester ? testerStorage(D) : browserStorage())
     const b = P.current.boot()
     setSave(b.data)
     // rewards a save from before the story got for chapters it had cleared
@@ -611,7 +614,7 @@ function Game({ exitHref }) {
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
     // (a run left unfinished — the page closed mid-fight — simply ends; what
     // it earned stays: progress.js. Nothing needs saying about it)
-    if (!P.current.available) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
+    if (!P.current.available && !tester) setNotice('이 브라우저에서는 저장할 수 없어요. 플레이는 가능하지만 진행이 남지 않아요.')
     // the game's fonts (survivor.css): asked for now, so the battle's numbers
     // (drawn on the canvas) have them from the first fight
     document.fonts?.load?.("16px 'Jua'").catch(() => {})
@@ -685,6 +688,32 @@ function Game({ exitHref }) {
     // the episodes' opening cutscenes (play: false) are kept but never played
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && c.play !== false && !seen.has(c.id))
     setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
+    setScreen('battle')
+    refresh()
+  }
+
+  // the tester: a run of the boss's chapter, set up for it (tester.js)
+  const startTest = (opts) => {
+    const ch = opts.chapter
+    const r = P.current.startRun(ch)
+    const g = G.current
+    g.test = opts
+    g.runId = r.runId
+    g.chapter = ch
+    g.paid = false
+    g.choosing = false
+    g.input = { x: 0, y: 0 }
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, turret: r.turret, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
+    setupTest(g.run, opts)
+    g.saved = 0
+    g.earned = { chests: 0, coins: 0 }
+    g.reward = null
+    g.seen = new Set(P.current.get().story.seen)
+    preloadRegion(g.run.region, pf.background)
+    loadArt('motion:' + extraOf(D, ch))
+    for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power']) loadArt(id)
+    loadArt('turret')
+    setModal(null)
     setScreen('battle')
     refresh()
   }
@@ -765,7 +794,8 @@ function Game({ exitHref }) {
           </div>
         </div>
       )}
-      {screen === 'lobby' && save && (
+      {screen === 'lobby' && save && tester && <TesterLobby save={save} exitHref={exitHref} last={G.current.test} onStart={startTest} />}
+      {screen === 'lobby' && save && !tester && (
         <Lobby
           tab={tab}
           setTab={setTab}
@@ -824,8 +854,8 @@ function Game({ exitHref }) {
           firstTime={save && !save.seenHelp}
           modal={modal}
           setModal={setModal}
-          onRetry={() => leaveResult(() => start(G.current.chapter))}
-          onNext={() => leaveResult(() => start(nextChapter(G.current.chapter)))}
+          onRetry={() => (tester ? startTest(G.current.test) : leaveResult(() => start(G.current.chapter)))}
+          onNext={() => (tester ? (setModal(null), setScreen('lobby')) : leaveResult(() => start(nextChapter(G.current.chapter))))}
           onEquip={() =>
             leaveResult(() => {
               setModal(null)
@@ -838,6 +868,7 @@ function Game({ exitHref }) {
           rerender={() => setBeat((x) => x + 1)}
         />
       )}
+      {screen === 'battle' && tester && G.current.run && G.current.run.test && <TesterBar run={G.current.run} onEnd={() => (setModal(null), setScreen('lobby'))} onRetry={() => startTest(G.current.test)} />}
       {modal && modal.kind === 'cut' && (
         <Cutscene
           key={modal.groups.join(',')}
@@ -891,6 +922,116 @@ function Game({ exitHref }) {
 }
 
 // ── lobby: go · gear · Mano's stats ─────────────────────────────────────────
+
+// ── the special-boss tester (tester.js; #/game/mano-survivor-test) ─────────
+
+const TEST_TIME_NAMES = { 60: '약 1분', 120: '약 2분', 180: '약 3분', 0: '안 쓰러짐' }
+const testClassName = (k) => `${D.zyo.forms[D.balance.zyo.recipes[k].form]} ▪ ${D.zyo.classes[k].special}`
+
+// what to try: the boss, the build, its level, how long the boss lasts,
+// Mano unhurtable or not
+function TesterLobby({ save, exitHref, last, onStart }) {
+  const pf = usePlatform()
+  const bosses = testBosses(D)
+  const [o, setO] = useState(() => last || { chapter: bosses[0].chapter, k: 'C', level: 0, seconds: 120, god: false })
+  const set = (p) => setO((x) => ({ ...x, ...p }))
+  const minL = buildLevel(D, o.k)
+  const levels = [minL, 20, 25, 30].filter((L, i, a) => L >= minL && a.indexOf(L) === i)
+  const level = Math.max(minL, o.level)
+  const other = pf.id === 'pc' ? '#/game/mano-survivor-test' : '#/game/mano-survivor-pc-test'
+  const P = TEST_PERMA
+  const stat = (k) => D.balance.perma.stats[k].name
+  return (
+    <section className="ms-lobby ms-tester">
+      <div className="ms-tester__head">
+        <a className="ms-btn ms-btn--small" href={exitHref}>
+          ◀ 나가기
+        </a>
+        <h2 className="ms-h">특수보스 테스트</h2>
+        <a className="ms-btn ms-btn--small" href={other}>
+          {pf.id === 'pc' ? '모바일 버전으로' : 'PC 버전으로'}
+        </a>
+      </div>
+      <p className="ms-dim">테스트 전용이에요. 여기서 한 건 저장되지 않고, 실제 진행과도 섞이지 않아요.</p>
+      <div className="ms-panel">
+        <p className="ms-sub">1. 특수보스</p>
+        <div className="ms-tester__grid">
+          {bosses.map((b) => (
+            <button key={b.id} type="button" className={`ms-btn ms-btn--small ${o.chapter === b.chapter ? 'ms-btn--primary' : ''}`} aria-pressed={o.chapter === b.chapter} onClick={() => set({ chapter: b.chapter })}>
+              {b.chapter}장 · {D.motion.characters[b.id].name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="ms-panel">
+        <p className="ms-sub">2. 전직</p>
+        <div className="ms-tester__grid ms-tester__grid--two">
+          {TEST_BUILDS.map((k) => (
+            <button key={k} type="button" className={`ms-btn ms-btn--small ${o.k === k ? 'ms-btn--primary' : ''}`} aria-pressed={o.k === k} onClick={() => set({ k })}>
+              {D.balance.zyo.recipes[k].form === 'ball' ? '탱탱볼 전직' : '냥이 전직'} · {testClassName(k)}
+            </button>
+          ))}
+        </div>
+        <p className="ms-sub">레벨</p>
+        <div className="ms-tester__grid ms-tester__grid--four">
+          {levels.map((L) => (
+            <button key={L} type="button" className={`ms-btn ms-btn--small ${level === L ? 'ms-btn--primary' : ''}`} aria-pressed={level === L} onClick={() => set({ level: L })}>
+              Lv.{L}
+              {L === minL ? ' (전직 직후)' : ''}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="ms-panel">
+        <p className="ms-sub">3. 보스 버티는 시간</p>
+        <div className="ms-tester__grid ms-tester__grid--four">
+          {TEST_TIMES.map((t) => (
+            <button key={t} type="button" className={`ms-btn ms-btn--small ${o.seconds === t ? 'ms-btn--primary' : ''}`} aria-pressed={o.seconds === t} onClick={() => set({ seconds: t })}>
+              {TEST_TIME_NAMES[t]}
+            </button>
+          ))}
+        </div>
+        <label className="ms-reset__check">
+          <input type="checkbox" checked={o.god} onChange={(e) => set({ god: e.target.checked })} /> 마노 무적 (맞아도 체력이 줄지 않아요: 패턴 구경용)
+        </label>
+        <p className="ms-dim">
+          마노 강화: {stat('hp')}·{stat('damage')}·{stat('interval')} Lv.{P.hp} · {stat('move')} Lv.{P.move} (최대) · {stat('crit')} Lv.{P.crit} (100%) · SSS 탱탱볼 · 친구냥이·Tizzzz·포탑·축복 모두 있음
+        </p>
+        <p className="ms-dim">보스 체력은 고른 시간쯤 버티도록 맞춰져요. 싸우는 중에는 위쪽 테스트 막대로 다음 단계로 넘기거나 무적을 켜고 끌 수 있어요.</p>
+      </div>
+      <button type="button" className="ms-btn ms-btn--primary ms-startbtn" onClick={() => onStart({ ...o, level })}>
+        {o.chapter}장 특수보스 테스트 시작
+      </button>
+    </section>
+  )
+}
+
+// over the fight: which phase the special boss is in, and the tester's
+// buttons (next phase, Mano unhurtable, again, back)
+function TesterBar({ run, onEnd, onRetry }) {
+  const ph = testPhase(run)
+  const x = run.extra && run.extra.boss
+  const T = run.test
+  const [, beat] = useState(0)
+  const where = !run.extra ? '보스로 가는 중…' : !x || run.extra.phase !== 'fight' ? '특수보스 등장 중…' : `${D.motion.characters[x.extra].name} ${ph.i + 1}/${ph.n}단계`
+  return (
+    <div className="ms-testbar" onPointerDown={(e) => e.stopPropagation()}>
+      <span className="ms-testbar__where">{where}</span>
+      <button type="button" className="ms-btn ms-btn--small" disabled={!x || x.state !== 'live'} onClick={() => (skipPhase(run), beat((n) => n + 1))}>
+        다음 단계▶
+      </button>
+      <button type="button" className={`ms-btn ms-btn--small ${T.god ? 'ms-btn--primary' : ''}`} aria-pressed={T.god} onClick={() => ((T.god = !T.god), beat((n) => n + 1))}>
+        무적 {T.god ? 'ON' : 'OFF'}
+      </button>
+      <button type="button" className="ms-btn ms-btn--small" onClick={onRetry}>
+        다시
+      </button>
+      <button type="button" className="ms-btn ms-btn--small" onClick={onEnd}>
+        나가기
+      </button>
+    </div>
+  )
+}
 
 function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
   const pf = usePlatform()
@@ -2103,6 +2244,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
       // (a hit-stop: an elite or a boss just fell, the fight holds a moment)
       const held = now < (g.holdUntil || 0)
       if (!paused && !held && run.state !== 'over') step(run, dt, g.input)
+      // (the special-boss tester's own doings: tester.js)
+      if (run.test && run.state !== 'over') testTick(run)
       // an elite or the boss fell: its reward is saved now, once
       while (g.saved < run.awards.length) {
         const key = run.awards[g.saved++]

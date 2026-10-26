@@ -12,6 +12,7 @@ import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '..
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 import { roomTotal, roomStage, roomProgress } from '../src/survivor/room-items.js'
+import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, buildLevel, TEST_PERMA } from '../src/survivor/tester.js'
 
 let fails = 0
 const ok = (c, m) => {
@@ -2936,6 +2937,55 @@ const still = { x: 0, y: 0 }
   const t1 = roomTotal(P.get().perma)
   const reload = createProgress(D, mem).boot().data
   ok(t1 === t0 + Object.keys(B.perma.stats).length && Object.keys(reload).sort().join() === before && !JSON.stringify(reload).includes('room'), `room: buying a level of each stat adds ${t1 - t0} to the room's count; the save has the same keys as before and nothing of the room`)
+}
+
+// ── the special-boss tester (tester.js): its own save, a set-up fight ───────
+{
+  const S = testerSave(D)
+  ok(S.perma.move === B.perma.stats.move.maxLevel && S.perma.crit === 101 && S.perma.hp === TEST_PERMA.hp && S.unlockedChapter === lastChapter(D) && S.cats.unlocked && S.zyo.unlocked && S.turret.unlocked, `tester: its save has the coin stats high (이동 속도 Lv.${S.perma.move} and 치명타 확률 Lv.${S.perma.crit}: their top), every chapter and companion`)
+  const store = testerStorage(D)
+  const P = createProgress(D, store)
+  P.boot()
+  ok(P.get().perma.damage === TEST_PERMA.damage && store.getItem('nodnaba:survivor:corrupt') === null, 'tester: its progress is in memory, read and written there (never the real save)')
+  const fight = (k, ch, seconds) => {
+    const s = P.startRun(ch)
+    const run = createRun(D, { chapter: ch, weaponId: s.weapon.weaponId, grade: s.weapon.grade, seed: 7, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, zyo: s.zyo, turret: s.turret, blessings: s.blessings, rerolls: s.rerolls })
+    setupTest(run, { k, level: 0, seconds, god: true })
+    return run
+  }
+  for (const k of ['A', 'D']) {
+    const run = fight(k, 10, 60)
+    const lv = run.level
+    const seen = []
+    const phases = new Set()
+    let start = null
+    for (let i = 0; i < 60 * 120 && run.state !== 'over'; i++) {
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      step(run, FIXED, still)
+      const e = testTick(run)
+      if (e) seen.push(e)
+      if (run.extra && run.extra.phase === 'fight' && start === null) start = run.t
+      const ph = testPhase(run)
+      if (ph) phases.add(ph.i)
+      run.events.length = 0
+    }
+    const took = run.t - start
+    ok(run.cls && run.cls.k === k && lv === buildLevel(D, k) && seen.join() === 'boss,extra,fit' && phases.size === 4 && run.result.cleared && took > 50 && took < 90, `tester: class ${k} made at Lv.${lv}; the chapter's boss falls at once, the special boss comes and lasts ${took.toFixed(0)} s (asked: 60), through all ${phases.size} phases, then the clear`)
+  }
+  {
+    const run = fight('C', 35, 0)
+    for (let i = 0; i < 60 * 30 && !(run.extra && run.extra.boss && run.extra.phase === 'fight'); i++) {
+      if (run.state === 'levelup') choose(run, run.choices[0], run.choiceSeq)
+      step(run, FIXED, still)
+      testTick(run)
+    }
+    const x = run.extra.boss
+    for (let i = 0; i < 60 * 5; i++) (step(run, FIXED, still), testTick(run))
+    const full = x.hp === x.maxHp
+    const got = []
+    for (let i = 0; i < 6; i++) (skipPhase(run), got.push(testPhase(run).i))
+    ok(full && got.join() === '1,2,3,4,4,4' && x.state === 'live', `tester: 안 쓰러짐 — the boss takes nothing; the bar's 다음 단계 walks its phases (${got.map((n) => n + 1).join(' → ')}), never felling it`)
+  }
 }
 
 // ── balance smoke test (full numbers: survivor-campaign.mjs) ────────────────
