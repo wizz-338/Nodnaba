@@ -207,7 +207,7 @@ export function startClass(run, k) {
   run.balls = []
   run.friends = []
   // the cards from now on: the eight that are not attacks, and 전투력
-  run.pool = [...Z.keep, 'power']
+  run.pool = [...Z.keep, 'power'].filter((id) => !(run.critFull && id === 'crit'))
   // nothing hurts her while the notes gather
   p.inv = Math.max(p.inv, Z.fxSeconds + 0.3)
   run.stats.classAt = run.t

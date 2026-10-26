@@ -10,6 +10,7 @@
 // are saved the moment they are earned, so a later loss keeps them.
 
 import { chapterCoins, lastChapter } from './game.js'
+import { permaValue, permaPrice, permaMaxLevel } from './perma.js'
 
 export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
@@ -165,20 +166,10 @@ function validate(D, d) {
 // ── coin stats (pure) ───────────────────────────────────────────────────────
 
 // the price of the next level of a stat bought `level` times already
-export const statPrice = (D, stat, level) => Math.floor(D.balance.perma.stats[stat].price * D.balance.perma.priceGrowth ** level)
-export const statMaxLevel = (D, stat) => {
-  const s = D.balance.perma.stats[stat]
-  if (s.maxLevel) return s.maxLevel
-  if (s.add && s.max) return Math.round(s.max / s.add)
-  return Infinity
-}
+export const statPrice = (D, stat, level) => permaPrice(D.balance.perma.stats[stat], level, D.balance.perma.priceGrowth)
+export const statMaxLevel = (D, stat) => permaMaxLevel(D.balance.perma.stats[stat])
 // the multiplier (or the added amount, for crit) a stat gives at a level
-export function statValue(D, stat, level) {
-  const s = D.balance.perma.stats[stat]
-  const L = Math.min(level, statMaxLevel(D, stat))
-  if (s.add) return Math.min(s.max ?? Infinity, s.add * L)
-  return s.mul ** L
-}
+export const statValue = (D, stat, level) => permaValue(D.balance.perma.stats[stat], level)
 // everything the coin stats change at the start of a run
 export const permaEffects = (D, perma = {}) => Object.fromEntries(STATS.map((s) => [s, statValue(D, s, perma[s] || 0)]))
 

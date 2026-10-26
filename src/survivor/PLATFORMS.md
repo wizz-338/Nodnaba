@@ -50,6 +50,15 @@ only in its platform-specific part.
   run. On the PC the camera holds still for the extra boss's fight, so its
   attacks over the whole area are all on screen. The field comes in as `opts.arena`; nothing else in the fight knows
   the platform.
+- `room.js`, `room-items.js` — 마노의 방, the 마노 강화 tab's room: it fills
+  with the coin stats' levels added up (`data/room.json`: each piece's
+  total, place and name; Mano's lines when a stat is bought). Made again
+  from the save's levels every time, never stored, no number of the game in
+  it. The same room on both; on the phone it is above the stats, on the PC
+  beside them (`.ms-stats-room` in `survivor.css`).
+- `perma.js` — the coin stats' numbers and prices (the shop and the run):
+  치명타 확률 goes to 100% (`balance.json → perma.stats.crit.past`), and at
+  100% the run draws no 치명타 확률 card (`run.critFull`).
 - `progress.js` — the save. **One save for both** (`localStorage`, key
   `nodnaba:survivor:save`): on the same browser the phone and PC versions
   share progress, coins, coin stats, weapons, records and cutscene flags.

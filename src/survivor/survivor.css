@@ -3164,3 +3164,51 @@
   width: 62px;
   margin: -18px 0 -6px -6px;
 }
+
+/* 마노의 방 (room.js): the room over the coin stats; on PC beside them */
+.ms-stats-room {
+  display: grid;
+  gap: 10px;
+}
+
+.ms-stats-room__room,
+.ms-stats-room__shop {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
+
+.ms-room {
+  display: grid;
+  gap: 4px;
+}
+
+.ms-room__canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 240 / 136;
+  border: 3px solid #3b2a22;
+  border-radius: 12px;
+  background: #f6ead2;
+  image-rendering: pixelated;
+}
+
+.ms-room__bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.ms--pc .ms-stats-room {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.ms--pc .ms-stats-room .ms-stats-list {
+  grid-template-columns: 1fr;
+}

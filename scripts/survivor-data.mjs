@@ -13,6 +13,7 @@ export const D = {
   tizzzz: read('tizzzz'),
   zyo: read('zyo'),
   turret: read('turret'),
+  room: read('room'),
   story: read('story'),
   storyAssets: (() => {
     const a = read('story-assets')

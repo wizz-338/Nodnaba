@@ -13,6 +13,7 @@
 // overtime (the fight goes on and monsters come faster), never a free clear.
 
 import { BEHAVIORS } from './weapons.js'
+import { permaValue } from './perma.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { snap, recordPick, takeBack, fits, placeTurret, relocateTurrets, updateTurrets } from './turret.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot } from './bosses.js'
@@ -79,11 +80,7 @@ export const monsterName = (D, region, e) => (e.skin && ((D.story.monsters[e.ski
 // what the coin stats give (same formulas as the shop; see progress.js)
 function perma(D, levels = {}) {
   const S = D.balance.perma.stats
-  const v = (k) => {
-    const s = S[k]
-    const L = Math.min(levels[k] || 0, s.maxLevel ?? Infinity)
-    return s.add ? Math.min(s.max ?? Infinity, s.add * L) : s.mul ** L
-  }
+  const v = (k) => permaValue(S[k], levels[k] || 0)
   return { hp: v('hp'), damage: v('damage'), move: v('move'), interval: v('interval'), crit: v('crit'), coins: v('coins') }
 }
 
@@ -135,6 +132,10 @@ export function createRun(D, opts) {
     pool[pool.indexOf(B.upgrades.catSwap.from)] = B.upgrades.catSwap.to
     pool.push(...CAT_CARDS)
   }
+  // the coin stat 치명타 확률 at 100%: the crit card never comes (a card
+  // of the others takes its place in every draw, a redraw too)
+  const critFull = pm.crit >= 1
+  if (critFull) pool.splice(pool.indexOf('crit'), 1)
   const run = {
     D,
     id: opts.runId || 'run',
@@ -179,6 +180,7 @@ export function createRun(D, opts) {
     grade,
     // the weapon's own four core cards, then the general ones
     pool,
+    critFull,
     cats: [],
     // the friend cats (friends.js): the line's numbers, the cats on the field,
     // a scratch's base (the ball's damage at the start of the run, so the

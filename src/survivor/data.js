@@ -14,6 +14,7 @@
 // zyo.json: the artist zyo_ and her class changes' names and words.
 // ep04-assets.json: chapter 20's (MANO_CH20_CUTSCENES) with the turret's picture;
 // turret.json: the turret's names and words.
+// room.json: 마노의 방, the 마노 강화 screen's room (room.js).
 import balance from './data/balance.json'
 import weapons from './data/weapons.json'
 import upgrades from './data/upgrades.json'
@@ -31,10 +32,11 @@ import ep02 from './data/ep02-assets.json'
 import ep03 from './data/ep03-assets.json'
 import ep04 from './data/ep04-assets.json'
 import turret from './data/turret.json'
+import room from './data/room.json'
 import zyo from './data/zyo.json'
 
 const motion = { ...motionBase, characters: { ...motionBase.characters, ...extraMotion.characters } }
 
 const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images, ...ep02.images, ...ep03.images, ...ep04.images] }
 
-export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, zyo, turret, story, storyAssets, motion, friendCat: ep01.friendCat }
+export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, zyo, turret, room, story, storyAssets, motion, friendCat: ep01.friendCat }
