@@ -1458,7 +1458,71 @@ function Settings({ save, P, onImported, onReplay }) {
         />
         <p className="ms-dim">소리는 화면을 처음 누른 뒤부터 나와요 (브라우저 규칙). 음악 크기는 이 브라우저에만 저장돼요.</p>
       </section>
+      <ResetProgress save={save} P={P} onImported={onImported} />
     </>
+  )
+}
+
+// 진행 초기화: everything back to the first visit, after a warning and a
+// second, deliberate press (the progress replaced is kept aside in the
+// browser: progress.js → resetAll)
+function ResetProgress({ save, P, onImported }) {
+  const [open, setOpen] = useState(false)
+  const [sure, setSure] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const close = () => (setOpen(false), setSure(false))
+  return (
+    <section className="ms-panel ms-reset">
+      <div className="ms-row">
+        <span className="ms-sub">진행 초기화</span>
+        {!open && (
+          <button type="button" className="ms-btn ms-btn--small ms-btn--danger" onClick={() => (setOpen(true), setMsg(null))}>
+            초기화
+          </button>
+        )}
+      </div>
+      {!open && <p className="ms-dim">처음 시작한 상태로 되돌려요. 누르면 주의사항이 먼저 나와요.</p>}
+      {open && (
+        <div className="ms-confirm ms-reset__warn" role="alertdialog" aria-label="진행 초기화 주의사항">
+          <p className="ms-sub">⚠ 정말 처음부터 다시 할까요?</p>
+          <ul className="ms-reset__list">
+            <li>
+              지금 진행이 <b>모두 지워져요</b>: 코인 {money(save.currency)} · {save.unlockedChapter}장까지 연 기록 · 무기 {save.inventory.length}개 · 상자 {save.chests.length}개 · 마노 강화 레벨 · 최고 기록
+            </li>
+            <li>친구냥이·Tizzzz·전직·포탑 같은 합류와 보상, 본 스토리도 처음으로 돌아가요. 마노의 방도 1단계부터예요.</li>
+            <li>
+              <b>되돌리기 버튼은 없어요.</b> 나중에 돌아오고 싶다면 먼저 백업 파일을 내보내 두세요.
+            </li>
+            <li>소리 설정은 그대로 남아요.</li>
+          </ul>
+          <button type="button" className="ms-btn ms-btn--small" onClick={() => (download(P.exportText(), exportName()), setMsg({ text: '백업 파일을 내보냈어요.' }))}>
+            지금 진행 백업 내보내기
+          </button>
+          <label className="ms-reset__check">
+            <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} /> 위 내용을 확인했고, 모든 진행을 지워도 괜찮아요
+          </label>
+          <div className="ms-row ms-row--two">
+            <button type="button" className="ms-btn" onClick={close}>
+              취소
+            </button>
+            <button
+              type="button"
+              className="ms-btn ms-btn--danger"
+              disabled={!sure}
+              onClick={() => {
+                const ok = P.resetAll()
+                close()
+                onImported(P.get())
+                setMsg(ok ? { text: '처음 상태로 초기화했어요.' } : { text: '초기화했지만 저장하지 못했어요. 이 브라우저에서는 저장이 막혀 있어요.', bad: true })
+              }}
+            >
+              모두 지우고 처음부터
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
+    </section>
   )
 }
 
