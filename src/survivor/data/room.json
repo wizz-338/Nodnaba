@@ -1,5 +1,5 @@
 {
-  "note": "마노의 방 (room.js, room-items.js): the 마노 강화 tab's room. It grows in six stages with the coin stats' levels added up (all six stats; nothing else, nothing stored: the stage is always worked out again from the save's levels, so a save that already has levels shows its stage at once). need: the levels in all a stage takes (the stats have no common top: four of them have none, so the steps follow the levels players have: about 25 by chapter 5, 100 by chapter 10, 190 by chapter 15, 250 by chapter 20; the last stage comes about chapter 25). Each stage is one whole picture of the room (Astra's 6-stage set; scripts/survivor-room-assets.py), shown at its own 16:9 and faded into the next. It gives nothing but the look. Everything below is in the picture's own pixels (size). walk: where feet may go on the open floor (rects x0 y0 x1 y1). spots: places in the room (at: where someone stands or lies, feet; from: the first stage that has it; door: where one steps from the floor to it; face: where Mano looks; line: what she says there; punch: she hits it). ball: where the toy ball starts. Mano and the cats are their sprites from the fight (the same pictures, the same colours) and a still pose each (art.poses) where they rest. reactions: what Mano says when a stat is bought.",
+  "note": "마노의 방 (room.js, room-items.js): the 마노 강화 tab's room. It grows in six stages with the coin stats' levels added up (all six stats; nothing else, nothing stored: the stage is always worked out again from the save's levels, so a save that already has levels shows its stage at once). need: the levels in all a stage takes (the stats have no common top: four of them have none, so the steps follow the levels players have: about 25 by chapter 5, 100 by chapter 10, 190 by chapter 15, 250-370 by chapter 20, 400-430 by chapter 25, about 490 by chapter 35, a few more levels a chapter late on as prices grow; the last stage comes about the end of the story, chapter 35, and a little after. It was 350 at first: complete by chapter 25, too soon, asked for). Each stage is one whole picture of the room (Astra's 6-stage set; scripts/survivor-room-assets.py), shown at its own 16:9 and faded into the next. It gives nothing but the look. Everything below is in the picture's own pixels (size). walk: where feet may go on the open floor (rects x0 y0 x1 y1). spots: places in the room (at: where someone stands or lies, feet; from: the first stage that has it; door: where one steps from the floor to it; face: where Mano looks; line: what she says there; punch: she hits it). ball: where the toy ball starts. Mano and the cats are their sprites from the fight (the same pictures, the same colours) and a still pose each (art.poses) where they rest. reactions: what Mano says when a stat is bought.",
   "size": [
     1672,
     941
@@ -10,23 +10,23 @@
       "name": "새로 이사 온 방"
     },
     {
-      "need": 15,
+      "need": 30,
       "name": "작은 보금자리"
     },
     {
-      "need": 50,
+      "need": 110,
       "name": "책상이 생긴 방"
     },
     {
-      "need": 120,
+      "need": 220,
       "name": "취향이 담긴 방"
     },
     {
-      "need": 220,
+      "need": 360,
       "name": "북적북적 생활방"
     },
     {
-      "need": 350,
+      "need": 510,
       "name": "완성된 마노의 방"
     }
   ],
@@ -222,25 +222,25 @@
         "file": "room/danchu_play.webp",
         "source": "danchu.png",
         "sha256": "afed2c929d62edec8c9c577ff4a4a2849200e030c9991748162c5890fe99d8fd",
-        "w": 118.5,
-        "h": 120.0,
-        "bytes": 18676
+        "w": 85.0,
+        "h": 86.0,
+        "bytes": 12292
       },
       "hodu_belly": {
         "file": "room/hodu_belly.webp",
         "source": "hodu.png",
         "sha256": "f03d132574713e3368cf91de736c54174247f8436f8e22adfe4dc4f215303fcf",
-        "w": 105.5,
-        "h": 110.0,
-        "bytes": 16558
+        "w": 76.5,
+        "h": 80.0,
+        "bytes": 10646
       },
       "moru_sleep": {
         "file": "room/moru_sleep.webp",
         "source": "moru.png",
         "sha256": "eaf58f5618a9b44e82c1a15eea497357431b56d9c547e4b45844a3b76d474b3c",
-        "w": 158.0,
-        "h": 107.5,
-        "bytes": 12398
+        "w": 114.0,
+        "h": 77.5,
+        "bytes": 8310
       }
     }
   }

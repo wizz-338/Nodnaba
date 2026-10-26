@@ -52,11 +52,13 @@ const TAU = Math.PI * 2
 const rnd = (a, b) => a + Math.random() * (b - a)
 const pick = (list) => list[Math.floor(Math.random() * list.length)]
 // how big the sprites are in the room (room pixels a sheet pixel): Mano about
-// 180 tall standing; her profile poses in the same proportion; the cats as in
-// the fight (render.js: Mano 0.9, the cats balance.cats.scale)
+// 180 tall standing; her profile poses in the same proportion; the cats
+// CAT_ROOM of their size beside her in the fight (render.js: Mano 0.9, the
+// cats balance.cats.scale), so about half her height (asked for: smaller)
 const MANO_K = 3.9
 const PROFILE_K = MANO_K * (46 / 224)
 const MANO_H = 180
+const CAT_ROOM = 0.72
 const DIRS = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne']
 const dirOf = (vx, vy) => DIRS[((Math.round(Math.atan2(vy, vx) / (Math.PI / 4)) % 8) + 8) % 8]
 // her standing frames by where she looks (the west ones: the east ones turned)
@@ -72,7 +74,7 @@ export function createRoom(canvas, img, D, { cats = false, total = 0, font = 'sa
   const [W, H] = R.size
   const A = R.art
   const ctx = canvas.getContext('2d')
-  const catK = MANO_K * (D.balance.cats.scale / 0.9)
+  const catK = MANO_K * (D.balance.cats.scale / 0.9) * CAT_ROOM
   let k = 0.5 // device pixels a room pixel
   let ui = 2 // room pixels a CSS pixel
   let stage = roomStage(D, total)
@@ -287,7 +289,7 @@ export function createRoom(canvas, img, D, { cats = false, total = 0, font = 'sa
       // after someone, a step behind
       a.t += dt
       const T = a.target
-      const dx = T.x - 60 * Math.sign(T.vx || 1) - c.x
+      const dx = T.x - 50 * Math.sign(T.vx || 1) - c.x
       const dy = T.y + 10 - c.y
       const d = Math.hypot(dx, dy) || 1
       const s = Math.min(d, 300 * dt)
@@ -417,7 +419,7 @@ export function createRoom(canvas, img, D, { cats = false, total = 0, font = 'sa
     // its own resting pose (단추's picture looks right, the others' left:
     // turned to where it faces)
     if (a && a.kind === 'do' && a.pose === 'rest' && pose(c.pose, c.x, c.y + 4, c.name === 'danchu' ? c.face < 0 : c.face > 0)) return
-    shadow(c.x, c.y, 34)
+    shadow(c.x, c.y, 25)
     let f = Math.floor(now / 450 + c.x) % 2
     let sy = 1
     if (a && (a.kind === 'go' || a.kind === 'chase')) f = Math.floor(c.step / 26) % 4
