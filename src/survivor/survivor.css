@@ -3391,3 +3391,87 @@
   margin: 1px 0 0;
   flex: none;
 }
+
+/* the special-boss tester (TesterLobby, TesterBar) */
+.ms-tester {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.ms-tester__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ms .ms-tester__head .ms-h,
+.ms .ms-tester > .ms-dim {
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 10px;
+  color: #fff6e0;
+  background: rgba(40, 28, 22, 0.82);
+}
+
+.ms .ms-tester__head .ms-h {
+  font-size: 1.15rem;
+}
+
+.ms-tester .ms-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.ms-tester__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.ms-tester__grid--two {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.ms-tester__grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ms-testbar {
+  position: absolute;
+  z-index: 40;
+  top: calc(var(--safe-top, 0px) + 168px);
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  padding: 6px 8px;
+  border: 2px solid #3b2a22;
+  border-radius: 10px;
+  background: rgba(255, 248, 232, 0.92);
+  translate: -50% 0;
+}
+
+.ms-testbar__where {
+  font-size: 0.74rem;
+  color: #3b2a22;
+}
+
+.ms .ms-testbar .ms-btn.ms-btn--small {
+  min-height: 0;
+  padding: 3px 7px;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.ms--pc .ms-testbar {
+  top: 146px;
+}

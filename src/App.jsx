@@ -90,9 +90,10 @@ export default function App() {
             booted &&
             (shown.game === 'colony' ? (
               <ColonyPage exitHref={exitTo.current} />
-            ) : shown.game === 'survivor' || shown.game === 'survivor-pc' ? (
-              // one game, two platforms; going from one to the other starts the page afresh
-              <SurvivorPage key={shown.game} platform={shown.game === 'survivor-pc' ? 'pc' : 'mobile'} exitHref={exitTo.current} />
+            ) : shown.game.startsWith('survivor') ? (
+              // one game, two platforms (and its special-boss tester); going
+              // from one to another starts the page afresh
+              <SurvivorPage key={shown.game} platform={shown.game.startsWith('survivor-pc') ? 'pc' : 'mobile'} tester={shown.game.endsWith('-test')} exitHref={exitTo.current} />
             ) : (
               <GamePage exitHref={exitTo.current} />
             ))
