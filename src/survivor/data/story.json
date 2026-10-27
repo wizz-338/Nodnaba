@@ -469,7 +469,7 @@
     ]
   },
   "rewards": {
-    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz / zyo: they join (zyo_: the class change of balance.json → zyo, for good); turret: the turret's making opens for good (balance.json → turret); rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect.",
+    "note": "each region's reward, given once with the first clear of its last chapter (also, once, to a save that cleared it before this story existed). ball: the red ball grows to this grade (a weapon of that grade in the pocket, equipped when better); cats / tizzzz / zyo: they join (zyo_: the class change of balance.json → zyo, for good); turret: the turret's making opens for good (balance.json → turret); rerolls: from rerollFromChapter on, this many redraws of the upgrade cards every run (the total so far: 2 more at each of these clears, the highest one owned counts); blessing: a battle blessing (balance.json → blessings); final: the last strengthening; keep: a story keepsake with no effect. (zyo_, the turret, the snow and the thunder came with no ball at first; each brings one now: a save that already had one of them gets its ball once, progress.js → migrateStory, story v 6)",
     "forest": {
       "chapter": 5,
       "ball": "S",
@@ -504,57 +504,69 @@
     },
     "skulltown": {
       "chapter": 15,
+      "ball": "SS",
       "zyo": true,
       "rerolls": 6,
       "images": [
         "reward_zyo",
-        "reward_reroll"
+        "reward_reroll",
+        "ball_ss"
       ],
       "lines": [
         "zyo_ 전직 해금!",
-        "리롤 +2 (총 6회)"
+        "리롤 +2 (총 6회)",
+        "SS급 탱탱볼을 받았어요!"
       ]
     },
     "desert": {
       "chapter": 20,
+      "ball": "SS",
       "turret": true,
       "rerolls": 8,
       "blessing": "phoenix",
       "images": [
         "reward_turret",
         "reward_reroll",
-        "gem_phoenix"
+        "gem_phoenix",
+        "ball_ss"
       ],
       "lines": [
         "포탑 제작 해금!",
         "리롤 +2 (총 8회)",
-        "피닉스의 보석을 얻었어요! 탱탱볼에 맞은 몬스터가 일정 확률로 느려져요."
+        "피닉스의 보석을 얻었어요! 탱탱볼에 맞은 몬스터가 일정 확률로 느려져요.",
+        "SS급 탱탱볼을 받았어요!"
       ]
     },
     "snow": {
       "chapter": 25,
+      "ball": "SSS",
       "blessing": "snow",
       "keep": "spring",
       "images": [
         "blessing_snow",
         "snowguardian",
-        "spring"
+        "spring",
+        "ball_ss"
       ],
       "lines": [
         "설원의 축복을 받았어요!",
         "탱탱볼에 맞은 몬스터가 일정 확률로 얼어붙어요.",
-        "신비한 스프링을 찾았어요. (이야기 소품)"
+        "신비한 스프링을 찾았어요. (이야기 소품)",
+        "SSS급 탱탱볼을 받았어요!"
       ]
     },
     "sky": {
       "chapter": 30,
+      "ball": "SSS",
       "blessing": "thunder",
       "images": [
-        "blessing_thunder"
+        "blessing_thunder",
+        "ball_ss"
       ],
       "lines": [
         "천둥신의 축복을 받았어요!",
-        "탱탱볼이 맞힐 때 일정 확률로 주변 적에게 번개가 떨어져요."
+        "탱탱볼이 맞힐 때 일정 확률로 주변 적에게 번개가 떨어져요.",
+        "SSS급 탱탱볼을 받았어요!"
       ]
     },
     "castle": {

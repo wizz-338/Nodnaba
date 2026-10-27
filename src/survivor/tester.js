@@ -47,6 +47,7 @@ export function testerSave(D) {
   d.nextSeq = 2
   d.seenHelp = true
   d.seenCoinTip = true
+  d.gifts = ['room1', 'room2', 'room3', 'room4', 'room5', 'critMax']
   for (const k of ['cats', 'tizzzz']) d[k] = { unlocked: true, eventSeen: true, rewardGiven: true }
   d.zyo = { ...d.zyo, unlocked: true }
   d.turret = { ...d.turret, unlocked: true }

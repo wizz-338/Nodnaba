@@ -11,6 +11,7 @@
 
 import { chapterCoins, lastChapter } from './game.js'
 import { permaValue, permaPrice, permaMaxLevel } from './perma.js'
+import { roomStage, roomTotal } from './room-items.js'
 
 export const KEY = 'nodnaba:survivor:save'
 export const CORRUPT_KEY = 'nodnaba:survivor:corrupt'
@@ -75,6 +76,9 @@ export function fresh(D) {
     // before the story has been brought into it (migrateStory). news: rewards
     // that migration gave, to be told once in the lobby.
     story: { v: STORY_V, seen: [], rewards: [], news: [] },
+    // the red balls given for 마노의 방's stages and crit's top
+    // (balance.json → gifts): which, so each comes once
+    gifts: [],
     sound: true,
   }
 }
@@ -87,7 +91,8 @@ export function fresh(D) {
 // more rerolls
 // 5: chapter 20's first clear brings the turret and 2 more rerolls (8) beside
 // the phoenix gem
-const STORY_V = 5
+// 6: chapters 15, 20, 25 and 30 bring a red ball too
+const STORY_V = 6
 // the lobby's notes (story.news) for a save that cleared chapter 5 before it
 // brought the cats and the rerolls, and one that had Tizzzz from chapter 15
 export const NEWS_EP01 = 'ep01'
@@ -96,6 +101,12 @@ export const NEWS_EP02 = 'ep02'
 export const NEWS_EP03 = 'ep03'
 // …and one that cleared chapter 20 before it brought the turret
 export const NEWS_EP04 = 'ep04'
+// …and one that cleared chapter 15, 20, 25 or 30 before they brought a ball
+export const NEWS_BALLS = 'balls'
+// the episodes whose reward brings a ball since story v 6
+const LATE_BALLS = ['skulltown', 'desert', 'snow', 'sky']
+// the gifts' keys: room1 … room5 (마노의 방's stages), critMax
+const GIFT_KEYS = ['room1', 'room2', 'room3', 'room4', 'room5', 'critMax']
 const freshBlessings = () => ({ phoenix: false, snow: false, thunder: false, final: false })
 
 // For each companion (the cats, the writer Tizzzz): unlocked: it helps from its
@@ -157,7 +168,8 @@ function validate(D, d) {
   const rewards = new Set(Object.keys(D.story.rewards).filter((k) => k !== 'note'))
   const st = isObj(d.story) ? d.story : null
   const only = (list, set) => (Array.isArray(list) ? [...new Set(list.filter((x) => set.has(x)))] : [])
-  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04])) }
+  out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS])) }
+  out.gifts = only(d.gifts, new Set(GIFT_KEYS))
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -307,7 +319,9 @@ export function createProgress(D, storage) {
         const lost = d.activeRun
         d.activeRun = null
         const supplied = migrateStory(D, d)
-        return { data: d, lostRun: !!lost, supplied }
+        // (a save already past a room stage or crit's top: its balls now)
+        const gifts = grantGifts(D, d)
+        return { data: d, lostRun: !!lost, supplied, gifts }
       })
     },
 
@@ -489,7 +503,7 @@ export function createProgress(D, storage) {
         if (d.currency < price) return { ok: false, reason: '코인이 모자라요.' }
         d.currency -= price
         d.perma[stat] = L + 1
-        return { ok: true, level: L + 1, price }
+        return { ok: true, level: L + 1, price, gifts: grantGifts(D, d) }
       })
     },
   }
@@ -553,15 +567,7 @@ export function grantReward(D, d, rid) {
   if (!R || d.story.rewards.includes(rid)) return null
   d.story.rewards = [...d.story.rewards, rid]
   const out = { reward: rid, item: null }
-  if (R.ball) {
-    const item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade: R.ball }
-    if (R.tag) item.tag = R.tag
-    d.inventory.push(item)
-    const grades = D.balance.grades
-    const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
-    if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade) || (item.tag && grades.indexOf(item.grade) === grades.indexOf(cur.grade) && !cur.tag)) d.equippedInstanceId = item.id
-    out.item = item
-  }
+  if (R.ball) out.item = giveBall(D, d, R.ball, R.tag)
   if (R.cats) Object.assign(d.cats, { unlocked: true, eventSeen: true })
   if (R.rerolls) d.rerolls = Math.max(d.rerolls, R.rerolls)
   if (R.tizzzz) Object.assign(d.tizzzz, { unlocked: true, eventSeen: true })
@@ -569,6 +575,34 @@ export function grantReward(D, d, rid) {
   if (R.turret) d.turret.unlocked = true
   if (R.blessing) d.blessings[R.blessing] = true
   if (R.final) d.blessings.final = true
+  return out
+}
+
+// A red ball of a grade into the pocket, equipped when it beats the one in use
+function giveBall(D, d, grade, tag) {
+  const item = { id: 'w' + d.nextSeq++, weaponId: D.weapons.initialWeaponId, grade }
+  if (tag) item.tag = tag
+  d.inventory.push(item)
+  const grades = D.balance.grades
+  const cur = d.inventory.find((it) => it.id === d.equippedInstanceId)
+  if (!cur || grades.indexOf(item.grade) > grades.indexOf(cur.grade) || (item.tag && grades.indexOf(item.grade) === grades.indexOf(cur.grade) && !cur.tag)) d.equippedInstanceId = item.id
+  return item
+}
+
+// The red balls for 마노의 방's stages and for crit's top (balance.json →
+// gifts), each once: those the save has earned and not had yet. Returns
+// what was given ({ key, item }, in order).
+export function grantGifts(D, d) {
+  const G = D.balance.gifts
+  const out = []
+  const give = (key, grade) => {
+    if (d.gifts.includes(key)) return
+    d.gifts = [...d.gifts, key]
+    out.push({ key, item: giveBall(D, d, grade) })
+  }
+  const stage = roomStage(D, roomTotal(d.perma))
+  for (let i = 1; i <= stage; i++) if (G.room[i]) give('room' + i, G.room[i])
+  if (d.perma.crit >= statMaxLevel(D, 'crit')) give('critMax', G.critMax)
   return out
 }
 
@@ -596,6 +630,8 @@ export function grantReward(D, d, rid) {
 // Tizzzz never comes back to chapter 15: she is chapter 10's.
 // From v 1 to 4 (chapter 20 gave only the phoenix gem): a save that has
 // chapter 20's reward gets the turret and its rerolls now (the gem it has).
+// From v 1 to 5 (chapters 15, 20, 25 and 30 gave no ball): a save that has
+// one of their rewards gets its ball now.
 // The new clear cutscenes of chapters already cleared count as seen (they
 // play at a first clear only).
 // Returns the rewards given.
@@ -635,6 +671,9 @@ export function migrateStory(D, d) {
     d.turret.unlocked = true
     d.rerolls = Math.max(d.rerolls, R.desert.rerolls || 0)
     news(NEWS_EP04)
+  }
+  if (v >= 1 && v <= 5) {
+    for (const rid of LATE_BALLS) if (d.story.rewards.includes(rid) && R[rid].ball) (giveBall(D, d, R[rid].ball), news(NEWS_BALLS))
   }
   for (const [rid, Rw] of Object.entries(R)) {
     if (rid === 'note' || !d.firstCleared.includes(Rw.chapter) || d.story.rewards.includes(rid)) continue
