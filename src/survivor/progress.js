@@ -79,6 +79,8 @@ export function fresh(D) {
     // the red balls given for 마노의 방's stages and crit's top
     // (balance.json → gifts): which, so each comes once
     gifts: [],
+    // the guides to each episode's new systems (data/tips.json) already shown
+    tips: [],
     sound: true,
   }
 }
@@ -170,6 +172,7 @@ function validate(D, d) {
   const only = (list, set) => (Array.isArray(list) ? [...new Set(list.filter((x) => set.has(x)))] : [])
   out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS])) }
   out.gifts = only(d.gifts, new Set(GIFT_KEYS))
+  out.tips = only(d.tips, new Set(D.tips.list.map((t) => t.id)))
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -336,6 +339,13 @@ export function createProgress(D, storage) {
     seenHelp() {
       return change((d) => {
         d.seenHelp = true
+      })
+    },
+
+    // a guide to an episode's new systems (data/tips.json): shown once
+    seenTip(id) {
+      return change((d) => {
+        if (!d.tips.includes(id)) d.tips = [...d.tips, id]
       })
     },
 

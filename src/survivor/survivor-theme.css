@@ -989,6 +989,41 @@
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
+  position: relative;
+}
+
+/* after the class change, picks that do nothing now: a red ! at its
+   top right (a turret from them costs nothing) */
+.ms-turretopt__alert {
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #e5303e;
+  color: #fff;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  animation: ms-alert-pop 0.9s ease-in-out infinite;
+}
+
+@keyframes ms-alert-pop {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-turretopt__alert {
+    animation: none;
+  }
 }
 
 @media (hover: hover) {

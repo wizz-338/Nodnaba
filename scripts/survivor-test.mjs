@@ -746,6 +746,24 @@ const still = { x: 0, y: 0 }
   ok(b4.data.inventory.length === b3.data.inventory.length && !b4.data.story.news.length, 'the next visit: nothing given or told again')
 }
 {
+  // the guides to each episode's new systems (data/tips.json)
+  const T = D.tips.list
+  const at = Object.fromEntries(T.map((t) => [t.id, t.chapter]))
+  ok(at.cats === B.cats.activeFromChapter && at.cats === B.rerolls.fromChapter && at.tizzzz === B.tizzzz.activeFromChapter && at.zyo === B.zyo.activeFromChapter && at.turret === B.turret.activeFromChapter, 'each guide comes at the chapter its system starts in (6, 11, 16, 21)')
+  ok(T.every((t, i) => i === 0 || t.chapter >= T[i - 1].chapter + 5), 'their chapters never overlap (one guide an episode)')
+  const pics = new Set(D.storyAssets.images.map((x) => x.id))
+  ok(T.every((t) => t.pages.length && t.pages.every((pg) => pics.has(pg.image) && pg.head && pg.lines.length)), 'every page has a picture that exists, a heading and lines')
+  const words = JSON.stringify(D.tips)
+  ok(words.includes(`각각 ${B.zyo.need}번씩`) && words.includes(`강화 ${B.turret.cost}개`) && words.includes(D.zyo.badge) && words.includes(D.tizzzz.edit.badge) && words.includes(D.turret.option), 'the numbers and names in the lines are the game\'s own (zyo_ need, turret cost, badges, the turret option)')
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  ok(P.get().tips.length === 0, 'a new save has seen no guide')
+  P.seenTip('cats')
+  P.seenTip('cats')
+  ok(createProgress(D, mem).boot().data.tips.join() === 'cats', 'a guide shown is kept (once) across a reload')
+}
+{
   // 마노의 방's coin bubble in the lobby: once, kept across a reload
   const mem = new Mem()
   const P = createProgress(D, mem)
