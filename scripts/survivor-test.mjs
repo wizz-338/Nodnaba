@@ -2724,6 +2724,9 @@ const still = { x: 0, y: 0 }
   ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep04_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7) && D.storyAssets.images.some((x) => x.id === 'reward_turret'), 'the five pictures are wide (16:9), whole; the turret\'s reward picture is there')
   const TA = D.storyAssets.images.find((x) => x.id === 'turret')
   ok((await import('fs')).existsSync(new URL('../src/survivor/assets/s84/' + (TA ? TA.file : 'x'), import.meta.url)) && TA && TA.kind === 'atlas' && ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'].every((w) => TA.frames[w] && TA.frames[w][0] + TA.frames[w][2] <= TA.out[0] && TA.muzzle[w]), "the turret's picture: eight ways, each with its foot and mouth, inside the atlas")
+  const NA = D.storyAssets.images.find((x) => x.id === 'ninja_cat')
+  const inAtlas = (f) => f[0] + f[2] <= NA.out[0] && f[1] + f[3] <= NA.out[1] && f[4] > 0 && f[4] < f[2] && f[5] > 0 && f[5] <= f[3]
+  ok((await import('fs')).existsSync(new URL('../src/survivor/assets/s84/' + (NA ? NA.file : 'x'), import.meta.url)) && NA && NA.kind === 'atlas' && NA.bodyH > 0 && ['dash', 'slash', 'air', 'land'].every((a) => NA.frames[a] && NA.frames[a].length && NA.frames[a].every(inAtlas)) && NA.frames.slash.length === 6, "the ninja cats' picture: dash, six blows, the leap and the landing, each inside the atlas with its foot")
   const R = S.rewards.desert
   ok(R.turret && R.rerolls === 8 && R.blessing === 'phoenix' && R.lines[0] === '포탑 제작 해금!' && R.lines[1] === '리롤 +2 (총 8회)', 'the popup: 포탑 제작 해금! and 리롤 +2 (총 8회) (the phoenix gem stays chapter 20\'s)')
   ok(S.cutscenes.groups.filter((x) => x.chapter === 21 && x.play !== false).length === 0, 'no cutscene at the start of chapter 21')

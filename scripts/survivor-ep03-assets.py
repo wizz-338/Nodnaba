@@ -70,8 +70,11 @@ def main(src):
     f = f'ep03/rewards/{rid}.webp'
     Image.open(path).convert('RGB').crop(box).resize(size, Image.LANCZOS).save(os.path.join(OUT, f), 'WEBP', quality=85, method=6)
     images.append({'id': rid, 'kind': 'portrait', 'region': 'skulltown', 'source': name, 'crop': list(box), 'name': title, 'file': f, 'out': list(size), 'bytes': os.path.getsize(os.path.join(OUT, f)), 'width': 1672, 'height': 941})
+    # (the ninja cats' frames, made by survivor-ninja-assets.py, stay)
+    if os.path.exists(MAP):
+        images += [x for x in json.load(open(MAP, encoding='utf-8'))['images'] if x['id'] == 'ninja_cat']
     data = {
-        'note': 'MANO SURVIVOR chapter 15 clear package (MANO_CH15_CUTSCENES, built by scripts/survivor-ep03-assets.py). images: the same form as story-assets.json (merged into it by data.js).',
+        'note': 'MANO SURVIVOR chapter 15 clear package (MANO_CH15_CUTSCENES, built by scripts/survivor-ep03-assets.py; the ninja cats\' frames by scripts/survivor-ninja-assets.py). images: the same form as story-assets.json (merged into it by data.js).',
         'package': 'MANO_CH15_CUTSCENES',
         'images': images,
     }

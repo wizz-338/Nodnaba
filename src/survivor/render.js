@@ -194,6 +194,8 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const e = D.storyAssets.images.find((x) => x.id === 'turret')
     return e && { frames: e.frames, muzzle: e.muzzle, h: Math.max(...Object.values(e.frames).map((f) => f[5])) }
   })()
+  // the ninja cats' sheet (ep03-assets.json → ninja_cat; render-zyo.js)
+  const NINJA_ART = D.storyAssets.images.find((x) => x.id === 'ninja_cat') || null
   const FCB = D.balance.friendCats
   const fcScaled = new Map()
   const slashes = []
@@ -1635,7 +1637,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     // ball shadows and trails go, and fewer numbers and sparks are drawn
     const busy = run.balls.length > D.balance.performance.trailsUpTo
     if (!busy) for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
-    zfx ??= createZyoFx({ ctx, world, put, shadow, drawFriend, lift: BALL_LIFT, font: '16px ' + GAME_FONT })
+    zfx ??= createZyoFx({ ctx, world, put, shadow, drawFriend, lift: BALL_LIFT, font: '16px ' + GAME_FONT, ninja: NINJA_ART && { info: NINJA_ART, now: () => art.now('ninja_cat') } })
     zfx.shadows(run)
     drawShadows()
     for (const e of run.enemies) {
