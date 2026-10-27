@@ -54,7 +54,9 @@ function OnOff({ on, set, label }) {
     </div>
   )
 }
-function FullscreenSetting() {
+// full screen now, and a way to turn it on or off (null: none here — the
+// phone game, or a browser without it)
+function useFullscreen() {
   const pf = usePlatform()
   const [on, setOn] = useState(() => !!document.fullscreenElement)
   useEffect(() => {
@@ -62,12 +64,17 @@ function FullscreenSetting() {
     document.addEventListener('fullscreenchange', f)
     return () => document.removeEventListener('fullscreenchange', f)
   }, [])
-  if (pf.id !== 'pc' || !document.fullscreenEnabled) return null
+  if (pf.id !== 'pc' || !document.fullscreenEnabled) return [on, null]
   const set = (want) => {
     if (want === !!document.fullscreenElement) return
     const p = want ? document.documentElement.requestFullscreen() : document.exitFullscreen()
     if (p && p.then) p.then(() => document.fullscreenElement && canLockEsc() && navigator.keyboard.lock(['Escape']).catch(() => {})).catch(() => {})
   }
+  return [on, set]
+}
+function FullscreenSetting() {
+  const [on, set] = useFullscreen()
+  if (!set) return null
   return (
     <section className="ms-panel">
       <div className="ms-row">
@@ -1484,6 +1491,45 @@ function download(text, name) {
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
 
+// the pause's own few settings, at its foot: full screen (PC), music and
+// sound effects on or off (the same ones as in 설정)
+function PauseSettings({ save, P, refresh }) {
+  const [full, setFull] = useFullscreen()
+  const [snd, setSnd] = useState(audio.getPrefs)
+  return (
+    <div className="ms-pauseset">
+      {setFull && (
+        <div className="ms-row">
+          <span className="ms-sub">전체 화면</span>
+          <OnOff on={full} set={setFull} label="전체 화면" />
+        </div>
+      )}
+      <div className="ms-row">
+        <span className="ms-sub">배경음악</span>
+        <OnOff
+          on={snd.musicOn}
+          set={(v) => {
+            audio.setPrefs({ musicOn: v })
+            setSnd(audio.getPrefs())
+          }}
+          label="배경음악"
+        />
+      </div>
+      <div className="ms-row">
+        <span className="ms-sub">효과음</span>
+        <OnOff
+          on={save.sound !== false}
+          set={(v) => {
+            P.setSound(v)
+            refresh()
+          }}
+          label="효과음"
+        />
+      </div>
+    </div>
+  )
+}
+
 function Settings({ save, P, onImported, onReplay }) {
   const file = useRef(null)
   const [snd, setSnd] = useState(audio.getPrefs)
@@ -2223,12 +2269,16 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
     addEventListener('blur', away)
     document.addEventListener('visibilitychange', onVis)
     // Esc: the pause, and Esc again: back to the fight (from 포기할까요?,
-    // back to the pause)
+    // back to the pause). While a card is being chosen too: the pause shows
+    // over it, and closing it brings the cards back as they were
     const onKey = (e) => {
       if (e.key !== 'Escape' || e.repeat) return
       const m = modalRef.current
       if (!m) {
-        if (g.run.state === 'play') away()
+        if (g.run.state === 'play' || g.run.state === 'levelup') {
+          release()
+          setModal({ kind: 'pause' })
+        }
       } else if (m.kind === 'pause') setModal(null)
       else if (m.kind === 'quit') setModal({ kind: 'pause' })
     }
@@ -2694,6 +2744,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
             <button type="button" className="ms-btn" onClick={() => setModal({ kind: 'quit' })}>
               장비로
             </button>
+            <PauseSettings save={save} P={P.current} refresh={refresh} />
           </div>
         </div>
       )}

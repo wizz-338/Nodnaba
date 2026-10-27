@@ -1894,6 +1894,15 @@
   min-width: 64px;
 }
 
+/* the pause's own settings, under its buttons */
+.ms-pauseset {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ms-lobbymano,
   .ms-startbtn,
