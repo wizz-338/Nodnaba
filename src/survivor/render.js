@@ -1211,6 +1211,53 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     }
   }
 
+  // the treasure thief (it runs off when its time is up): a big arrow by Mano
+  // pointing at it while it is not right next to her, and a timer bar over
+  // its head; both turn red in its last seconds (the HUD has the time too)
+  function drawThief(run, now) {
+    const p = run.player
+    for (const e of run.enemies) {
+      if (e.behavior !== 'flee' || e.state !== 'live') continue
+      const stay = run.D.balance.enemies[e.type].staySeconds
+      const left = Math.max(0, stay - e.life)
+      const late = left < 8
+      const col = late && Math.floor(now / 180) % 2 ? '#ff4d5a' : '#ffd84a'
+      world()
+      // over its head: the time left
+      const bw = 34
+      const bx = e.x - bw / 2
+      const by = e.y - 34
+      ctx.fillStyle = 'rgba(18, 15, 42, 0.85)'
+      ctx.fillRect(bx - 1, by - 1, bw + 2, 6)
+      ctx.fillStyle = late ? '#ff4d5a' : '#ffd84a'
+      ctx.fillRect(bx, by, bw * (left / stay), 4)
+      // by Mano: the way to it
+      const dx = e.x - p.x
+      const dy = e.y - p.y
+      const d = Math.hypot(dx, dy)
+      if (d < 80) continue
+      const a = Math.atan2(dy, dx)
+      // (bigger on the PC's wider field, where everything is drawn smaller)
+      const z = inset ? 1.5 : 1
+      const R = (40 + 5 * Math.sin(now / 120)) * z
+      const ax = p.x + Math.cos(a) * R
+      const ay = p.y - 10 + Math.sin(a) * R
+      const r = 14 * z
+      ctx.beginPath()
+      ctx.moveTo(ax + Math.cos(a) * r, ay + Math.sin(a) * r)
+      ctx.lineTo(ax + Math.cos(a + 2.4) * r, ay + Math.sin(a + 2.4) * r)
+      ctx.lineTo(ax + Math.cos(a) * -r * 0.3, ay + Math.sin(a) * -r * 0.3)
+      ctx.lineTo(ax + Math.cos(a - 2.4) * r, ay + Math.sin(a - 2.4) * r)
+      ctx.closePath()
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = 3
+      ctx.strokeStyle = 'rgba(47, 37, 55, 0.9)'
+      ctx.stroke()
+      ctx.fillStyle = col
+      ctx.fill()
+    }
+  }
+
   function drawBall(b, trails) {
     const name = b.gen > 0 ? 'ball_child' : b.heavy ? 'ball_gold' : 'ball'
     const s = (b.r * 2) / 24
@@ -1745,6 +1792,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     list.sort((a, b) => a[0] - b[0])
     for (const [, kind, o] of list) (kind === 1 ? drawMano(run, dt) : kind === 2 ? drawCat(o, now) : kind === 3 ? drawFriend(o, now) : kind === 4 ? drawTurret(run, o) : drawEnemy(run, o))
     drawManoBar(run)
+    drawThief(run, now)
     for (const b of run.balls) drawBall(b, !busy)
     zfx.over(run, now, dt)
     drawHazardsOver(run)

@@ -592,7 +592,7 @@ function spawnSpecial(run, ev) {
     // and hits harder (body, charge, slam), so those seconds are a fight
     if (run.chapter >= G.fromChapter) Object.assign(e, { guard: true, guardLeft: e.maxHp * G.maxShare * G.burst, guardT: run.t, damage: e.damage * G.hits, damageMul: e.damageMul * G.hits })
   }
-  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e) })
+  run.events.push({ type: ev.key === 'boss' ? 'boss' : 'elite', key: ev.key, name: monsterName(run.D, run.region, e), flee: def.behavior === 'flee' ? def.staySeconds : 0 })
   // (telemetry: when the boss came, and the kills before it)
   if (ev.key === 'boss') (run.stats.bossAt = run.t), (run.stats.preBossKills = run.kills)
 }

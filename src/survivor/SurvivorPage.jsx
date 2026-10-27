@@ -851,6 +851,7 @@ function Game({ exitHref, tester }) {
             return r
           }}
           P={P.current}
+          refresh={refresh}
           onImported={(data) => {
             setSave(data)
             setChapter(Math.max(1, Math.min(data.unlockedChapter, LAST_CHAPTER)))
@@ -1060,9 +1061,26 @@ function TesterBar({ run, onEnd, onRetry }) {
   )
 }
 
-function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, onImported, onReplay, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, refresh, onImported, onReplay, exitHref, saveError }) {
   const pf = usePlatform()
   const region = regionOf(D, chapter)
+  // after chapter 1's first clear, once: a bubble on 마노의 방 saying the
+  // coins are spent there (gone for good when that tab is opened or a
+  // fight is started from here)
+  const coinTip = save.firstCleared.includes(1) && !save.seenCoinTip
+  const tipDone = () => {
+    if (!coinTip) return
+    P.seenCoinTip()
+    refresh()
+  }
+  const pickTab = (k) => {
+    if (k === 'stats') tipDone()
+    setTab(k)
+  }
+  const go = () => {
+    if (coinTip) P.seenCoinTip()
+    onStart()
+  }
   const tabs = [
     ['go', '출발'],
     ['gear', '장비'],
@@ -1086,9 +1104,19 @@ function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, 
         <h1 className="ms-title">{GAMES.survivor.title}</h1>
         <nav className="ms-tabs" role="tablist">
           {tabs.map(([k, label]) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`ms-tab ${tab === k ? 'is-on' : ''}`} onClick={() => setTab(k)}>
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`ms-tab ${tab === k ? 'is-on' : ''}`} onClick={() => pickTab(k)}>
               {label}
               {k === 'gear' && save.chests.length > 0 ? <em className="ms-tab__dot">{save.chests.length}</em> : null}
+              {k === 'stats' && coinTip && tab !== 'stats' && (
+                <span className="ms-cointip" role="note">
+                  <Sprite name="coin" size={18} />
+                  <span>
+                    모은 코인은 <b>마노의 방</b>에서 써요!
+                    <br />
+                    체력·공격력 같은 능력치를 영구히 올릴 수 있어요.
+                  </span>
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -1106,7 +1134,7 @@ function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, 
         </div>
       )}
       <div className={`ms-lobby__body ms-lobby__body--${tab}`}>
-        {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={onStart} />}
+        {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={go} />}
         {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
         {tab === 'stats' && <Stats save={save} img={img} onBuy={onBuy} />}
         {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
@@ -2289,10 +2317,10 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
 
     // short notices over the battle
     let toastTimer
-    const say = (text) => {
+    const say = (text, ms = 2200) => {
       setToast(text)
       clearTimeout(toastTimer)
-      toastTimer = setTimeout(() => setToast(null), 2200)
+      toastTimer = setTimeout(() => setToast(null), ms)
     }
 
     // ── the loop ──
@@ -2363,7 +2391,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         else if (ev.type === 'skillCast') audio.sfx(ev.kind === 'ball' ? 'meteor' : 'shadow')
         else if (ev.type === 'powerUp') audio.sfx('powerup')
         else if (ev.type === 'revive') audio.sfx('revive'), say(`${D.zyo.classes.B.special}! 체력을 모두 채우고 일어났어요`)
-        if (ev.type === 'elite') say(`${ev.name} 등장!`)
+        if (ev.type === 'elite' && ev.flee) say(`${ev.name} 등장! ${ev.flee}초 안에 잡지 못하면 달아나요!`, 4000)
+        else if (ev.type === 'elite') say(`${ev.name} 등장!`)
         else if (ev.type === 'boss') say(run.boss && run.boss.guard ? `${ev.name} 등장! 수호를 두르고 있어 쉽게 쓰러지지 않아요` : `${ev.name} 등장! 쓰러뜨려야 클리어예요`)
         else if (ev.type === 'escape') say('보물 도둑이 달아났어요')
       }
@@ -2475,6 +2504,7 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
   // every elite and boss standing, each its own health bar (by its id): the
   // chapter's boss first, then the others in the order they came
   const bars = run.enemies.filter((e) => e.rank && e.state === 'live').sort((a, b) => (b === run.boss) - (a === run.boss) || a.id - b.id).slice(0, MAX_BARS)
+  const thief = run.enemies.find((e) => e.behavior === 'flee' && e.state === 'live')
   const ot = overtime(run)
   // where the chapter is: the waves before the boss (n/6), the time left
   // until the boss comes, then the boss fight; a track with the elites and
@@ -2544,6 +2574,22 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
             </div>
           )
         })}
+        {thief &&
+          (() => {
+            // the treasure thief's time: under the health bars, running out
+            const [x, y, w, h] = H.bossBar
+            const f = bars.length > 1 ? 0.8 : 1
+            const stay = D.balance.enemies[thief.type].staySeconds
+            const left = Math.max(0, stay - thief.life)
+            return (
+              <div className={`ms-thieftime${left < 8 ? ' is-late' : ''}`} style={box([x, y + bars.length * h * f + h * 0.1, w, h * 0.8])} role="timer" aria-label={`보물 도둑이 달아나기까지 ${Math.ceil(left)}초`}>
+                <span className="ms-thieftime__text">도둑이 달아나기까지 {Math.ceil(left)}초</span>
+                <span className="ms-thieftime__bar">
+                  <i style={{ width: `${(left / stay) * 100}%` }} />
+                </span>
+              </div>
+            )
+          })()}
         <div className="ms-wslot" style={box(H.weaponSlot)} aria-label={`장착: ${weaponName(run.weaponDef.id)} ${run.grade}`}>
           <Sprite name="weapon_slot" size={H.weaponSlot[2] * k} />
           <Sprite name={weaponIcon(run.weaponDef.id)} size={H.weaponSlot[2] * 0.55 * k} className="ms-wslot__icon" />
