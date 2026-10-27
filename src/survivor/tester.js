@@ -21,7 +21,7 @@ import { choose, step, nextNeed, maxed, FIXED } from './game.js'
 import { CLASS_CARDS } from './zyo.js'
 
 // the coin stats of the test: high, 이동 속도 and 치명타 확률 at their top
-export const TEST_PERMA = { hp: 120, damage: 120, move: 40, interval: 120, crit: 101, coins: 0 }
+export const TEST_PERMA = { hp: 120, damage: 120, move: 40, interval: 120, crit: 101, coins: 0, armor: 20, regen: 10 }
 // the class changes to try: two of the red ball, two of the cats
 export const TEST_BUILDS = ['A', 'B', 'C', 'D']
 // how long a special boss lasts at least (s; 0: it never falls)

@@ -21,7 +21,7 @@ export const BEFORE_RESET_KEY = 'nodnaba:survivor:before-reset'
 const GAME_ID = 'mano-survivor'
 export const SCHEMA = 2
 const KEEP_KEYS = 400
-export const STATS = ['hp', 'damage', 'move', 'interval', 'crit', 'coins']
+export const STATS = ['hp', 'damage', 'move', 'interval', 'crit', 'coins', 'armor', 'regen']
 
 export function browserStorage() {
   try {

@@ -162,7 +162,9 @@
     "move": "더 빨라졌어!",
     "interval": "착착 던지자!",
     "crit": "급소를 노려!",
-    "coins": "코인이 반짝!"
+    "coins": "코인이 반짝!",
+    "armor": "단단해졌어!",
+    "regen": "기운이 샘솟아!"
   },
   "stageUp": "방이 자랐어요! {name}",
   "completeLine": "마노의 방 완성!",
