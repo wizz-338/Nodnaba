@@ -7158,5 +7158,16 @@
       "bossShots": 5,
       "bossSpreadDeg": 15
     }
+  },
+  "gifts": {
+    "note": "red balls given once each, for good (progress.js → grantGifts; the save's gifts list keeps which): one each time 마노의 방 reaches a new stage (room: the stage's number in room.json → stages, 1-5) and one when 치명타 확률 reaches its top (critMax: the crit card no longer comes in a run). A save already past one gets it the next time the game opens. Asked for: a red ball as a reward at the room's level-ups, at crit's top and at each episode's end (those: story.json → rewards).",
+    "room": {
+      "1": "A",
+      "2": "S",
+      "3": "SS",
+      "4": "SS",
+      "5": "SSS"
+    },
+    "critMax": "SSS"
   }
 }

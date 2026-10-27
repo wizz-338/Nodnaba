@@ -4,7 +4,7 @@ import { createRun, step, choose, reroll, makeTurret, previewTimes, isEdited, bu
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
 import { isClassCard, classOf, classDps, firepower, recipes, zyoTargets, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04 } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { materials, canMake, sunk } from './turret.js'
 import { extraOf } from './bosses.js'
@@ -625,8 +625,11 @@ function Game({ exitHref, tester }) {
     const news = b.data.story.news
     // (and a save that cleared chapter 5 before it brought the cats and the
     // rerolls: they come now, the S ball it already has)
-    if (news.length) {
-      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02 && rid !== NEWS_EP03 && rid !== NEWS_EP04)
+    // (and the red balls for episodes, room stages and crit's top that
+    // came after they were reached)
+    const lateBalls = ['skulltown', 'desert', 'snow', 'sky'].filter((rid) => b.data.story.rewards.includes(rid)).map((rid) => `${D.story.rewards[rid].ball}급`)
+    if (news.length || b.gifts.length) {
+      const told = news.filter((rid) => rid !== NEWS_EP01 && rid !== NEWS_EP02 && rid !== NEWS_EP03 && rid !== NEWS_EP04 && rid !== NEWS_BALLS)
       setNotice(
         [
           news.includes(NEWS_EP01) && `5장 클리어 보상이 바뀌었어요: 단추·호두·모루 합류 · 강화 리롤 ${b.data.rerolls}회 (S급 탱탱볼은 이미 받았어요)`,
@@ -634,11 +637,13 @@ function Game({ exitHref, tester }) {
           news.includes(NEWS_EP03) && `15장 클리어 보상에 ${D.zyo.name}가 합류했어요: ${D.balance.zyo.activeFromChapter}장부터 한 판에 한 번 전직할 수 있어요 · 강화 리롤 ${b.data.rerolls}회`,
           news.includes(NEWS_EP04) && `20장 클리어 보상에 포탑 제작이 생겼어요: ${D.balance.turret.activeFromChapter}장부터 레벨업 때 강화 2회분을 포탑 1개로 바꿀 수 있어요 · 강화 리롤 ${b.data.rerolls}회`,
           told.length && `이미 깬 장의 이야기 보상을 받았어요: ${told.map((rid) => D.story.rewards[rid].lines[0].replace(/[!.]$/, '')).join(' · ')}`,
+          news.includes(NEWS_BALLS) && `에피소드 클리어 보상에 탱탱볼이 생겼어요. 이미 깬 에피소드의 탱탱볼을 받았어요: ${lateBalls.join(' · ')}`,
+          b.gifts.length > 0 && `마노의 방·치명타 확률 선물로 탱탱볼을 받았어요: ${b.gifts.map((g) => `${g.item.grade}급`).join(' · ')}`,
         ]
           .filter(Boolean)
           .join(' / '),
       )
-      P.current.clearNews()
+      if (news.length) P.current.clearNews()
     }
     setChapter(Math.max(1, Math.min(b.data.unlockedChapter, LAST_CHAPTER)))
     // (a run left unfinished — the page closed mid-fight — simply ends; what
@@ -864,6 +869,8 @@ function Game({ exitHref, tester }) {
           onBuy={(stat, level) => {
             const r = P.current.buyStat(stat, level)
             refresh()
+            // a room stage or crit's top reached: its red ball, told at once
+            if (r.ok && r.gifts.length) setModal({ kind: 'gift', gifts: r.gifts })
             return r
           }}
           exitHref={exitHref}
@@ -954,6 +961,37 @@ function Game({ exitHref, tester }) {
           </div>
         </div>
       )}
+      {modal && modal.kind === 'gift' && <GiftModal gifts={modal.gifts} save={save} onClose={() => setModal(null)} />}
+    </div>
+  )
+}
+
+// a red ball given for a room stage or for crit's top (progress.js →
+// grantGifts): what was reached, the ball, and for crit what it now means
+function GiftModal({ gifts, save, onClose }) {
+  return (
+    <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label="선물">
+      <div className="ms-panel ms-chest ms-gift">
+        <h2 className="ms-h">선물을 받았어요!</h2>
+        <Art id="ball_ss" className="ms-gift__art" />
+        <ul className="ms-loot">
+          {gifts.map(({ key, item }) => (
+            <li key={key}>
+              <p className="ms-gift__why">{key === 'critMax' ? `치명타 확률 최대 달성! (${pctOf(D.balance.perma.stats.crit.max)})` : `마노의 방이 「${D.room.stages[+key.slice(4)].name}」(으)로 자랐어요!`}</p>
+              {key === 'critMax' && <p className="ms-dim ms-center">이제 판 안의 강화 선택지에 치명타 확률 카드가 더 이상 나오지 않아요.</p>}
+              <span className="ms-loot__item">
+                <Sprite name={weaponIcon(item.weaponId)} size={24} />
+                {weaponName(item.weaponId)} <Grade g={item.grade} />
+                {save && save.equippedInstanceId === item.id ? ' (장착했어요)' : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="ms-dim">탱탱볼은 주머니에 들어갔어요. 같은 무기·같은 등급 3개면 합성할 수 있어요.</p>
+        <button type="button" className="ms-btn ms-btn--primary" onClick={onClose}>
+          확인
+        </button>
+      </div>
     </div>
   )
 }
@@ -1892,7 +1930,7 @@ function Stats({ save, img, onBuy }) {
                 <p className="ms-stat__name">
                   {s.name} <small>Lv.{L}</small>
                 </p>
-                <p className="ms-dim">{atMax ? `${now} (최대)` : `${now} → ${next}`}</p>
+                <p className="ms-dim">{atMax ? (k === 'crit' ? `${now} (최대 · 판 안 강화 선택지에 더 안 나와요)` : `${now} (최대)`) : `${now} → ${next}`}</p>
                 <p className="ms-reach">
                   {STAT_REACH[k].map(([icon, text], i) => (
                     <span key={icon} className={icon === 'cat' && !save.cats.unlocked ? 'is-off' : ''}>
@@ -1914,7 +1952,7 @@ function Stats({ save, img, onBuy }) {
                   if (now - last.current < TAP_GAP) return
                   last.current = now
                   const r = onBuy(k, L)
-                  setMsg(r.ok ? `${s.name} Lv.${r.level}!` : r.reason)
+                  setMsg(r.ok ? (k === 'crit' && r.level >= max ? `${s.name} 최대! 이제 판 안 강화 선택지에 치명타 확률 카드가 나오지 않아요.` : `${s.name} Lv.${r.level}!`) : r.reason)
                   if (r.ok) audio.sfx('confirm'), popButton(e.currentTarget), room.current?.react(k)
                   else audio.sfx('deny')
                 }}

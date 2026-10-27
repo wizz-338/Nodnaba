@@ -3,7 +3,7 @@
 import { D } from './survivor-data.mjs'
 import { createRun, step, choose, reroll, makeTurret, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
-import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, KEY, SCHEMA } from '../src/survivor/progress.js'
+import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, statMaxLevel, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf, startAttack, tickAttack } from '../src/survivor/bosses.js'
@@ -697,6 +697,55 @@ const still = { x: 0, y: 0 }
   ok(reload.perma.hp === 1 && reload.perma.damage === 1 && reload.currency === 50, 'coin stats survive a reload')
 }
 {
+  // red balls for 마노의 방's stages and crit's top (balance.json → gifts), each once
+  const G = B.gifts
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const d = P.get()
+  d.currency = 1e12
+  d.perma.hp = 29
+  mem.setItem(KEY, JSON.stringify(d))
+  const r = P.buyStat('hp', 29)
+  ok(r.ok && r.gifts.length === 1 && r.gifts[0].key === 'room1' && r.gifts[0].item.grade === G.room[1], `the room's 2nd stage (30 levels): one ${G.room[1]} ball`)
+  ok(P.buyStat('hp', 30).gifts.length === 0, 'the next level in the same stage: no ball')
+  ok(createProgress(D, mem).boot().gifts.length === 0, 'a reload gives it again: no')
+  const e = P.get()
+  const max = statMaxLevel(D, 'crit')
+  e.perma.crit = max - 1
+  mem.setItem(KEY, JSON.stringify(e))
+  const c = P.buyStat('crit', max - 1)
+  ok(c.ok && c.gifts.some((g) => g.key === 'critMax' && g.item.grade === G.critMax), `치명타 확률 at its top: one ${G.critMax} ball`)
+  ok(P.get().gifts.filter((k) => k === 'critMax').length === 1 && createProgress(D, mem).boot().gifts.length === 0, 'once only')
+  // a save already past stages (from before the gifts): its balls at the next boot, once
+  const m2 = new Mem()
+  const P2 = createProgress(D, m2)
+  P2.boot()
+  const old = P2.get()
+  old.perma.hp = 120
+  old.perma.damage = 100
+  delete old.gifts
+  m2.setItem(KEY, JSON.stringify(old))
+  const b2 = createProgress(D, m2).boot()
+  ok(b2.gifts.map((g) => g.item.grade).join() === [1, 2, 3].map((i) => G.room[i]).join() && b2.data.gifts.join() === 'room1,room2,room3', `220 levels (stage 4) before the gifts: the balls of stages 2-4 now (${b2.gifts.map((g) => g.item.grade).join(', ')})`)
+  ok(createProgress(D, m2).boot().gifts.length === 0, 'and never again')
+  // story v 5: the balls the rewards of 15-30 bring now, to a save that had those rewards
+  const m3 = new Mem()
+  const P3 = createProgress(D, m3)
+  P3.boot()
+  const s5 = P3.get()
+  s5.story.v = 5
+  s5.story.rewards = ['forest', 'deepforest', 'skulltown', 'desert']
+  s5.firstCleared = Array.from({ length: 22 }, (_, i) => i + 1)
+  m3.setItem(KEY, JSON.stringify(s5))
+  const b3 = createProgress(D, m3).boot()
+  const add = b3.data.inventory.slice(s5.inventory.length).map((it) => it.grade)
+  ok(add.join() === 'SS,SS' && b3.data.story.news.includes('balls') && b3.supplied.length === 0 && b3.data.story.v === 6, 'a story-v5 save with the rewards of 15 and 20: their two SS balls now, told once')
+  createProgress(D, m3).clearNews()
+  const b4 = createProgress(D, m3).boot()
+  ok(b4.data.inventory.length === b3.data.inventory.length && !b4.data.story.news.length, 'the next visit: nothing given or told again')
+}
+{
   // 마노의 방's coin bubble in the lobby: once, kept across a reload
   const mem = new Mem()
   const P = createProgress(D, mem)
@@ -842,7 +891,7 @@ const still = { x: 0, y: 0 }
   mem.setItem('nodnaba:colony:save', 'COLONY')
   const P = createProgress(D, mem)
   const b0 = P.boot()
-  ok(b0.supplied.length === 0 && b0.data.story.v === 5 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
+  ok(b0.supplied.length === 0 && b0.data.story.v === 6 && b0.data.story.seen.length === 0, 'a new save starts in the story: nothing seen yet (the prologue plays at chapter 1), nothing to make up')
   const clear = (ch) => {
     const r = P.startRun(ch)
     return P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
@@ -854,11 +903,11 @@ const still = { x: 0, y: 0 }
   }
   const chapters = Object.keys(got).map(Number)
   ok(chapters.join() === '5,10,15,20,25,30,35', `rewards come at the clears of ${chapters.join(', ')}, nowhere else`)
-  ok(got[5].reward === 'forest' && got[5].item.grade === 'S' && got[10].reward === 'deepforest' && got[10].item.grade === 'SS' && got[15].reward === 'skulltown' && !got[15].item, '5: the cats, an S ball and rerolls; 10: Tizzzz, an SS ball and rerolls; 15: only rerolls (no ball, no one new)')
+  ok(got[5].reward === 'forest' && got[5].item.grade === 'S' && got[10].reward === 'deepforest' && got[10].item.grade === 'SS' && got[15].reward === 'skulltown' && got[15].item.grade === 'SS' && got[20].item.grade === 'SS' && got[25].item.grade === 'SSS' && got[30].item.grade === 'SSS', '5: the cats, an S ball and rerolls; 10: Tizzzz, an SS ball and rerolls; 15, 20: an SS ball each; 25, 30: an SSS ball each')
   ok(P.get().cats.unlocked && P.get().tizzzz.unlocked && P.get().turret.unlocked && P.get().rerolls === 8, `rerolls: 2 at 5, 4 at 10, 6 at 15, 8 at 20 (${P.get().rerolls}); 20 opens the turret`)
   const d = P.get()
   const balls = (g, tag) => d.inventory.filter((it) => it.grade === g && (tag ? it.tag === tag : !it.tag)).length
-  ok(got[35].item.grade === 'EX' && got[35].item.tag === 'demon' && balls('SS') === 1, '5: the red ball grows to S; 10: to SS (one); 35: 마왕의 탱탱볼 (EX)')
+  ok(got[35].item.grade === 'EX' && got[35].item.tag === 'demon' && balls('SS') === 3 && balls('SSS') === 2, '5: an S ball; 10, 15, 20: an SS each; 25, 30: an SSS each; 35: 마왕의 탱탱볼 (EX)')
   ok(d.cats.unlocked && d.tizzzz.unlocked && d.blessings.phoenix && d.blessings.snow && d.blessings.thunder && d.blessings.final, '5: the cats; 10: Tizzzz; 20, 25, 30: the phoenix gem, the snow and thunder blessings; 35: the last strengthening')
   ok(d.equippedInstanceId === got[35].item.id, '마왕의 탱탱볼 is equipped (it beats the SS)')
   ok(d.story.rewards.length === 7 && d.story.seen.length === 0, 'the rewards are recorded apart from the cutscenes (none seen here: skipping or closing never costs a reward)')
@@ -899,7 +948,9 @@ const still = { x: 0, y: 0 }
   const n = b.data
   ok(b.supplied.join() === 'skulltown,desert,snow' && n.story.news.join() === 'skulltown,desert,snow', `it is given what chapters 15, 20 and 25 now bring (${b.supplied.join(', ')}), and told so once`)
   ok(n.blessings.phoenix && n.blessings.snow && !n.blessings.thunder && !n.blessings.final, 'the phoenix gem and the snow blessing; not yet thunder (chapter 30)')
-  ok(n.inventory.length === d.inventory.length && n.equippedInstanceId === 'w91', 'no ball given again (its S and SS came from the old stories); its equipped SS stays')
+  const late = n.inventory.slice(d.inventory.length)
+  ok(late.map((it) => it.grade).join() === 'SS,SS,SSS' && n.inventory.slice(0, d.inventory.length).every((it, i) => it.id === d.inventory[i].id), 'no ball of 5 or 10 given again (its S and SS came from the old stories); the balls of 15, 20 and 25 come (SS, SS, SSS)')
+  ok(n.equippedInstanceId === late[2].id, 'the SSS ball beats its equipped SS and is equipped')
   ok(n.cats.unlocked && n.tizzzz.unlocked && n.turret.unlocked && n.rerolls === 8 && n.story.rewards.includes('deepforest'), 'the cats and Tizzzz stay (its old Tizzzz event counts as chapter 10\'s reward); the rerolls of 5, 10, 15 and 20 come, and the turret')
   ok(['ep01_clear', 'ep02_clear', 'ep03_clear', 'ep04_clear', 'snow_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('intro'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it, and the opening plays to it once')
   P2.clearNews()
@@ -2159,7 +2210,7 @@ const still = { x: 0, y: 0 }
   const R10 = S.rewards.deepforest
   const R15 = S.rewards.skulltown
   ok(R10.chapter === 10 && R10.tizzzz && R10.ball === 'SS' && R10.rerolls === 4 && !R10.cats, "chapter 10's reward: Tizzzz, one SS ball, rerolls to 4")
-  ok(R15.chapter === 15 && R15.rerolls === 6 && R15.zyo && !R15.tizzzz && !R15.ball && !R15.blessing, "chapter 15's: zyo_ and 2 more rerolls (6), no Tizzzz, no new ball")
+  ok(R15.chapter === 15 && R15.rerolls === 6 && R15.zyo && !R15.tizzzz && R15.ball === 'SS' && !R15.blessing, "chapter 15's: zyo_, 2 more rerolls (6) and an SS ball, no Tizzzz")
   ok(B.tizzzz.activeFromChapter === 11 && B.tizzzz.penSeconds <= 0.5, `Tizzzz rewrites from chapter ${B.tizzzz.activeFromChapter}; her pen takes ${B.tizzzz.penSeconds} s`)
   // a new save through chapter 16
   const mem = new Mem()
@@ -2179,7 +2230,7 @@ const still = { x: 0, y: 0 }
   ok(s11.tizzzz && s11.rerolls === 4 && newRun({ chapter: 11, tizzzz: s11.tizzzz, rerolls: s11.rerolls }).writer && newRun({ chapter: 11, rerolls: s11.rerolls }).rerolls === 4 && !newRun({ chapter: 10, tizzzz: true }).writer, 'from chapter 11: she rewrites, 4 rerolls every run (chapter 10 itself: not yet)')
   for (let ch = 11; ch <= 14; ch++) clear(ch)
   const c15 = clear(15)
-  ok(c15.story && c15.story.reward === 'skulltown' && !c15.story.item && SS() === 1 && P.get().rerolls === 6 && P.get().zyo.unlocked && P.get().unlockedChapter === 16, 'first clear of 15: zyo_, rerolls to 6, no new ball; chapter 16 opens')
+  ok(c15.story && c15.story.reward === 'skulltown' && c15.story.item.grade === 'SS' && SS() === 2 && P.get().rerolls === 6 && P.get().zyo.unlocked && P.get().unlockedChapter === 16, 'first clear of 15: zyo_, rerolls to 6, an SS ball; chapter 16 opens')
   ok(P.startRun(16).rerolls === 6 && P.startRun(16).zyo, 'a run from then on: 6 rerolls, zyo_ along')
 }
 // her rewrite: one card of those shown (however many), its own effect twice,
@@ -2248,14 +2299,14 @@ const still = { x: 0, y: 0 }
   const b = v2(12)
   ok(b.b.data.tizzzz.unlocked && SS(b.b.data) === 1 && b.b.data.rerolls === 4 && b.b.supplied.join() === 'deepforest' && b.b.data.story.seen.includes('ep02_clear'), '2) chapter 10 cleared, 15 not: Tizzzz, the SS ball and rerolls to 4 now (told once); the new cutscene not forced on it')
   const c = v2(18)
-  ok(c.b.data.tizzzz.unlocked && SS(c.b.data) === 1 && c.b.data.rerolls === 6 && c.b.supplied.length === 0 && c.b.data.story.news.includes('ep02') && !c.b.data.story.seen.includes('skulltown_3') && c.b.data.story.rewards.includes('deepforest'), "3/4) the old chapter-15 Tizzzz event done (Tizzzz on, its SS ball owned): chapter 10's reward counts as given — no second SS ball, Tizzzz once — rerolls to 6; the old cutscene's mark is dropped")
+  ok(c.b.data.tizzzz.unlocked && SS(c.b.data) === 2 && c.b.data.rerolls === 6 && c.b.supplied.length === 0 && c.b.data.story.news.includes('ep02') && !c.b.data.story.seen.includes('skulltown_3') && c.b.data.story.rewards.includes('deepforest'), "3/4) the old chapter-15 Tizzzz event done (Tizzzz on, its SS ball owned): chapter 10's reward counts as given — no second SS ball for it, Tizzzz once — rerolls to 6, and chapter 15's own new SS ball (story v 6); the old cutscene's mark is dropped")
   const d = v2(12, { inventory: [{ id: 'w1', weaponId: 'bouncy_ball', grade: 'D' }, { id: 'w60', weaponId: 'bouncy_ball', grade: 'SS' }], equippedInstanceId: 'w60' }).b.data
   ok(SS(d) === 2 && d.story.rewards.includes('deepforest'), '5) an SS ball owned (from chests or fusion) is not the reward: the reward comes (judged by the record, not the pocket)')
   const e = v2(18, { tizzzz: { unlocked: true, eventSeen: true, rewardGiven: false } })
   const P2 = createProgress(D, e.mem)
   P2.clearNews()
   const again = createProgress(D, e.mem).boot()
-  ok(again.supplied.length === 0 && SS(again.data) === 1 && again.data.rerolls === 6 && !again.data.story.news.length, 'the next visit: nothing given or told again')
+  ok(again.supplied.length === 0 && SS(again.data) === 2 && again.data.rerolls === 6 && !again.data.story.news.length, 'the next visit: nothing given or told again')
   // the first version (Tizzzz and her SS ball at the old chapter-10 event)
   const mem = new Mem()
   const P = createProgress(D, mem)
@@ -2541,7 +2592,7 @@ const still = { x: 0, y: 0 }
   ok(g.cuts.map((c) => c.text).join('|') === '어!! zyo_!!|어? 그거 내 건데?|어어어??|우와!! 엄청 커!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '아티스트 zyo_가 나타났다!' && !g.cuts.some((c) => c.layout), "Mano's lines; the banner keeps the underscore; every cut fills the screen")
   ok(S.regions[3].from === 16 && !S.cutscenes.groups.some((x) => x.chapter === 16), `the last line names chapter 16–20's region (${S.regions[3].name}); chapter 16 has no cutscene`)
   const R15 = S.rewards.skulltown
-  ok(R15.lines.join('|') === 'zyo_ 전직 해금!|리롤 +2 (총 6회)' && R15.images.includes('reward_zyo') && D.storyAssets.images.some((x) => x.id === 'reward_zyo') && D.storyAssets.images.some((x) => x.id === 'zyo_face'), 'the reward popup: zyo_ 전직 해금! and 리롤 +2 (총 6회), with its pictures')
+  ok(R15.lines.join('|') === 'zyo_ 전직 해금!|리롤 +2 (총 6회)|SS급 탱탱볼을 받았어요!' && R15.images.includes('reward_zyo') && D.storyAssets.images.some((x) => x.id === 'reward_zyo') && D.storyAssets.images.some((x) => x.id === 'zyo_face'), 'the reward popup: zyo_ 전직 해금!, 리롤 +2 (총 6회) and the SS ball, with its pictures')
   const Z = B.zyo
   ok(Z.activeFromChapter === 16 && Z.need === 7 && Object.values(Z.recipes).map((r) => r.mats.join('+')).join() === 'size+count,interval+ballSpeed,catSize+catRate,catSpeed+catClaw', 'four recipes, two cards ×7 each, from chapter 16')
   ok(Object.values(Z.recipes).every((r) => r.mats.every((m) => !B.upgrades.effects[m].levels)), 'every recipe card has no last level: ten picks are always possible')
@@ -2839,11 +2890,15 @@ const still = { x: 0, y: 0 }
     const mem = new Mem()
     const P = createProgress(D, mem)
     P.boot()
+    // (the balls of 15 on came with story v 6: an older save never had them)
+    const late = new Set()
     for (let ch = 1; ch <= cleared; ch++) {
       const r = P.startRun(ch)
-      P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+      const f = P.finishRun(r.runId, ch, { cleared: true, coins: 0, kills: 1, time: 1, elites: 0 })
+      if (f.story && ch >= 15 && f.story.item) late.add(f.story.item.id)
     }
     const d = P.get()
+    d.inventory = d.inventory.filter((it) => !late.has(it.id))
     d.story.v = v
     d.zyo = { unlocked: false }
     Object.assign(d, extra)
@@ -2851,7 +2906,7 @@ const still = { x: 0, y: 0 }
     return createProgress(D, mem).boot().data
   }
   const a = save(15, 3)
-  ok(a.zyo.unlocked && a.rerolls === 6 && a.story.news.includes('ep03') && a.story.seen.includes('ep03_clear') && a.inventory.filter((it) => it.grade === 'SS').length === 1, 'a save that cleared 15 before zyo_: she comes now (news once), 6 rerolls, her cutscene counted as seen, no second SS ball')
+  ok(a.zyo.unlocked && a.rerolls === 6 && a.story.news.includes('ep03') && a.story.seen.includes('ep03_clear') && a.inventory.filter((it) => it.grade === 'SS').length === 2 && a.story.news.includes('balls'), 'a save that cleared 15 before zyo_: she comes now (news once), 6 rerolls, her cutscene counted as seen, and chapter 15\'s new SS ball (story v 6)')
   const b = save(12, 3)
   ok(!b.zyo.unlocked && !b.story.news.includes('ep03') && !b.story.seen.includes('ep03_clear'), 'one that has not cleared 15: no zyo_ yet, her cutscene still to come')
   const c = save(15, 2)
@@ -2933,7 +2988,7 @@ const still = { x: 0, y: 0 }
   old.firstCleared = [...old.firstCleared, 20]
   old.blessings.phoenix = true
   const got = migrateStory(D, old)
-  ok(old.turret.unlocked && old.rerolls === 8 && old.story.news.includes('ep04') && got.length === 0 && old.story.seen.includes('ep04_clear') && old.story.v === 5, 'a save that cleared chapter 20 before: the turret and 8 rerolls now, told once; its new cutscene counts as seen')
+  ok(old.turret.unlocked && old.rerolls === 8 && old.story.news.includes('ep04') && got.length === 0 && old.story.seen.includes('ep04_clear') && old.story.v === 6, 'a save that cleared chapter 20 before: the turret and 8 rerolls now, told once; its new cutscene counts as seen')
   const young = JSON.parse(JSON.stringify(before))
   young.story.v = 4
   migrateStory(D, young)

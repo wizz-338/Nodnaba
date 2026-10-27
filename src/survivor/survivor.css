@@ -915,6 +915,27 @@
   align-items: center;
 }
 
+/* a red ball given for a room stage or crit's top: one item a row, its
+   reason over it */
+.ms-gift__art {
+  justify-self: center;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.ms-gift .ms-loot li {
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.ms-gift__why {
+  margin: 0;
+  font-weight: 800;
+  text-align: center;
+}
+
 /* chest results */
 .ms-loot {
   display: grid;
