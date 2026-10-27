@@ -622,9 +622,12 @@ function Game({ exitHref, tester }) {
       .then((i) => {
         setImg(i)
         setScreen('lobby')
-        // a chapter's clear cutscene that was cut short (the page closed in
-        // the middle) plays now; its reward was given with the clear
-        const left = leftoverCuts(P.current.get())
+        // the opening (story.json → when: launch), the first time the game
+        // is opened; then a chapter's clear cutscene that was cut short (the
+        // page closed in the middle): its reward was given with the clear
+        const d = P.current.get()
+        const intro = CUT_GROUPS.filter((g) => g.when === 'launch' && !d.story.seen.includes(g.id))
+        const left = [...intro, ...leftoverCuts(d)]
         if (left.length) setModal({ kind: 'cut', groups: left.map((g) => g.id) })
       })
       .catch((e) => setError(e.message))
@@ -1662,7 +1665,8 @@ function ResetProgress({ save, P, onImported }) {
 // the cutscenes already seen, region by region, to watch again (nothing is
 // given or saved by watching)
 function StoryReplay({ save, onReplay }) {
-  const seen = CUT_GROUPS.filter((g) => save.story.seen.includes(g.id))
+  // (a group with no cuts is only a reward: nothing to watch)
+  const seen = CUT_GROUPS.filter((g) => g.cuts.length && save.story.seen.includes(g.id))
   const byRegion = D.story.regions.map((r) => ({ r, groups: seen.filter((g) => regionOf(D, g.chapter).id === r.id) })).filter((x) => x.groups.length)
   return (
     <section className="ms-panel">
@@ -2750,6 +2754,10 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
     marked.current.add(id)
     onSeen(id)
   }
+  // (a group that is only a reward, with no cuts, counts as seen at once)
+  useEffect(() => {
+    for (const g of list) if (!g.cuts.length) mark(g.id)
+  }, [])
   const atCut = i < cuts.length
   const r = i - cuts.length // which reward card, once the cuts are over
   const done = !atCut && r >= rewards.length
@@ -2817,13 +2825,11 @@ function Cutscene({ groups, replay, onSeen, onDone }) {
   }
   const cut = cuts[i]
   // a wide (16:9) picture fills the screen on the PC, the words over its foot
+  // (every cut is wide now: story.json)
   const info = artInfo(cut.image)
   const wide = !!(info && info.out && info.out[0] > info.out[1])
-  // split: the words below the picture, never over it (a cut whose bottom
-  // matters: chapter 10's rewritten card)
-  const split = cut.layout === 'split'
   return (
-    <div className={`ms-modal ms-cut${wide ? ' ms-cut--wide' : ''}${split ? ' ms-cut--split' : ''}`} role="dialog" aria-modal="true" aria-label="이야기">
+    <div className={`ms-modal ms-cut${wide ? ' ms-cut--wide' : ''}`} role="dialog" aria-modal="true" aria-label="이야기">
       {/* a system line across the top (작가 Tizzzz가 나타났다!) */}
       {cut.banner && (
         <p key={'banner' + i} className="ms-cut__banner">

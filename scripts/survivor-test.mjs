@@ -881,7 +881,7 @@ const still = { x: 0, y: 0 }
   ok(n.blessings.phoenix && n.blessings.snow && !n.blessings.thunder && !n.blessings.final, 'the phoenix gem and the snow blessing; not yet thunder (chapter 30)')
   ok(n.inventory.length === d.inventory.length && n.equippedInstanceId === 'w91', 'no ball given again (its S and SS came from the old stories); its equipped SS stays')
   ok(n.cats.unlocked && n.tizzzz.unlocked && n.turret.unlocked && n.rerolls === 8 && n.story.rewards.includes('deepforest'), 'the cats and Tizzzz stay (its old Tizzzz event counts as chapter 10\'s reward); the rerolls of 5, 10, 15 and 20 come, and the turret')
-  ok(['prologue', 'ep01_clear', 'ep02_clear', 'desert_4', 'snow_3', 'sky_1', 'sky_2', 'sky_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('castle_1'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it')
+  ok(['ep01_clear', 'ep02_clear', 'ep03_clear', 'ep04_clear', 'snow_3'].every((id) => n.story.seen.includes(id)) && !n.story.seen.includes('sky_4') && !n.story.seen.includes('intro'), 'what it already played counts as seen (watchable in 설정); chapter 30 and on wait for it, and the opening plays to it once')
   P2.clearNews()
   const third = createProgress(D, mem).boot()
   ok(third.supplied.length === 0 && third.data.story.news.length === 0 && third.data.inventory.length === n.inventory.length, 'the next visit gives and tells nothing more')
@@ -901,7 +901,7 @@ const still = { x: 0, y: 0 }
   mem.setItem(KEY, JSON.stringify(d))
   const b = createProgress(D, mem).boot()
   ok(b.supplied.join() === 'forest,deepforest' && b.data.inventory.filter((it) => it.grade === 'S').length === 1 && b.data.inventory.filter((it) => it.grade === 'SS').length === 1 && b.data.cats.unlocked && b.data.tizzzz.unlocked && b.data.rerolls === 4, 'it gets the S ball, the cats (5), Tizzzz, the SS ball (10) and 4 rerolls, once')
-  ok(b.data.story.seen.includes('skulltown_1') && !b.data.story.seen.includes('skulltown_2') && b.data.story.seen.includes('ep01_clear') && b.data.story.seen.includes('ep02_clear'), 'what it played (to chapter 12) counts as seen; chapter 15\'s cutscenes still play')
+  ok(b.data.story.seen.includes('ep01_clear') && b.data.story.seen.includes('ep02_clear') && !b.data.story.seen.includes('ep03_clear'), 'what it played (to chapter 12) counts as seen; chapter 15\'s cutscenes still play')
 }
 // in battle: from their chapter on, with the cats; the magnet makes room for 냥냥 연금술
 {
@@ -1217,7 +1217,8 @@ const still = { x: 0, y: 0 }
   // (MANO_EP01's, MANO_CH10_CUTSCENES', MANO_CH15_CUTSCENES' and
   // MANO_CH20_CUTSCENES' pictures, ep01–ep04-assets.json, are merged in: they
   // are apart)
-  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/') && !x.file.startsWith('ep03/') && !x.file.startsWith('ep04/'))
+  // (and the opening's wide pictures, made from four of these: intro_*)
+  const fromPackage = A.filter((x) => !['backdrop', 'portrait', 'background-wide', 'backdrop-wide'].includes(x.kind) && !x.file.startsWith('ep01/') && !x.file.startsWith('ep02/') && !x.file.startsWith('ep03/') && !x.file.startsWith('ep04/') && !x.id.startsWith('intro_'))
   const kinds = (k) => fromPackage.filter((x) => x.kind === k).length
   ok(fromPackage.length === 84 && new Set(fromPackage.map((x) => x.source)).size === 84, `the map holds all 84 originals once (${kinds('monster')} monsters, ${kinds('cutscene')} cutscenes, ${kinds('background')} backgrounds, ${kinds('reward')} rewards, ${kinds('companion')} companions)`)
   ok(kinds('monster') === 35 && kinds('cutscene') === 29 && kinds('background') === 7 && kinds('reward') === 10 && kinds('companion') === 3, '35 / 29 / 7 / 10 / 3, as the package says')
@@ -1225,12 +1226,18 @@ const still = { x: 0, y: 0 }
   ok(missing.length === 0, `every game file the map names is there (${A.length} files)${missing.length ? ': missing ' + missing.map((x) => x.file).join(', ') : ''}`)
   const ids = new Set(A.map((x) => x.id))
   const S = D.story
+  // only wide (16:9) cuts are played (asked for: the tall ones taken out);
+  // the opening is the first four of 작은 숲, made wide
   const used = S.cutscenes.groups.flatMap((g) => g.cuts.map((c) => c.image))
-  const kept = ['cs_01_3', 'cs_02_3', 'cs_02_4', 'cs_03_3']
-  ok(used.length === 45 && new Set(used).size === 45 && used.every((id) => ids.has(id) && A.find((x) => x.id === id).kind === 'cutscene') && kept.every((id) => ids.has(id) && !used.includes(id)), "each cutscene placed once: 25 of the package's 29 and chapter 5's, 10's, 15's and 20's five new ones each; the old chapter 5 and 10 cat pictures and chapter 15's Tizzzz picture are kept, unused")
-  const per = S.regions.map((r) => S.cutscenes.groups.filter((g) => regionOf(D, g.chapter).id === r.id).reduce((n, g) => n + g.cuts.length, 0))
-  ok(per.join() === '9,7,7,9,4,5,4' && S.cutscenes.groups[0].id === 'prologue' && S.cutscenes.groups[0].cuts.length === 2, `per region (the prologue opens 작은 숲): ${per.join(', ')}`)
-  ok(S.cutscenes.groups.every((g) => g.when !== 'time' || (g.at > 0 && g.at < 210)) && S.cutscenes.groups.every((g) => ['enter', 'time', 'boss', 'clear'].includes(g.when)), 'every cutscene has its moment: before the fight, a time in it, the boss, or the clear')
+  const wideCut = (id) => {
+    const x = A.find((y) => y.id === id)
+    return x && x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7
+  }
+  ok(used.length === 24 && new Set(used).size === 24 && used.every(wideCut), `every cutscene played is wide (16:9), each once: the opening's 4 and chapters 5, 10, 15 and 20's five each (${used.length})`)
+  const intro = S.cutscenes.groups[0]
+  ok(intro.id === 'intro' && intro.when === 'launch' && intro.cuts.map((c) => c.image).join() === 'intro_1,intro_2,intro_3,intro_4' && intro.cuts.map((c) => A.find((x) => x.id === c.image).from).join() === 'cs_00_1,cs_00_2,cs_01_1,cs_01_2' && intro.cuts.every((c) => c.text), "the opening (played as the game first opens): 작은 숲's first four cuts, made wide, with Mano's lines")
+  ok(S.cutscenes.groups.filter((g) => !g.cuts.length).map((g) => `${g.id}:${g.reward}`).join() === 'snow_3:snow,sky_4:sky,castle_3:castle' && S.cutscenes.groups.filter((g) => !g.cuts.length).every((g) => g.when === 'clear'), "chapters 25, 30 and 35 lost their tall cuts but keep their reward's popup after the clear")
+  ok(S.cutscenes.groups.every((g) => ['launch', 'clear'].includes(g.when)) && !S.cutscenes.groups.some((g) => g.cuts.some((c) => c.layout)), 'every cutscene is the opening or a clear; none keeps its words apart (every wide cut fills the screen)')
   const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
   ok(rr === '1-5,6-10,11-15,16-20,21-25,26-30,31-35' && S.regions.every((r) => ids.has(r.background) && A.find((x) => x.id === r.background).region === r.id), `7 regions of 5 chapters (${rr}), each with its own background`)
   const roles = ['imp', 'spider', 'slime', 'bone_beast', 'brute', 'boss']
@@ -2050,8 +2057,6 @@ const still = { x: 0, y: 0 }
   ok(lines.join('|') === '어? 단추? 호두? 모루?|나 따라온 거야??|어어? 탱탱볼??|탱탱볼!!!|좋아! 이번엔 {next} 가볼까!' && S.regions[1].from === 6 && S.regions[1].name === '깊은 숲', `Mano's five lines; the last names the region of chapters 6–10 from the data (${S.regions[1].name})`)
   ok(D.storyAssets.images.filter((x) => x.id.startsWith('ep01_clear_')).every((x) => x.kind === 'cutscene' && x.out[0] / x.out[1] > 1.7), 'the five pictures are wide (16:9), whole')
   ok(!S.cutscenes.groups.some((x) => x.id === 'deepforest_3') && !S.rewards.deepforest.cats && S.cutscenes.groups.filter((x) => x.chapter === 10).map((x) => x.id).join() === 'ep02_clear', "chapter 10: the old cat event is gone (its clear is now Tizzzz's)")
-  const off = S.cutscenes.groups.filter((x) => x.play === false).map((x) => x.chapter)
-  ok(off.join() === '6,11,16,20,21,26,31' && S.cutscenes.groups.filter((x) => x.play === false).every((x) => (x.when === 'enter' || x.id === 'desert_4') && !x.reward && x.cuts.length > 0), `the episodes' opening cutscenes, and chapter 20's old clear (the phoenix gem: its reward now comes with the new one), are kept but never played (chapters ${off.join(', ')})`)
   const R = S.rewards.forest
   ok(R.chapter === 5 && R.ball === 'S' && R.cats && R.rerolls === 2 && R.images.join() === 'reward_cats,reward_s_ball,reward_reroll', "chapter 5's reward: the cats, one S ball, 2 rerolls (one popup, three pictures)")
   // a new save through chapter 11
@@ -2125,9 +2130,9 @@ const still = { x: 0, y: 0 }
   const S = D.story
   const g = S.cutscenes.groups.find((x) => x.id === 'ep02_clear')
   ok(g && g.chapter === 10 && g.when === 'clear' && g.reward === 'deepforest' && g.cuts.map((c) => c.image).join() === 'ep02_clear_01,ep02_clear_02,ep02_clear_03,ep02_clear_04,ep02_clear_05', "chapter 10's clear: the five Tizzzz cuts in order, then chapter 10's reward")
-  ok(g.cuts.map((c) => c.text).join('|') === '어!! Tizzzz!!|으헤헤헤...|어? 뭐야?|우와! 고마워!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '작가 Tizzzz가 나타났다!' && g.cuts[2].layout === 'split' && g.cuts.filter((c) => c.banner || c.layout).length === 2, "Mano's lines; the first cut's banner; the third keeps its card clear of the words")
+  ok(g.cuts.map((c) => c.text).join('|') === '어!! Tizzzz!!|으헤헤헤...|어? 뭐야?|우와! 고마워!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '작가 Tizzzz가 나타났다!' && g.cuts.filter((c) => c.banner || c.layout).length === 1, "Mano's lines; the first cut's banner")
   ok(S.regions[2].from === 11 && S.regions[2].name === '해골마을', `the last line names the region of chapters 11–15 from the data (${S.regions[2].name})`)
-  ok(S.cutscenes.groups.filter((x) => x.chapter === 15 && x.when === 'clear').map((x) => x.id).join() === 'ep03_clear' && !S.cutscenes.groups.some((x) => x.id === 'skulltown_3') && S.cutscenes.groups.find((x) => x.id === 'skulltown_1').play === false && S.cutscenes.groups.find((x) => x.id === 'desert_1').play === false, "chapter 15: no Tizzzz cutscene; its clear is zyo_'s (below); chapter 11's and 16's openings stay off")
+  ok(S.cutscenes.groups.filter((x) => x.chapter === 15 && x.when === 'clear').map((x) => x.id).join() === 'ep03_clear' && !S.cutscenes.groups.some((x) => x.id === 'skulltown_3') && !S.cutscenes.groups.some((x) => x.chapter === 11 || x.chapter === 16), "chapter 15: no Tizzzz cutscene; its clear is zyo_'s (below); chapters 11 and 16 have none")
   const R10 = S.rewards.deepforest
   const R15 = S.rewards.skulltown
   ok(R10.chapter === 10 && R10.tizzzz && R10.ball === 'SS' && R10.rerolls === 4 && !R10.cats, "chapter 10's reward: Tizzzz, one SS ball, rerolls to 4")
@@ -2510,8 +2515,8 @@ const still = { x: 0, y: 0 }
   const S = D.story
   const g = S.cutscenes.groups.find((x) => x.id === 'ep03_clear')
   ok(g && g.chapter === 15 && g.when === 'clear' && g.reward === 'skulltown' && g.cuts.map((c) => c.image).join() === 'ep03_clear_01,ep03_clear_02,ep03_clear_03,ep03_clear_04,ep03_clear_05', "chapter 15's clear: the five zyo_ cuts in order, then chapter 15's reward")
-  ok(g.cuts.map((c) => c.text).join('|') === '어!! zyo_!!|어? 그거 내 건데?|어어어??|우와!! 엄청 커!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '아티스트 zyo_가 나타났다!' && g.cuts[2].layout === 'split', "Mano's lines; the banner keeps the underscore; the card cut keeps its cards clear of the words")
-  ok(S.regions[3].from === 16 && S.cutscenes.groups.find((x) => x.id === 'desert_1').play === false, `the last line names chapter 16–20's region (${S.regions[3].name}); chapter 16's opening stays off`)
+  ok(g.cuts.map((c) => c.text).join('|') === '어!! zyo_!!|어? 그거 내 건데?|어어어??|우와!! 엄청 커!!|좋아! 이번엔 {next} 가볼까!' && g.cuts[0].banner === '아티스트 zyo_가 나타났다!' && !g.cuts.some((c) => c.layout), "Mano's lines; the banner keeps the underscore; every cut fills the screen")
+  ok(S.regions[3].from === 16 && !S.cutscenes.groups.some((x) => x.chapter === 16), `the last line names chapter 16–20's region (${S.regions[3].name}); chapter 16 has no cutscene`)
   const R15 = S.rewards.skulltown
   ok(R15.lines.join('|') === 'zyo_ 전직 해금!|리롤 +2 (총 6회)' && R15.images.includes('reward_zyo') && D.storyAssets.images.some((x) => x.id === 'reward_zyo') && D.storyAssets.images.some((x) => x.id === 'zyo_face'), 'the reward popup: zyo_ 전직 해금! and 리롤 +2 (총 6회), with its pictures')
   const Z = B.zyo

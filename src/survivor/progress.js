@@ -638,9 +638,10 @@ export function migrateStory(D, d) {
     }
     if (grantReward(D, d, rid)) given.push(rid)
   }
-  const played = d.unlockedChapter > 1 || d.firstCleared.length > 0
   for (const g of D.story.cutscenes.groups) {
-    const seen = g.when === 'clear' ? d.firstCleared.includes(g.chapter) : g.chapter < d.unlockedChapter || (g.id === 'prologue' && played)
+    // (the opening is played once to every save, the first time it opens)
+    if (g.when === 'launch') continue
+    const seen = g.when === 'clear' ? d.firstCleared.includes(g.chapter) : g.chapter < d.unlockedChapter
     if (seen && !d.story.seen.includes(g.id)) d.story.seen.push(g.id)
   }
   d.story.v = STORY_V
