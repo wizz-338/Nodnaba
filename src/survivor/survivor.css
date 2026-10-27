@@ -1884,6 +1884,16 @@
   accent-color: var(--accent);
 }
 
+/* an on/off setting (설정): 켜짐 and 꺼짐 side by side, the one in force lit */
+.ms-onoff {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.ms-onoff .ms-btn {
+  min-width: 64px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ms-lobbymano,
   .ms-startbtn,

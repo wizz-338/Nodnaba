@@ -38,6 +38,22 @@ const usePlatform = () => useContext(PlatformCtx)
 // it (Chrome, Edge: holding Esc still leaves full screen); elsewhere Esc
 // leaves full screen, and a battle then pauses (see Battle)
 const canLockEsc = () => typeof navigator !== 'undefined' && !!(navigator.keyboard && navigator.keyboard.lock)
+
+// an on/off setting: two buttons, 켜짐 and 꺼짐, the one in force lit; a press
+// sets that one (asked for: a single button showing the state read as what
+// it would do, so it was pressed the wrong way round)
+function OnOff({ on, set, label }) {
+  return (
+    <div className="ms-onoff" role="group" aria-label={label}>
+      <button type="button" className={`ms-btn ms-btn--small${on ? ' ms-btn--primary' : ''}`} aria-pressed={on} onClick={() => !on && set(true)}>
+        켜짐
+      </button>
+      <button type="button" className={`ms-btn ms-btn--small${on ? '' : ' ms-btn--primary'}`} aria-pressed={!on} onClick={() => on && set(false)}>
+        꺼짐
+      </button>
+    </div>
+  )
+}
 function FullscreenSetting() {
   const pf = usePlatform()
   const [on, setOn] = useState(() => !!document.fullscreenElement)
@@ -47,17 +63,16 @@ function FullscreenSetting() {
     return () => document.removeEventListener('fullscreenchange', f)
   }, [])
   if (pf.id !== 'pc' || !document.fullscreenEnabled) return null
-  const toggle = () => {
-    const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
+  const set = (want) => {
+    if (want === !!document.fullscreenElement) return
+    const p = want ? document.documentElement.requestFullscreen() : document.exitFullscreen()
     if (p && p.then) p.then(() => document.fullscreenElement && canLockEsc() && navigator.keyboard.lock(['Escape']).catch(() => {})).catch(() => {})
   }
   return (
     <section className="ms-panel">
       <div className="ms-row">
         <span className="ms-sub">전체 화면</span>
-        <button type="button" className="ms-btn ms-btn--small" onClick={toggle} aria-pressed={on}>
-          {on ? '켜짐' : '꺼짐'}
-        </button>
+        <OnOff on={on} set={set} label="전체 화면" />
       </div>
       <p className="ms-dim">{canLockEsc() ? '켜져 있을 때 Esc를 길게 누르면 전체 화면이 꺼져요. 짧게 누르면 전투가 멈추고, 한 번 더 누르면 이어져요.' : '켜져 있을 때 Esc를 누르면 전체 화면이 꺼지고 전투가 멈춰요.'}</p>
     </section>
@@ -1561,9 +1576,7 @@ function Settings({ save, P, onImported, onReplay }) {
       <section className="ms-panel ms-sound">
         <div className="ms-row">
           <span className="ms-sub">배경음악</span>
-          <button type="button" className="ms-btn ms-btn--small" aria-pressed={snd.musicOn} onClick={() => setAudio({ musicOn: !snd.musicOn })}>
-            {snd.musicOn ? '켜짐' : '꺼짐'}
-          </button>
+          <OnOff on={snd.musicOn} set={(v) => setAudio({ musicOn: v })} label="배경음악" />
         </div>
         <input
           type="range"
@@ -1578,17 +1591,14 @@ function Settings({ save, P, onImported, onReplay }) {
         />
         <div className="ms-row">
           <span className="ms-sub">효과음</span>
-          <button
-            type="button"
-            className="ms-btn ms-btn--small"
-            aria-pressed={save.sound}
-            onClick={() => {
-              P.setSound(!save.sound)
+          <OnOff
+            on={save.sound !== false}
+            set={(v) => {
+              P.setSound(v)
               onImported(P.get())
             }}
-          >
-            {save.sound ? '켜짐' : '꺼짐'}
-          </button>
+            label="효과음"
+          />
         </div>
         <input
           type="range"
