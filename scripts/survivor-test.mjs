@@ -1835,6 +1835,20 @@ const still = { x: 0, y: 0 }
     ok(full && b.state === 'down' && !b.guard, `chapter 10: a strong build ends it as fast as it hits: every hit counts in full (no guard before chapter ${B.lateGame.bossGuard.fromChapter}, no cap, no shield)`)
     ok(near(b.maxHp, run.boss.maxHp * X.hpMul, 1e-9 * b.maxHp) && X.hpMul > 1, `it has ${X.hpMul}× the chapter boss's HP: tougher than the boss it follows`)
   }
+  // chapters 3 and 5 (the first episode): far less HP than the others (asked
+  // for: an early build needed minutes), still more than the boss before them
+  {
+    const hp = (ch) => {
+      const run = toBoss(ch)
+      killBoss(run)
+      tick(run, 60 * 6)
+      return [run.extra.boss.maxHp / run.boss.maxHp, extraOf(D, ch)]
+    }
+    const [m3, id3] = hp(3)
+    const [m5, id5] = hp(5)
+    const [m8] = hp(8)
+    ok(id3 === 'x_snail' && id5 === 'x_moth' && near(m3, 6, 1e-9) && near(m5, 5, 1e-9) && near(m8, X.hpMul, 1e-9) && m3 > 1 && m5 > 1, `chapters 3 and 5's special bosses have ${m3}× and ${m5}× the chapter boss's HP (the others ${m8}×)`)
+  }
   // from the boss guard's chapter on it has the guard too
   {
     const G = B.lateGame.bossGuard

@@ -171,6 +171,12 @@ T = 9
 def sh(kind, hard): return shared(kind, T, 32, hard)
 E['shot'], E['shotMove'] = SHOT['x_eclipse']
 E['hpMul'] = 26.0 # (the others' ×1.44, as before)
+# the first episode's two (chapters 3 and 5) much less: met with an early
+# build, at the others' ×18 a typical player needed 3–5 minutes (bots, the
+# casual skill: about 220 s and 265 s); asked for: weaker. Now about a minute
+# or a minute and a half
+X['bosses']['x_snail']['hpMul'] = 6.0
+X['bosses']['x_moth']['hpMul'] = 5.0
 E['phases'] = [
     {'above': 0.75, 'walk': 0.35, 'attacks': [ring, sh('volley', 0), sweep, sh('nova', 0), sh('spiral', 0), sh('dash', 0)]},
     {'above': 0.5, 'walk': 0.26, 'attacks': [combo([ring, sh('spiral', 1)], 0.45), sh('homing', 1), combo([sweep, sh('volley', 1)], 0.45), sh('stalk', 1), combo([sh('dash', 1), ring], 0.4), sh('crossfire', 1)]},
