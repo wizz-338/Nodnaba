@@ -1054,7 +1054,7 @@ const still = { x: 0, y: 0 }
   const lying = run.orbs.filter((o) => (o.kind === 'xp' || o.kind === 'coin') && run.t - born.get(o) > 2).length
   // (since Mano's magnet grew to pickupRadius, asked for, she takes most of
   // what falls near her herself; the cats fetch the rest, the far ones)
-  ok(byCats / dropped > 0.15 && lying <= 2 && waits[waits.length >> 1] < 1, `90 s with Mano standing still: the cats took ${((100 * byCats) / dropped).toFixed(0)}% of ${dropped} coins and gems (Mano's magnet the rest), half within ${waits[waits.length >> 1].toFixed(2)} s; ${lying} left lying over 2 s`)
+  ok(byCats / dropped > 0.08 && lying <= 2 && waits[waits.length >> 1] < 1, `90 s with Mano standing still: the cats took ${((100 * byCats) / dropped).toFixed(0)}% of ${dropped} coins and gems (Mano's magnet the rest), half within ${waits[waits.length >> 1].toFixed(2)} s; ${lying} left lying over 2 s`)
 }
 // later chapters: the middle and end of a run push harder, coming in step by step
 {

@@ -157,42 +157,43 @@
       {
         "from": 0,
         "spawnInterval": 1.6,
-        "hpMultiplier": 0.4,
+        "hpMultiplier": 0.34,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 1
         },
-        "pack": 2,
-        "xpMultiplier": 0.85
+        "pack": 4,
+        "xpMultiplier": 0.425
       },
       {
         "from": 35,
         "spawnInterval": 1.2,
-        "hpMultiplier": 0.75,
+        "hpMultiplier": 0.6375,
         "speedMultiplier": 1.0,
         "mix": {
           "imp": 0.7,
           "spider": 0.3
         },
-        "pack": 3,
-        "xpMultiplier": 0.9
+        "pack": 6,
+        "xpMultiplier": 0.45
       },
       {
         "from": 70,
         "spawnInterval": 0.9,
-        "hpMultiplier": 2.2,
+        "hpMultiplier": 1.87,
         "speedMultiplier": 1.05,
         "mix": {
           "imp": 0.5,
           "spider": 0.3,
           "slime": 0.2
         },
-        "pack": 3
+        "pack": 6,
+        "xpMultiplier": 0.5
       },
       {
         "from": 110,
         "spawnInterval": 0.8,
-        "hpMultiplier": 6,
+        "hpMultiplier": 5.1,
         "speedMultiplier": 1.1,
         "mix": {
           "imp": 0.4,
@@ -200,12 +201,13 @@
           "slime": 0.15,
           "bone_beast": 0.2
         },
-        "pack": 4
+        "pack": 8,
+        "xpMultiplier": 0.5
       },
       {
         "from": 145,
         "spawnInterval": 0.7,
-        "hpMultiplier": 14,
+        "hpMultiplier": 11.9,
         "speedMultiplier": 1.12,
         "mix": {
           "imp": 0.35,
@@ -213,12 +215,13 @@
           "slime": 0.2,
           "bone_beast": 0.2
         },
-        "pack": 6
+        "pack": 12,
+        "xpMultiplier": 0.5
       },
       {
         "from": 180,
         "spawnInterval": 0.63,
-        "hpMultiplier": 45,
+        "hpMultiplier": 38.25,
         "speedMultiplier": 1.15,
         "mix": {
           "imp": 0.35,
@@ -226,12 +229,13 @@
           "slime": 0.2,
           "bone_beast": 0.2
         },
-        "pack": 7
+        "pack": 14,
+        "xpMultiplier": 0.5
       },
       {
         "from": 210,
         "spawnInterval": 0.7,
-        "hpMultiplier": 120,
+        "hpMultiplier": 102.0,
         "speedMultiplier": 1.15,
         "mix": {
           "imp": 0.35,
@@ -239,7 +243,8 @@
           "slime": 0.2,
           "bone_beast": 0.2
         },
-        "pack": 5
+        "pack": 10,
+        "xpMultiplier": 0.5
       }
     ],
     "events": [
@@ -274,7 +279,7 @@
         "max": 2.4
       }
     },
-    "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply. The first 70 s bring 1.5× then 1.3× the monsters they used to (the opening was too empty), each with less HP (about the same HP a second as before, so a single-target build such as the friend cats keeps up) and worth a little less experience (xpMultiplier, ordinary monsters only; 1 when missing, so Mano levels about as fast as before). More than that (2.4× / 1.6×) piled up faster than a new player's one ball kills and ended chapter 1 for a player standing still in under 30 s. Bots: clear rates about as before on chapters 1-8 (phone and PC, good and casual players) and 10/15 (ball and cat builds)"
+    "packNote": "each spawn is a pack: `pack` monsters of one kind together at one point of the edge, every `spawnInterval` s (fewer if the screen is near enemySoftLimit). Monster HP climbs steeply through the chapter (hpMultiplier) because Mano's in-run upgrades multiply. The first 70 s bring 1.5× then 1.3× the monsters they used to (the opening was too empty), each with less HP (about the same HP a second as before, so a single-target build such as the friend cats keeps up) and worth a little less experience (xpMultiplier, ordinary monsters only; 1 when missing, so Mano levels about as fast as before). More than that (2.4× / 1.6×) piled up faster than a new player's one ball kills and ended chapter 1 for a player standing still in under 30 s. Bots: clear rates about as before on chapters 1-8 (phone and PC, good and casual players) and 10/15 (ball and cat builds) Then (asked for: more to smash): in every chapter twice as many ordinary monsters (pack ×2), each with 85% of its HP and half its experience (hpMultiplier ×0.85, xpMultiplier ×0.5: about as much experience a minute as before); the elites and the bosses as they were."
   },
   "chapters": [
     {
@@ -576,7 +581,8 @@
     "visualDamageNumbers": 40,
     "cosmeticParticles": 80,
     "trailsUpTo": 160,
-    "enemySoftLimit": 140
+    "enemySoftLimit": 280,
+    "enemySoftLimitNote": "at most this many monsters on the field at once (280, from 140: twice as many ordinary monsters come, asked for)"
   },
   "cats": {
     "note": "Cat companions (단추·호두·모루). They join for good with chapter 5's first clear (story.json → rewards.forest, with one S-grade red ball and the rerolls, once) and come along from activeFromChapter on. They gather coins and experience lying on the field (each its own pick, all three on different ones; everything within `magnet` of a cat flies to it, so a pile goes in one sweep), never fight, never get hurt and never block Mano. Hearts they only take with 냥냥 연금술. The fighting cats are another thing: friendCats.",
