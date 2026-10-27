@@ -82,7 +82,7 @@ export const monsterName = (D, region, e) => (e.skin && ((D.story.monsters[e.ski
 function perma(D, levels = {}) {
   const S = D.balance.perma.stats
   const v = (k) => permaValue(S[k], levels[k] || 0)
-  return { hp: v('hp'), damage: v('damage'), move: v('move'), interval: v('interval'), crit: v('crit'), coins: v('coins') }
+  return { hp: v('hp'), damage: v('damage'), move: v('move'), interval: v('interval'), crit: v('crit'), coins: v('coins'), armor: v('armor'), regen: v('regen') }
 }
 
 // ── a new run ───────────────────────────────────────────────────────────────
@@ -164,8 +164,9 @@ export function createRun(D, opts) {
       baseSpeed: B.player.speed * (arena.speedMul || 1),
       hitR: B.player.hitRadius,
       pickupR: B.player.pickupRadius,
-      regen: 0,
-      armor: 1,
+      // (the coin stats 회복 and 방어력 to start with; the run's cards add to them)
+      regen: pm.regen,
+      armor: pm.armor,
       xpMul: 1,
       coinMul: pm.coins,
       inv: 0,

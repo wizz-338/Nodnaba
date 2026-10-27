@@ -606,6 +606,14 @@ const still = { x: 0, y: 0 }
   const oldCrit = (L) => Math.min(0.5, 0.0075 * L)
   const same = Array.from({ length: 68 }, (_, L) => L).every((L) => near(statValue(D, 'crit', L), oldCrit(L), 1e-12) && statPrice(D, 'crit', L) === Math.floor(200 * B.perma.priceGrowth ** L))
   ok(same && near(statValue(D, 'crit', 68), 0.515) && near(statValue(D, 'crit', 101), 1) && statValue(D, 'crit', 100) < 1 && statPrice(D, 'crit', 68) === Math.floor(200 * B.perma.priceGrowth ** 67 * 1.05), 'coin stat 치명타 확률: levels 0–67 (up to 50%) and their prices as before; then +1.5% a level, the price ×1.05; 100% at level 101')
+  // 방어력 and 회복 (added later, asked for): moderate, with a top; the run's
+  // cards add on top of them
+  const ar = createRun(D, { weaponId: 'bouncy_ball', grade: 'D', seed: 3, perma: { armor: 10, regen: 4 } })
+  ok(near(ar.player.armor, S.armor.mul ** 10) && near(ar.player.regen, S.regen.add * 4) && createRun(D, { weaponId: 'bouncy_ball', grade: 'D', seed: 3 }).player.armor === 1, `coin stats 방어력 ×${S.armor.mul}^L on the damage she takes and 회복 +${S.regen.add * 100}% of her max HP a second a level`)
+  ok(near(statValue(D, 'armor', 999), S.armor.mul ** S.armor.maxLevel) && statValue(D, 'armor', 999) > 0.6 && near(statValue(D, 'regen', 999), S.regen.max) && S.regen.max <= 0.01, `their tops: 방어력 ${S.armor.maxLevel} levels (×${statValue(D, 'armor', 999).toFixed(3)}: never near unhurtable), 회복 ${S.regen.max * 100}% a second`)
+  pickIn(ar, 'armor')
+  pickIn(ar, 'regen')
+  ok(near(ar.player.armor, S.armor.mul ** 10 * B.upgrades.effects.armor.mul) && near(ar.player.regen, S.regen.add * 4 + B.upgrades.effects.regen.addMaxHpShare), 'the run\'s 방어력 and 회복 cards add on top of the coin stats')
 }
 
 // ── progress: rewards, chests, fusion, coin stats, saves ────────────────────

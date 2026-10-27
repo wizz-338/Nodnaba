@@ -425,9 +425,23 @@
         "name": "코인 획득량",
         "price": 220,
         "mul": 1.05
+      },
+      "armor": {
+        "name": "방어력",
+        "price": 160,
+        "mul": 0.985,
+        "maxLevel": 30,
+        "note": "the damage Mano takes ×0.985 a level, at most 30 levels (×0.636: about a third less); the in-run 방어력 cards multiply on top. Moderate on purpose (asked for: never so high that she cannot die); to be tuned with the rest later."
+      },
+      "regen": {
+        "name": "회복",
+        "price": 160,
+        "add": 0.0005,
+        "max": 0.01,
+        "note": "Mano heals 0.05% of her max HP a second a level, at most 1% a second (level 20: as much as one in-run 회복 card, which adds on top). Moderate on purpose (asked for); to be tuned with the rest later."
       }
     },
-    "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L); past: from that level on another step (perma.js). Caps here are game rules for permanent stats, shown in the shop."
+    "note": "each stat has its own level L (from 0): value × mul^L (or + add × L); next price = floor(price × priceGrowth^L); past: from that level on another step (perma.js). Caps here are game rules for permanent stats, shown in the shop. armor and regen came later (asked for: more kinds of coin stats; their balance to be tuned with the rest)."
   },
   "upgrades": {
     "pool": [

@@ -540,6 +540,13 @@ function statText(stat, L) {
       return [pctOf(v(L)), pctOf(Math.min(s.max, v(L + 1)))]
     case 'coins':
       return [times(v(L)), times(v(L + 1))]
+    case 'armor':
+      return [`받는 피해 ${pctOf(v(L))}`, pctOf(v(L + 1))]
+    case 'regen': {
+      // (0.05% a level: two decimals)
+      const pct2 = (x) => `${fmt(x * 100, 2)}%`
+      return [`초당 ${pct2(v(L))}`, pct2(Math.min(s.max, v(L + 1)))]
+    }
     default:
       return ['', '']
   }
@@ -1743,6 +1750,8 @@ const STAT_REACH = {
   interval: [['ball', '탱탱볼 던지는 간격'], ['cat', '냥이 할퀴는 간격']],
   crit: [['ball', '탱탱볼'], ['cat', '냥이']],
   coins: [['coin', '판에서 받는 코인']],
+  armor: [['idle_s_0', '마노가 받는 피해 줄이기']],
+  regen: [['idle_s_0', '마노 체력 저절로 회복 (최대 체력의 %)']],
 }
 
 // what the coin stats reach (under the list; on the PC under the room, where
@@ -1836,7 +1845,7 @@ function Stats({ save, img, onBuy }) {
       {msg && <p className="ms-ok">{msg}</p>}
       <ReachGuide save={save} className="ms-reachguide--shop" />
       <p className="ms-dim">
-        치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계까지 올릴 수 있어요. 치명타 확률이 {pctOf(D.balance.perma.stats.crit.max)}가 되면 판 안에서 치명타 확률 카드가 더는 나오지 않아요.
+        치명타 확률은 최대 {pctOf(D.balance.perma.stats.crit.max)}, 이동 속도는 {D.balance.perma.stats.move.maxLevel}단계, 방어력은 {D.balance.perma.stats.armor.maxLevel}단계, 회복은 초당 최대 {pctOf(D.balance.perma.stats.regen.max)}까지 올릴 수 있어요. 치명타 확률이 {pctOf(D.balance.perma.stats.crit.max)}가 되면 판 안에서 치명타 확률 카드가 더는 나오지 않아요.
       </p>
       </div>
     </section>
