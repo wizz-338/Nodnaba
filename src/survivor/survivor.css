@@ -3264,14 +3264,62 @@
   box-shadow: none;
 }
 
+/* the PC (asked for): the room a long band across the top (its picture at
+   the left, its stage, growth and guide beside it), the shop under it with
+   the stats in two columns (four rows of two) */
 .ms--pc .ms-stats-room {
-  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
-  align-items: start;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.ms--pc .ms-stats-room__room {
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  grid-auto-rows: auto;
+  column-gap: 18px;
+  row-gap: 6px;
+}
+
+.ms--pc .ms-stats-room__room > .ms-sub {
+  grid-column: 1 / -1;
+}
+
+.ms--pc .ms-stats-room__room .ms-room {
+  display: contents;
+}
+
+.ms--pc .ms-stats-room__room .ms-room__canvas {
+  grid-column: 1;
+  grid-row: 2 / span 5;
+  align-self: start;
+}
+
+.ms--pc .ms-stats-room__room .ms-room__head,
+.ms--pc .ms-stats-room__room .ms-room__grow,
+.ms--pc .ms-stats-room__room .ms-room__next,
+.ms--pc .ms-stats-room__room > .ms-dim,
+.ms--pc .ms-stats-room__room > .ms-reachguide--room {
+  grid-column: 2;
+  margin: 0;
+}
+
+/* (on the PC the band says how the room grows already: its line under the
+   picture goes, and the shop is a little tighter, so the four rows fit) */
+.ms--pc .ms-stats-room__room > .ms-dim {
+  display: none;
 }
 
 .ms--pc .ms-stats-room .ms-stats-list {
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.ms--pc .ms-stats-room .ms-stat {
+  padding: 5px 10px;
+}
+
+.ms--pc .ms .ms-stats-room__shop,
+.ms--pc.ms .ms-stats-room__shop {
+  padding: 10px 12px;
 }
 
 /* what each coin stat reaches (Stats): small chips under its numbers, and a
