@@ -7,11 +7,14 @@
 // stops it too). Then a few units drawn as the class's power, not as more of
 // them: the giant balls in a glow with a trail, a turning shine and embers
 // (A: the shield balls on a turning ring); the ninja cats never seen
-// running: at each of their slashes a samurai cat with a sword and a long
-// headband sweeps across the monster with a few afterimages and is gone, a
+// running: at each of their slashes a ninja cat (its own sheet: black, a red
+// scarf, a sword; scripts/survivor-ninja-assets.py) dashes low across the
+// monster with a few afterimages, strikes one of its six blows and is gone, a
 // crescent and a cross over it. The skill over the screen: 탱탱 메테오 (a mark on the ground,
-// a burning ball falling on it, a blast) or 그림자 분신 (a shadow ninja out of
-// a puff, a big X). The 전투력 level shows in the colours (red → gold →
+// a burning ball falling on it, a blast) or 그림자 분신 (a shadow ninja landing
+// in a burst beside it, leaping through it with the sword, a big X). Until
+// the ninja's sheet is loaded (or if it cannot be), a friend cat with a sword
+// and a headband drawn in code stands in. The 전투력 level shows in the colours (red → gold →
 // violet → all colours), the size (zyo.js growth) and more sparks; a level
 // up rings round Mano with its number. The two warp holes (D), the blast of
 // 최후의 반격 (B). Sparks come from one pool with a cap, fewer on a busy screen.
@@ -22,6 +25,7 @@ const NOTE_COLORS = ['#ff5f8f', '#ffb547', '#6fd389', '#5fb8ff', '#b88bff', '#ff
 const WARP = ['rgba(120, 90, 255, ', 'rgba(70, 220, 255, ']
 const SLASH = 0.24 // s a slash's crescent shows
 const STRIKE = 0.32 // s a ninja's blow shows: the samurai cat sweeping past
+const NINJA_H = 30 // how tall a ninja cat stands (field px, before its growth)
 const MAX_STRIKES = 14
 const MAX_SLASHES = 16
 const MAX_PARTS = 160
@@ -55,7 +59,7 @@ const SCORCH = 0.9
 const CRACK_GLOW = 0.3
 const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`
 
-export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font }) {
+export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font, ninja }) {
   const slashes = [] // { x, y, r, a, t, c }
   const strikes = [] // the ninjas' blows: { x, y, face, reach, t, c, L, G, id }
   const rings = [] // { x, y, r, t, life, c, w }
@@ -68,6 +72,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
   const puffs = [] // { x, y, vx, vy, r, t, life } dust off the ground
   const trails = new Map() // a giant ball's last places
   let impacts = 0
+  let strikeN = 0 // the blows counted, so they take turns among the six
   let budget = 1
   let flashT = 0 // the units flash a moment at a level up
 
@@ -353,6 +358,22 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     if (A === 1 && Math.random() < 0.35 * budget) spark(u.x + (Math.random() - 0.5) * r, u.y - lift + (Math.random() - 0.5) * r, (Math.random() - 0.5) * 30, -20 - Math.random() * 30, 0.5, 2 + L * 0.15, c, -20)
   }
 
+  // a ninja cat's pose from its sheet (ninja: { info, now() }, the picture
+  // ep03-assets.json → ninja_cat), standing on (x, y), h tall when it stands,
+  // turned the way face says (the sheet's are turned right)
+  const NJ = ninja && ninja.info
+  function ninjaPose(pic, anim, i, x, y, h, face) {
+    const F = NJ.frames[anim]
+    const f = F[i % F.length]
+    const s = h / NJ.bodyH
+    world()
+    ctx.translate(x, y)
+    ctx.scale(face * s, s)
+    ctx.imageSmoothingEnabled = true
+    ctx.drawImage(pic, f[0], f[1], f[2], f[3], -f[4], -f[5], f[2], f[3])
+    world()
+  }
+
   // the units, over the monsters
   function over(run, now, dt) {
     budget = run.balls.length > 0 || run.enemies.length > 120 ? 0.6 : 1
@@ -467,6 +488,17 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       const k = (cl.t - (cl.land - 0.3)) / 0.55
       ctx.globalAlpha = Math.max(0, Math.min(1, k * 4, (1 - k) * 4)) * 0.85
       glow(cl.x - cl.face * 18, cl.y - 6, 20, [110, 40, 200], 0.6)
+      // (from the sheet: landing in a burst of red, then the leap with the
+      // sword through the monster)
+      const pic = NJ && ninja.now()
+      if (pic) {
+        const x = cl.x - cl.face * (18 - 20 * Math.min(1, k * 2))
+        if (k < 0.4) ninjaPose(pic, 'land', 0, cl.x - cl.face * 18, cl.y, NINJA_H * 0.95, cl.face)
+        else ninjaPose(pic, 'air', k < 0.7 ? 0 : 1, x, cl.y, NINJA_H * 0.95, cl.face)
+        ctx.globalAlpha = 1
+        world()
+        continue
+      }
       drawFriend({ x: cl.x - cl.face * (18 - 20 * Math.min(1, k * 2)), y: cl.y, size: 1.1, mode: k > 0.5 ? 'attack' : 'move', atk: (k - 0.5) * 0.3, atkDur: 0.16, step: 0, moving: k <= 0.5, dir: 'e', face: cl.face, id: 7, rec: 0 }, now)
       ctx.globalAlpha = 1
       world()
@@ -484,6 +516,22 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
       // (across it fast, then a short pose, fading)
       const at = (q) => st.x + st.face * st.reach * (Math.min(1, Math.max(0, q) / 0.45) * 2 - 1)
       const fade = k < 0.12 ? k / 0.12 : k > 0.6 ? (1 - k) / 0.4 : 1
+      // (from the sheet: running low across it with red speed lines, its
+      // afterimages behind, then one of its six blows, a red crescent with it;
+      // the tier's crescents over it, below)
+      const pic = NJ && ninja.now()
+      if (pic) {
+        const h = NINJA_H * st.G
+        for (let j = 3; j >= 0; j--) {
+          const q = k - j * 0.07
+          if (q < 0) continue
+          ctx.globalAlpha = fade * (j ? 0.32 - j * 0.08 : 1)
+          if (j || q < 0.45) ninjaPose(pic, 'dash', Math.floor(q * 14), at(q), st.y, h, st.face)
+          else ninjaPose(pic, 'slash', st.id, at(q), st.y, h, st.face)
+        }
+        ctx.globalAlpha = 1
+        continue
+      }
       for (let j = 3; j >= 0; j--) {
         const q = k - j * 0.07
         if (q < 0) continue
@@ -666,7 +714,7 @@ export function createZyoFx({ ctx, world, put, shadow, drawFriend, lift, font })
     const now = performance.now()
     if (ev.type === 'slash') {
       if (slashes.length < MAX_SLASHES) slashes.push({ x: ev.x, y: ev.y, r: ev.r, a: Math.random() * TAU, t: 0, c: tierColor(classLevel(run), now) })
-      if (strikes.length < MAX_STRIKES * budget) strikes.push({ x: ev.x, y: ev.y, face: ev.face || 1, reach: ev.r * 0.9 + 10, t: 0, c: tierColor(classLevel(run), now), L: classLevel(run), G: growth(run), id: strikes.length })
+      if (strikes.length < MAX_STRIKES * budget) strikes.push({ x: ev.x, y: ev.y, face: ev.face || 1, reach: ev.r * 0.9 + 10, t: 0, c: tierColor(classLevel(run), now), L: classLevel(run), G: growth(run), id: strikeN++ })
       burst(ev.x, ev.y - 8, 4, 90, [200, 160, 255], 0.3)
     } else if (ev.type === 'hit' && (ev.by === 'giant' || ev.by === 'shield') && impacts < MAX_IMPACTS) {
       // a giant ball's blow: a small shock ring and sparks

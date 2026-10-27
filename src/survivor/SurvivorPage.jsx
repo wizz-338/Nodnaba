@@ -681,8 +681,9 @@ function Game({ exitHref, tester }) {
     preloadRegion(g.run.region, pf.background)
     // (and the chapter's extra special boss, if it has one)
     if (extraOf(D, ch)) loadArt('motion:' + extraOf(D, ch))
-    // (and the friend cats' frames and scratches, in a run that can have them)
-    if (g.run.pool.includes('catSummon')) for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power']) loadArt(id)
+    // (and the friend cats' frames and scratches, and the ninja cats' a cat
+    // class turns them into, in a run that can have them)
+    if (g.run.pool.includes('catSummon')) for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power', 'ninja_cat']) loadArt(id)
     // (and the turret's frames, in a run that can make one)
     if (g.run.turretOn) loadArt('turret')
     // the episodes' opening cutscenes (play: false) are kept but never played
@@ -711,7 +712,7 @@ function Game({ exitHref, tester }) {
     g.seen = new Set(P.current.get().story.seen)
     preloadRegion(g.run.region, pf.background)
     loadArt('motion:' + extraOf(D, ch))
-    for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power']) loadArt(id)
+    for (const id of ['friend_cat', 'fx_cat_slash', 'fx_cat_slash_power', 'ninja_cat']) loadArt(id)
     loadArt('turret')
     setModal(null)
     setScreen('battle')
