@@ -1053,7 +1053,6 @@ function collect(run, o) {
 
 function moveOrbs(run, dt) {
   const p = run.player
-  const pullAfter = run.D.balance.xp.pullAfter
   const keep = []
   for (const o of run.orbs) {
     if (o.done) continue // picked up by a cat this step
@@ -1063,8 +1062,8 @@ function moveOrbs(run, dt) {
       keep.push(o)
       continue
     }
-    // experience left lying comes to Mano by itself after a while
-    if (o.kind === 'xp' && (o.age = (o.age || 0) + dt) >= pullAfter) o.pull = true
+    // (what lies on the field stays there until Mano's magnet, pickupR, or a
+    // cat reaches it: nothing flies to her by itself after a while)
     const dx = p.x - o.x
     const dy = p.y - o.y
     const d = Math.hypot(dx, dy)
