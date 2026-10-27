@@ -1243,7 +1243,8 @@ const still = { x: 0, y: 0 }
   }
   ok(used.length === 24 && new Set(used).size === 24 && used.every(wideCut), `every cutscene played is wide (16:9), each once: the opening's 4 and chapters 5, 10, 15 and 20's five each (${used.length})`)
   const intro = S.cutscenes.groups[0]
-  ok(intro.id === 'intro' && intro.when === 'launch' && intro.cuts.map((c) => c.image).join() === 'intro_1,intro_2,intro_3,intro_4' && intro.cuts.map((c) => A.find((x) => x.id === c.image).from).join() === 'cs_00_1,cs_00_2,cs_01_1,cs_01_2' && intro.cuts.every((c) => c.text), "the opening (played as the game first opens): 작은 숲's first four cuts, made wide, with Mano's lines")
+  ok(intro.id === 'intro' && intro.when === 'launch' && intro.cuts.map((c) => c.image).join() === 'intro_1,intro_2,intro_3,intro_4' && intro.cuts.map((c) => A.find((x) => x.id === c.image).name).join() === '창밖으로날아간공,모험출발,숲속친구들,숲의괴물등장' && intro.cuts.every((c) => c.text && A.find((x) => x.id === c.image).width / A.find((x) => x.id === c.image).height > 1.7), "the opening (played as the game first opens): 작은 숲's first four cuts, painted wide, with Mano's lines")
+  ok(near(B.chapters[0].hp, 0.4) && B.chapters[0].hp < B.chapters[1].hp / 3, `chapter 1's monsters: HP ×${B.chapters[0].hp} (halved, asked for)`)
   ok(S.cutscenes.groups.filter((g) => !g.cuts.length).map((g) => `${g.id}:${g.reward}`).join() === 'snow_3:snow,sky_4:sky,castle_3:castle' && S.cutscenes.groups.filter((g) => !g.cuts.length).every((g) => g.when === 'clear'), "chapters 25, 30 and 35 lost their tall cuts but keep their reward's popup after the clear")
   ok(S.cutscenes.groups.every((g) => ['launch', 'clear'].includes(g.when)) && !S.cutscenes.groups.some((g) => g.cuts.some((c) => c.layout)), 'every cutscene is the opening or a clear; none keeps its words apart (every wide cut fills the screen)')
   const rr = S.regions.map((r) => `${r.from}-${r.to}`).join()
