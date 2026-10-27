@@ -107,7 +107,7 @@ only in its platform-specific part.
 
 - `platform.js` — `PLATFORMS.mobile` / `PLATFORMS.pc`: logical screen, field
   (`balance.logicalArena` / `balance.logicalArenaPc`; on the PC Mano runs
-  `speedMul` ×1.2 as fast over its wider field), HUD boxes
+  `speedMul` ×1.4 as fast over its wider field), HUD boxes
   (`ui.json → hud` / `ui.json → pc.hud`), input (`touch` / `keys`), which
   background and lobby backdrop each region uses.
 - `keys.js` — the PC keys and their direction (pure, tested).
