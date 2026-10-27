@@ -9,9 +9,10 @@
 //      turn, and the time to kill it first;
 //   3. full (완전 변이): faster, stronger, tougher (corruption.mul), worth
 //      more, and it shoots: when Mano is in reach it stops, charges a dark
-//      orb for `shot.windup` s (seen) and fires `shots` of them (slower than
-//      she walks): one at where she is then, a second where she is going. It no longer crowds her as the clean
-//      ones do: nearer than `shot.keep` it circles her at that distance.
+//      orb for `shot.windup` s (seen) and fires `shots` of them (fast, but a
+//      step aside gets out of one): one at where she is then, a second where
+//      she is going. It no longer crowds her as the clean ones do: nearer
+//      than `shot.keep` it circles her at that distance.
 // Only some monsters can turn (`share` of the ordinary ones as they come),
 // never more than `cap` at once (a warning counts: it always ends in the
 // turn it promised), never the thief nor the extra special bosses, and the

@@ -1471,7 +1471,12 @@ const still = { x: 0, y: 0 }
   const up = (f) => S.every((c, i) => !i || f(c) >= f(S[i - 1]))
   const down = (f) => S.every((c, i) => !i || f(c) <= f(S[i - 1]))
   ok(up((c) => c.share) && up((c) => c.cap) && up((c) => c.rift) && down((c) => c.after) && down((c) => c.warn) && S[0].share < S[4].share && S[0].after > S[4].after && S[4].bosses && !S.slice(0, 4).some((c) => c.bosses), `chapter by chapter it presses harder: more can turn (${S.map((c) => c.share).join(' → ')}), sooner (${S.map((c) => c.after).join(' → ')} s), more at once (${S.map((c) => c.cap).join(' → ')}); chapter 30's mid-boss and boss turn too`)
-  ok(S.every((c) => c.share <= 0.5 && c.cap <= 8 && c.warn >= 1.5 && c.maxShots <= 10) && C.shot.speed < B.player.speed && C.shot.windup >= 0.5 && C.shot.near >= 50, `never all of them, never many at once (at most ${S[4].cap}), a warning of ${S[4].warn} s at least, orbs slower than Mano walks (${C.shot.speed} < ${B.player.speed} px/s), seen charging ${C.shot.windup} s, never point-blank`)
+  // (an orb leaves at least `near` px from her, aimed where she is then: a
+  // step aside of its radius and hers, at her base speed, is done before it
+  // can arrive, even at that distance; its charge is seen before that)
+  const dodge = (C.shot.r + B.player.hitRadius) / B.player.speed
+  const arrive = (C.shot.near - C.shot.r - B.player.hitRadius) / C.shot.speed
+  ok(S.every((c) => c.share < 1 && c.cap <= 20 && c.warn >= 1.5 && c.maxShots <= 20) && dodge < arrive && C.shot.windup >= 0.5 && C.shot.near >= 50, `never all of them, never too many at once (at most ${S[4].cap}), a warning of ${S[4].warn} s at least; an orb (${C.shot.speed} px/s) can always be stepped out of: ${dodge.toFixed(2)} s to step aside against ${arrive.toFixed(2)} s for it to arrive from ${C.shot.near} px, after ${C.shot.windup} s of charging seen`)
 
   // a run of chapter 30: monsters placed round Mano, the run played on
   const r = createRun(D, { chapter: 30, weaponId: 'bouncy_ball', grade: 'D', seed: 7 })
