@@ -46,6 +46,7 @@ export function testerSave(D) {
   d.equippedInstanceId = 'w1'
   d.nextSeq = 2
   d.seenHelp = true
+  d.seenCoinTip = true
   for (const k of ['cats', 'tizzzz']) d[k] = { unlocked: true, eventSeen: true, rewardGiven: true }
   d.zyo = { ...d.zyo, unlocked: true }
   d.turret = { ...d.turret, unlocked: true }

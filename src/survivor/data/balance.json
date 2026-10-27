@@ -316,8 +316,9 @@
     "note": "each chapter past the list multiplies the last one by these"
   },
   "drops": {
-    "coinChance": 0.12,
-    "coinAmount": 2,
+    "coinChance": 0.6,
+    "coinAmount": 0.4,
+    "coinNote": "coins from fallen monsters: 5× as often, each worth 1/5 (from 0.12 × 2; asked for: more coins on the field, the same total)",
     "healChance": 0.005,
     "healAmount": 20
   },

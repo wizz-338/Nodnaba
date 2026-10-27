@@ -814,6 +814,87 @@
   color: var(--paper);
 }
 
+/* 마노의 방's coin bubble (once, after chapter 1): under the tab on the
+   phone, pointing up; beside the rail on the PC, pointing left */
+.ms-cointip {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: min(240px, 70vw);
+  padding: 9px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff7e3;
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  transform: translateX(-50%);
+  animation: ms-cointip-y 1s ease-in-out infinite;
+}
+
+.ms-cointip::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ink);
+  border-right: 0;
+  border-bottom: 0;
+  background: #fff7e3;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ms-cointip b {
+  color: #c2410c;
+}
+
+@keyframes ms-cointip-y {
+  50% {
+    transform: translateX(-50%) translateY(4px);
+  }
+}
+
+.ms--pc .ms-cointip {
+  top: 50%;
+  left: calc(100% + 30px);
+  max-width: 260px;
+  font-size: 14px;
+  transform: translateY(-50%);
+  animation-name: ms-cointip-x;
+}
+
+.ms--pc .ms-cointip::before {
+  top: 50%;
+  left: -9px;
+  border: 2px solid var(--ink);
+  border-top: 0;
+  border-right: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+@keyframes ms-cointip-x {
+  50% {
+    transform: translateY(-50%) translateX(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-cointip {
+    animation: none;
+  }
+}
+
 .ms-tab__dot {
   position: absolute;
   top: -7px;
@@ -935,6 +1016,69 @@
   color: var(--paper);
   text-shadow: 0 0 2px var(--ink), 0 0 3px var(--ink);
   line-height: 1;
+}
+
+/* the treasure thief's time left, under the health bars */
+.ms-thieftime {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.ms-thieftime__text {
+  font-weight: 800;
+  font-size: clamp(9px, 3.2cqw, 12px);
+  color: #ffd84a;
+  text-shadow: 0 0 2px var(--ink), 0 0 3px var(--ink);
+  line-height: 1;
+}
+
+.ms-thieftime__bar {
+  position: relative;
+  width: 70%;
+  height: 7px;
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  background: rgba(18, 15, 42, 0.8);
+  overflow: hidden;
+}
+
+.ms-thieftime__bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(#ffe68a, #f2b51c);
+  transition: width 0.1s linear;
+}
+
+.ms-thieftime.is-late .ms-thieftime__text {
+  color: #ff6a74;
+  animation: ms-blink 0.36s steps(2) infinite;
+}
+
+.ms-thieftime.is-late .ms-thieftime__bar i {
+  background: linear-gradient(#ff8a92, #e0303e);
+}
+
+@keyframes ms-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-thieftime.is-late .ms-thieftime__text {
+    animation: none;
+  }
+}
+
+.ms--pc .ms-thieftime__text {
+  font-size: 1.6cqw;
+}
+
+.ms--pc .ms-thieftime__bar {
+  height: 9px;
 }
 
 /* the extra special boss comes: a red edge and two striped bands blinking,
@@ -2432,6 +2576,8 @@
 }
 
 .ms--pc .ms-toast {
+  /* (under the health bars and the thief's time) */
+  top: 30%;
   width: auto;
   max-width: 60%;
   padding: 0.6em 1.2em;

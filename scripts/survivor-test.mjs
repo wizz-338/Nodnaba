@@ -697,6 +697,16 @@ const still = { x: 0, y: 0 }
   ok(reload.perma.hp === 1 && reload.perma.damage === 1 && reload.currency === 50, 'coin stats survive a reload')
 }
 {
+  // 마노의 방's coin bubble in the lobby: once, kept across a reload
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  ok(P.get().seenCoinTip === false, 'a new save has not seen the coin bubble')
+  P.seenCoinTip()
+  ok(createProgress(D, mem).boot().data.seenCoinTip === true, 'the coin bubble, once seen, stays seen after a reload')
+  ok(B.drops.coinChance === 0.6 && Math.abs(B.drops.coinChance * B.drops.coinAmount - 0.24) < 1e-9, 'monsters drop coins 5× as often, each worth 1/5 (the same coins on average)')
+}
+{
   const mem = new Mem()
   const P = createProgress(D, mem)
   P.boot()

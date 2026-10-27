@@ -54,6 +54,7 @@ export function fresh(D) {
     nextSeq: seq,
     activeRun: null,
     seenHelp: false,
+    seenCoinTip: false,
     perma: zeroPerma(),
     // the cat companions and the writer Tizzzz: kept for good once earned
     cats: freshCats(),
@@ -143,6 +144,7 @@ function validate(D, d) {
   out.nextSeq = int(d.nextSeq) && d.nextSeq > 0 ? d.nextSeq : inventory.length + 1
   out.activeRun = isObj(d.activeRun) && typeof d.activeRun.runId === 'string' ? { runId: d.activeRun.runId, chapter: int(d.activeRun.chapter) ? d.activeRun.chapter : 1 } : null
   out.seenHelp = d.seenHelp === true
+  out.seenCoinTip = d.seenCoinTip === true
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
   if (isObj(d.cats)) for (const k of Object.keys(out.cats)) out.cats[k] = d.cats[k] === true
   if (isObj(d.tizzzz)) for (const k of Object.keys(out.tizzzz)) out.tizzzz[k] = d.tizzzz[k] === true
@@ -320,6 +322,13 @@ export function createProgress(D, storage) {
     seenHelp() {
       return change((d) => {
         d.seenHelp = true
+      })
+    },
+
+    // 마노의 방's coin bubble in the lobby (after chapter 1's first clear): shown once
+    seenCoinTip() {
+      return change((d) => {
+        d.seenCoinTip = true
       })
     },
 
