@@ -2378,30 +2378,6 @@
   min-height: 3em;
 }
 
-/* split: the picture above, whole, and the words below it (never over it) */
-.ms--pc > .ms-modal.ms-cut--wide.ms-cut--split {
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-  padding: 0 0 16px;
-}
-
-.ms--pc .ms-cut--wide.ms-cut--split .ms-cut__pic {
-  position: relative;
-  flex: 1;
-  inset: auto;
-  height: auto;
-  min-height: 0;
-}
-
-.ms--pc .ms-cut--wide.ms-cut--split .ms-cut__box {
-  position: relative;
-  left: auto;
-  bottom: auto;
-  translate: none;
-  flex: none;
-}
-
 .ms--pc .ms-cut__banner {
   top: 26px;
   font-size: 22px;

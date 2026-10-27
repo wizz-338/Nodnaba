@@ -305,42 +305,28 @@
     }
   },
   "cutscenes": {
-    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group. play: false — kept (pictures and lines, watchable in 설정 by a save that saw it) but never played by itself: the episodes' opening cutscenes (chapters 6, 11, 16, 21, 26, 31) were taken out; the clear of an episode's last chapter leads into the next region instead. banner: a system line shown across the top of that cut. layout: 'split' keeps the words out of the picture (a cut whose bottom matters, chapter 10's card). {next}: the name of the region after the group's own (from regions), with its particle (로/으로). text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else).",
+    "note": "groups of cuts, each played once at its moment: when = enter (before the chapter's fight), time (at `at` seconds of the fight) and boss (when the boss comes) — these two are kept but no longer played: nothing stops a fight once it has begun (a special boss gets WARNING! instead) — clear (after the chapter is first cleared: shown after its result, on the way out). The fight waits while a cutscene is on. A group counts as seen when it ends or is skipped; a reward never waits on it (it is given with the clear). reward: the region reward shown after the group (the clear of an episode's last chapter leads into the next region). banner: a system line shown across the top of that cut. {next}: the name of the region after the group's own (from regions), with its particle (로/으로). text: Mano's own line (one or two short sentences), shown under speaker's name (a cut's who, if it has one, names someone else). Only wide (16:9) pictures are played (asked for): the tall (2:3) cutscenes of the regions were taken out; the regions' rewards of chapters 25, 30 and 35 that came after them stay as groups with no cuts (just the reward). when = launch: played once as the game is first opened, before the lobby (intro: the first four cuts of 작은 숲, made wide by scripts/survivor-intro-assets.py). Every wide cut fills the PC screen with the words over its foot.",
     "speaker": "마노",
     "groups": [
       {
-        "id": "prologue",
-        "chapter": 1,
-        "when": "enter",
+        "id": "intro",
+        "chapter": 0,
+        "when": "launch",
         "cuts": [
           {
-            "image": "cs_00_1",
+            "image": "intro_1",
             "text": "앗, 내 빨간 탱탱볼! 너무 세게 던져서 창밖으로 날아가 버렸어!"
           },
           {
-            "image": "cs_00_2",
+            "image": "intro_2",
             "text": "가방 챙겼다! 기다려, 탱탱볼아. 금방 데리러 갈게!"
-          }
-        ]
-      },
-      {
-        "id": "forest_1",
-        "chapter": 1,
-        "when": "enter",
-        "cuts": [
+          },
           {
-            "image": "cs_01_1",
+            "image": "intro_3",
             "text": "숲이다! 저 말랑말랑한 애들은 누구지? 나랑 놀고 싶은 건가?"
-          }
-        ]
-      },
-      {
-        "id": "forest_2",
-        "chapter": 5,
-        "when": "boss",
-        "cuts": [
+          },
           {
-            "image": "cs_01_2",
+            "image": "intro_4",
             "text": "으앗, 엄청 커! 저, 저기요… 제 공 못 보셨어요?"
           }
         ]
@@ -374,30 +360,6 @@
         ]
       },
       {
-        "id": "deepforest_1",
-        "chapter": 6,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_02_1",
-            "text": "우와, 오래된 유적이다! 살짝만 들여다보고 갈게."
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "deepforest_2",
-        "chapter": 8,
-        "when": "time",
-        "at": 60,
-        "cuts": [
-          {
-            "image": "cs_02_2",
-            "text": "앗, 공이 버튼을 눌러 버렸어! 나… 나 때문인가?"
-          }
-        ]
-      },
-      {
         "id": "ep02_clear",
         "chapter": 10,
         "when": "clear",
@@ -414,7 +376,6 @@
           },
           {
             "image": "ep02_clear_03",
-            "layout": "split",
             "text": "어? 뭐야?"
           },
           {
@@ -424,29 +385,6 @@
           {
             "image": "ep02_clear_05",
             "text": "좋아! 이번엔 {next} 가볼까!"
-          }
-        ]
-      },
-      {
-        "id": "skulltown_1",
-        "chapter": 11,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_03_1",
-            "text": "마을에 해골이 가득해… 얘들아, 내 뒤에 꼭 붙어 있어!"
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "skulltown_2",
-        "chapter": 15,
-        "when": "boss",
-        "cuts": [
-          {
-            "image": "cs_03_2",
-            "text": "고양이들아, 같이 해 보자! 하나, 둘… 지금이야!"
           }
         ]
       },
@@ -467,7 +405,6 @@
           },
           {
             "image": "ep03_clear_03",
-            "layout": "split",
             "text": "어어어??"
           },
           {
@@ -479,53 +416,6 @@
             "text": "좋아! 이번엔 {next} 가볼까!"
           }
         ]
-      },
-      {
-        "id": "desert_1",
-        "chapter": 16,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_04_1",
-            "text": "더워서 녹을 것 같아… 으악, 모래에서 뭐가 튀어나왔어!"
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "desert_2",
-        "chapter": 17,
-        "when": "time",
-        "at": 60,
-        "cuts": [
-          {
-            "image": "cs_04_2",
-            "text": "모래 밑에 꿈틀꿈틀 엄청 많아… 발밑 조심해야겠다!"
-          }
-        ]
-      },
-      {
-        "id": "desert_3",
-        "chapter": 20,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_04_3",
-            "text": "저기 커다란 신전이 있어! 잠깐 숨어… 아니, 들어가 보자!"
-          }
-        ]
-      },
-      {
-        "id": "desert_4",
-        "chapter": 20,
-        "when": "clear",
-        "cuts": [
-          {
-            "image": "cs_04_4",
-            "text": "피닉스의 보석이다! 따뜻하고 반짝반짝해."
-          }
-        ],
-        "play": false
       },
       {
         "id": "ep04_clear",
@@ -556,133 +446,25 @@
         ]
       },
       {
-        "id": "snow_1",
-        "chapter": 21,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_05_1",
-            "text": "추워추워… 얼음 친구들, 싸우지 말고 길 좀 비켜 줄래?"
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "snow_2",
-        "chapter": 25,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_05_2",
-            "text": "앗, 깨워 버렸나 봐… 저는 나쁜 애 아니에요!"
-          }
-        ]
-      },
-      {
         "id": "snow_3",
         "chapter": 25,
         "when": "clear",
         "reward": "snow",
-        "cuts": [
-          {
-            "image": "cs_05_3",
-            "text": "수호자님이 탱탱볼에 축복을 줬어! 고마워요, 소중히 쓸게요."
-          },
-          {
-            "image": "cs_05_4",
-            "text": "저 커다란 스프링은 뭐지? 딱 한 번만 밟아 볼까?"
-          }
-        ]
-      },
-      {
-        "id": "sky_1",
-        "chapter": 26,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_06_1",
-            "text": "으아아, 너무 높이 날았어! 그래도 구름 위는 정말 예쁘다!"
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "sky_2",
-        "chapter": 27,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_06_2",
-            "text": "하늘 섬에서 공놀이라니! 여기서 던지면 어디까지 튈까?"
-          }
-        ]
-      },
-      {
-        "id": "sky_3",
-        "chapter": 28,
-        "when": "time",
-        "at": 60,
-        "cuts": [
-          {
-            "image": "cs_06_3",
-            "text": "앗, 갑자기 덤비면 어떡해! 내 공 또 놓쳤잖아!"
-          }
-        ]
+        "cuts": []
       },
       {
         "id": "sky_4",
         "chapter": 30,
         "when": "clear",
         "reward": "sky",
-        "cuts": [
-          {
-            "image": "cs_06_4",
-            "text": "탱탱볼이 찌릿찌릿해! 만지면 따끔할 것 같아."
-          },
-          {
-            "image": "cs_06_5",
-            "text": "구름 너머에 까만 성이 보여… 왠지 저기로 가야 할 것 같아."
-          }
-        ]
-      },
-      {
-        "id": "castle_1",
-        "chapter": 31,
-        "when": "enter",
-        "cuts": [
-          {
-            "image": "cs_07_1",
-            "text": "여기가 마왕성… 다리가 후들거리지만 괜찮아, 우리 넷이 함께니까!"
-          }
-        ],
-        "play": false
-      },
-      {
-        "id": "castle_2",
-        "chapter": 35,
-        "when": "boss",
-        "cuts": [
-          {
-            "image": "cs_07_2",
-            "text": "내 탱탱볼은 못 줘! 이건 내 제일 소중한 보물이야!"
-          }
-        ]
+        "cuts": []
       },
       {
         "id": "castle_3",
         "chapter": 35,
         "when": "clear",
         "reward": "castle",
-        "cuts": [
-          {
-            "image": "cs_07_3",
-            "text": "지금까지 받은 축복들아, 다 같이 힘을 빌려 줘!"
-          },
-          {
-            "image": "cs_07_4",
-            "text": "다 끝났다! 얘들아, 탱탱볼 꼭 안고 우리 집에 가자!"
-          }
-        ]
+        "cuts": []
       }
     ]
   },

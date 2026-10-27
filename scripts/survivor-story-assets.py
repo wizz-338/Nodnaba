@@ -151,6 +151,9 @@ def main(pkg):
             f, size = save(im, 'rewards', ident, 88)
             entry.update(id=ident, kind=kind, region=None, body=list(box), file=f, out=[im.width, im.height], bytes=size)
         out.append(entry)
+    # (the opening's wide pictures, made by survivor-intro-assets.py, stay)
+    if os.path.exists(MAP):
+        out += [x for x in json.load(open(MAP, encoding='utf-8'))['images'] if x['id'].startswith('intro_')]
     ids = [x['id'] for x in out]
     assert len(ids) == len(set(ids)), 'ids must be unique'
     note = ('The 84-image story package (MANO_COMPLETE_84, built from its image_list.json by '
