@@ -39,7 +39,8 @@
     "hp": 100,
     "speed": 125,
     "hitRadius": 9,
-    "pickupRadius": 55,
+    "pickupRadius": 130,
+    "pickupNote": "how near (px) a coin, a gem or a heart starts flying to Mano: 130 (from 55, asked for: a much bigger magnet, in place of the experience that used to fly to her by itself after a while)",
     "contactInvulnerability": 0.65,
     "critChance": 0,
     "critMultiplier": 2
@@ -48,8 +49,7 @@
     "startThreshold": 5,
     "growth": 1.07,
     "add": 4,
-    "pullAfter": 4,
-    "note": "next = round(previous × growth + add). Experience left lying flies to Mano by itself after pullAfter seconds"
+    "note": "next = round(previous × growth + add). Experience left lying stays where it fell until Mano (her magnet: player.pickupRadius) or a cat picks it up (it no longer flies to her by itself after a while: asked for)"
   },
   "enemies": {
     "imp": {

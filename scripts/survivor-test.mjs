@@ -260,17 +260,19 @@ const still = { x: 0, y: 0 }
   step(run, FIXED * 2, still)
   ok(run.coins === 1 && run.xp === xp, 'a coin is a coin: it adds no XP')
 }
-// experience left lying comes by itself after a while; coins do not
+// nothing flies to Mano by itself after a while (asked for: taken out); her
+// magnet is much bigger instead: what lies within it comes, what lies past
+// it stays
 {
   const run = newRun()
   run.spawnT = -1e9
   const p = run.player
-  const far = { x: p.x + 150, y: p.y + 150 }
-  run.orbs.push({ kind: 'xp', ...far, v: 1, pull: false }, { kind: 'coin', ...far, v: 1, pull: false })
-  for (let t = 0; t < B.xp.pullAfter - 0.2; t += FIXED) step(run, FIXED, still)
-  ok(run.orbs.length === 2 && run.orbs.every((o) => o.x === far.x), `before ${B.xp.pullAfter} s the experience stays where it fell`)
-  for (let t = 0; t < 1.5; t += FIXED) step(run, FIXED, still)
-  ok(run.xp === 1 && run.orbs.length === 1 && run.orbs[0].kind === 'coin' && run.coins === 0, 'then it flies to Mano by itself; the coin stays to be picked up')
+  const R = B.player.pickupRadius
+  const far = { x: p.x + R + 40, y: p.y }
+  const near = { x: p.x, y: p.y + R - 10 }
+  run.orbs.push({ kind: 'xp', ...far, v: 1, pull: false }, { kind: 'xp', ...near, v: 1, pull: false })
+  for (let t = 0; t < 10; t += FIXED) step(run, FIXED, still)
+  ok(R >= 120 && B.xp.pullAfter === undefined && run.xp === 1 && run.orbs.length === 1 && run.orbs[0].x === far.x, `Mano's magnet reaches ${R} px (from 55): a gem ${R - 10} px off comes; one past it still lies there 10 s later (nothing comes by itself)`)
 }
 
 // ── monsters come in packs ──────────────────────────────────────────────────
@@ -1050,7 +1052,9 @@ const still = { x: 0, y: 0 }
   }
   waits.sort((a, b) => a - b)
   const lying = run.orbs.filter((o) => (o.kind === 'xp' || o.kind === 'coin') && run.t - born.get(o) > 2).length
-  ok(byCats / dropped > 0.85 && lying <= 2 && waits[waits.length >> 1] < 1, `90 s with Mano standing still: the cats took ${((100 * byCats) / dropped).toFixed(0)}% of ${dropped} coins and gems (the rest fell next to Mano), half within ${waits[waits.length >> 1].toFixed(2)} s; ${lying} left lying over 2 s`)
+  // (since Mano's magnet grew to pickupRadius, asked for, she takes most of
+  // what falls near her herself; the cats fetch the rest, the far ones)
+  ok(byCats / dropped > 0.15 && lying <= 2 && waits[waits.length >> 1] < 1, `90 s with Mano standing still: the cats took ${((100 * byCats) / dropped).toFixed(0)}% of ${dropped} coins and gems (Mano's magnet the rest), half within ${waits[waits.length >> 1].toFixed(2)} s; ${lying} left lying over 2 s`)
 }
 // later chapters: the middle and end of a run push harder, coming in step by step
 {
