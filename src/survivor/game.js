@@ -17,6 +17,7 @@ import { permaValue } from './perma.js'
 import { CAT_CARDS, freshCatStats, catCardOpen, catPreview, syncFriends, updateFriends } from './friends.js'
 import { snap, recordPick, takeBack, fits, placeTurret, relocateTurrets, updateTurrets } from './turret.js'
 import { extraOf, extraSpec, updateExtra, updateHazards, clearOwned, addHazard, fireShot, startAttack, tickAttack, bossSkills, bossSkill, tierOf } from './bosses.js'
+import { corruptionOf, markCorruption, corruptTick } from './corruption.js'
 import { isClassCard, classOf, startClass, updateClass, revive, zyoPool, zyoCards, zyoMarks, zyoSure, powerPreview, optionName, firepower } from './zyo.js'
 
 export const FIXED = 1 / 60
@@ -206,6 +207,7 @@ export function createRun(D, opts) {
     sure: [], // the class cards that came for sure once their recipe was complete (zyo.js → zyoSure)
     edit: null, // { id, seq }: the card Tizzzz rewrote in the cards on show
     region: regionOf(D, chapter), // where the chapter is: its monsters' looks and mix
+    corrupt: corruptionOf(D, chapter), // 마계 침공 (chapters 26–30; corruption.js), or null
     bless: blessingsFor(D, opts.blessings),
     fireT: 0.4,
     enemies: [],
@@ -240,7 +242,7 @@ export function createRun(D, opts) {
     // by: damage by source (ball, cat, bless): raw (as dealt), eff (what
     // the monsters really lost) and over (the rest: past the HP left, or
     // held back by a guard), hits, kills
-    stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0, missed: 0, by: {} },
+    stats: { volleys: 0, shots: 0, launched: 0, merged: 0, hits: 0, crits: 0, damage: 0, splits: 0, children: 0, hurt: 0, peakBalls: 0, frames: 0, frameMs: 0, frameMsMax: 0, missed: 0, by: {}, corrupt: { warned: 0, full: 0, shots: 0 } },
     acc: 0,
   }
   follow(run)
@@ -545,6 +547,8 @@ function spawn(run, type = pickType(run), at = null) {
     life: 0,
   }
   run.enemies.push(e)
+  // (in the invaded chapters, whether it may turn and when: corruption.js)
+  if (run.corrupt) markCorruption(run, e)
   return e
 }
 
@@ -872,6 +876,13 @@ function moveEnemies(run, dt) {
     if (e.slowT > 0) (e.slowT -= dt), (k *= e.slowMul)
     if (k === 0) continue
     e.life += dt * k
+    // (invaded chapters: its clock to turning; a turned one charging its
+    // dark orb stands there, or circles Mano, facing her: corruption.js)
+    if (e.cAt !== undefined && corruptTick(run, e, dt * k)) {
+      e.pace = (e.pace || 0) * 0.8
+      e.face = p.x > e.x ? 1 : -1
+      continue
+    }
     const ox = e.x
     const oy = e.y
     MOVES[e.behavior](run, e, dt * k * (e.rank ? 1 : rush))

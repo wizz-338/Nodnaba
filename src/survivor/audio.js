@@ -371,6 +371,10 @@ const FIGHT = {
   // an ordinary boss enraged: a low growl
   rage: [0.5, (t) => (tone(t, { type: 'sawtooth', f0: 110, f1: 70, glide: 0.4, peak: 0.08, len: 0.45, lowpass: 700 }), noise(t, { len: 0.35, freq: 420, q: 0.7, peak: 0.07 })), 400],
   bossShot: [0.14, (t) => (tone(t, { type: 'triangle', f0: 180, f1: 90, glide: 0.1, peak: 0.08, len: 0.12 }), noise(t, { len: 0.08, freq: 900, q: 1, peak: 0.04 })), 120],
+  // a sky monster turning (마계 침공): a falling, wavering dark tone
+  corrupt: [0.42, (t) => (tone(t, { type: 'sawtooth', f0: 330, f1: 82, glide: 0.38, peak: 0.06, len: 0.42, lowpass: 950 }), tone(t, { type: 'sine', f0: 660, f1: 150, glide: 0.34, peak: 0.035, len: 0.36, at: 0.03 })), 260],
+  // a turned monster's dark orb leaving it: a short, hollow pulse
+  voidShot: [0.12, (t) => tone(t, { type: 'triangle', f0: 260, f1: 120, glide: 0.1, peak: 0.05, len: 0.12, lowpass: 1200 }), 140],
   // a shadow ninja's cut
   slash: [0.1, (t) => (noise(t, { len: 0.07, freq: 4400, q: 2, peak: 0.08 }), tone(t, { type: 'sine', f0: 2300, f1: 1400, glide: 0.07, peak: 0.03, len: 0.08 })), 50],
 }
