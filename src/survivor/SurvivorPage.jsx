@@ -633,9 +633,8 @@ function Game({ exitHref, tester }) {
         // is opened; then a chapter's clear cutscene that was cut short (the
         // page closed in the middle): its reward was given with the clear
         const d = P.current.get()
-        const intro = CUT_GROUPS.filter((g) => g.when === 'launch' && !d.story.seen.includes(g.id))
-        const left = [...intro, ...leftoverCuts(d)]
-        if (left.length) setModal({ kind: 'cut', groups: left.map((g) => g.id) })
+        const left = [...openingCuts(d), ...leftoverCuts(d)]
+        if (left.length) setModal({ kind: 'cut', groups: left.map((g) => g.id), then: firstVisit(d) ? () => start(1) : null })
       })
       .catch((e) => setError(e.message))
     // the page behind does not scroll while the game is open
@@ -833,6 +832,10 @@ function Game({ exitHref, tester }) {
           onImported={(data) => {
             setSave(data)
             setChapter(Math.max(1, Math.min(data.unlockedChapter, LAST_CHAPTER)))
+            // (reset to the first visit, or a backup from before the opening:
+            // the opening plays, and on a first visit chapter 1 begins)
+            const intro = openingCuts(data)
+            if (intro.length) setModal({ kind: 'cut', groups: intro.map((g) => g.id), then: firstVisit(data) ? () => start(1) : null })
           }}
           onChests={openChests}
           onBuy={(stat, level) => {
@@ -2745,6 +2748,11 @@ const REWARD_CAPTION = {
 }
 
 const leftoverCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'clear' && save.firstCleared.includes(g.chapter) && !save.story.seen.includes(g.id))
+// the opening (story.json → when: launch) not yet seen: played as soon as the
+// game opens; on a first visit (nothing played yet) chapter 1 begins right
+// after it, with no lobby between (asked for)
+const openingCuts = (save) => CUT_GROUPS.filter((g) => g.when === 'launch' && !save.story.seen.includes(g.id))
+const firstVisit = (save) => save.firstCleared.length === 0 && save.unlockedChapter <= 1
 
 // Cutscenes: the picture whole (never cut; the space left over is dark), a
 // line or two under it, 다음 (or a tap, Enter, Space) and 건너뛰기. A group

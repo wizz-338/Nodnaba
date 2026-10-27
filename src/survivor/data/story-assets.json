@@ -1969,68 +1969,64 @@
    "kind": "cutscene",
    "region": "prologue",
    "name": "창밖으로날아간공",
-   "from": "cs_00_1",
-   "source": "02_cutscenes/00_시작/01_창밖으로날아간공.png",
-   "sha256": "eb50d639f59480bf354f5cb23595b2ba0dd7f7bbf856a330b8dcec279ca11f9b",
+   "source": "6.webp",
+   "sha256": "8998f74752c024cfe8226dff8e55c4f4869d615eab07d5fed191331c13d70cb1",
    "file": "cutscenes/intro_1.webp",
    "out": [
     1440,
     810
    ],
-   "bytes": 92298,
-   "width": 1440,
-   "height": 810
+   "bytes": 230752,
+   "width": 1672,
+   "height": 941
   },
   {
    "id": "intro_2",
    "kind": "cutscene",
    "region": "prologue",
    "name": "모험출발",
-   "from": "cs_00_2",
-   "source": "02_cutscenes/00_시작/02_모험출발.png",
-   "sha256": "5336fff5ce2814158d6014fd06e60aa56fc1055d61382f471b2a739c677bd837",
+   "source": "5.webp",
+   "sha256": "c1d77627c1bd9a7ca10e194b301ee543a0c634c61acc451b54c8510557811cc9",
    "file": "cutscenes/intro_2.webp",
    "out": [
     1440,
     810
    ],
-   "bytes": 111304,
-   "width": 1440,
-   "height": 810
+   "bytes": 292850,
+   "width": 1672,
+   "height": 941
   },
   {
    "id": "intro_3",
    "kind": "cutscene",
    "region": "forest",
    "name": "숲속친구들",
-   "from": "cs_01_1",
-   "source": "02_cutscenes/01_작은숲/01_숲속친구들.png",
-   "sha256": "2700389e18c2f5c4e075762c7ba98dd4d2dd47760e7ac901e26f54784cec06fe",
+   "source": "4.webp",
+   "sha256": "67f6a7e5229ecf95d1ea6abd61663df60cf3315f0e35ec426aadaff5936134f7",
    "file": "cutscenes/intro_3.webp",
    "out": [
     1440,
     810
    ],
-   "bytes": 121378,
-   "width": 1440,
-   "height": 810
+   "bytes": 305076,
+   "width": 1672,
+   "height": 941
   },
   {
    "id": "intro_4",
    "kind": "cutscene",
    "region": "forest",
    "name": "숲의괴물등장",
-   "from": "cs_01_2",
-   "source": "02_cutscenes/01_작은숲/02_숲의괴물등장.png",
-   "sha256": "7844b6832a8c4fa05055b6baf58eb06a85ef7883845f7a0caf20e87d3272f4d7",
+   "source": "3.webp",
+   "sha256": "8cab7585c5292d24c52a1096c880bcf8a38058d29098363efb759aa97ee6bd83",
    "file": "cutscenes/intro_4.webp",
    "out": [
     1440,
     810
    ],
-   "bytes": 122592,
-   "width": 1440,
-   "height": 810
+   "bytes": 356284,
+   "width": 1672,
+   "height": 941
   }
  ]
 }

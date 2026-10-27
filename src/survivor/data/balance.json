@@ -278,9 +278,10 @@
   },
   "chapters": [
     {
-      "hp": 0.8,
+      "hp": 0.4,
       "damage": 0.85,
-      "spawn": 1.0
+      "spawn": 1.0,
+      "note": "chapter 1: its monsters' HP halved (0.8 → 0.4; asked for: the first chapter, played right after the opening, was too hard)"
     },
     {
       "hp": 1.4,
