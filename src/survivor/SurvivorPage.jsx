@@ -2263,6 +2263,8 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
         else if (ev.type === 'turretShot') audio.sfx('turret')
         else if (ev.type === 'bossShot') audio.sfx('bossShot')
         else if (ev.type === 'bossRage') audio.sfx('rage')
+        else if (ev.type === 'corrupt') audio.sfx('corrupt')
+        else if (ev.type === 'voidShot') audio.sfx('voidShot')
       }
       if (big) {
         audio.sfx('bigkill')

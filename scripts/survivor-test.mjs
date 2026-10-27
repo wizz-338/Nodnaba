@@ -12,6 +12,7 @@ import { growth, classLevel, zyoMarks, zyoTargets, firepower, recipes } from '..
 import { materials, materialCount, canMake, turretHit, turretBase, relocateTurrets, sunk } from '../src/survivor/turret.js'
 import { migrateStory } from '../src/survivor/progress.js'
 import { roomTotal, roomStage, roomProgress } from '../src/survivor/room-items.js'
+import { corruptionOf } from '../src/survivor/corruption.js'
 import { testerStorage, testerSave, setupTest, testTick, testPhase, skipPhase, TEST_PERMA, TEST_LEVEL, TEST_POWER } from '../src/survivor/tester.js'
 
 let fails = 0
@@ -1459,6 +1460,136 @@ const still = { x: 0, y: 0 }
   ok(sides.size === 4 && outside >= 18, `PC: the thief comes from every side of Mano (${sides.size} of 4 quarters), past the view's edge (${outside}/24)`)
   ok(inField, 'PC: roaming out of sight, it never leaves the field (always reachable)')
   ok(mobileTop, 'the phone: the thief still comes in at the top, as before')
+}
+
+// ── 마계 침공 (chapters 26–30): the sky's monsters left alive turn ─────────
+{
+  const C = B.corruption
+  const chs = [26, 27, 28, 29, 30]
+  const S = chs.map((ch) => corruptionOf(D, ch))
+  ok(!corruptionOf(D, 25) && !corruptionOf(D, 31) && S.every(Boolean) && regionOf(D, 26).id === 'sky' && regionOf(D, 30).id === 'sky', 'the invasion: chapters 26–30 only (the sky), none before or after')
+  const up = (f) => S.every((c, i) => !i || f(c) >= f(S[i - 1]))
+  const down = (f) => S.every((c, i) => !i || f(c) <= f(S[i - 1]))
+  ok(up((c) => c.share) && up((c) => c.cap) && up((c) => c.rift) && down((c) => c.after) && down((c) => c.warn) && S[0].share < S[4].share && S[0].after > S[4].after && S[4].bosses && !S.slice(0, 4).some((c) => c.bosses), `chapter by chapter it presses harder: more can turn (${S.map((c) => c.share).join(' → ')}), sooner (${S.map((c) => c.after).join(' → ')} s), more at once (${S.map((c) => c.cap).join(' → ')}); chapter 30's mid-boss and boss turn too`)
+  ok(S.every((c) => c.share <= 0.5 && c.cap <= 8 && c.warn >= 1.5 && c.maxShots <= 10) && C.shot.speed < B.player.speed && C.shot.windup >= 0.5 && C.shot.near >= 50, `never all of them, never many at once (at most ${S[4].cap}), a warning of ${S[4].warn} s at least, orbs slower than Mano walks (${C.shot.speed} < ${B.player.speed} px/s), seen charging ${C.shot.windup} s, never point-blank`)
+
+  // a run of chapter 30: monsters placed round Mano, the run played on
+  const r = createRun(D, { chapter: 30, weaponId: 'bouncy_ball', grade: 'D', seed: 7 })
+  r.fireT = 1e9
+  const c = r.corrupt
+  const p = r.player
+  const mobs = []
+  for (let i = 0; i < 40; i++) {
+    const a = (i / 40) * Math.PI * 2
+    const e = spawnAt(r, ['imp', 'spider', 'slime', 'bone_beast'][i % 4], { x: p.x + Math.cos(a) * 150, y: p.y + Math.sin(a) * 150 })
+    if (e) mobs.push(e)
+  }
+  const can = mobs.filter((e) => e.cAt !== undefined)
+  const before = new Map(can.map((e) => [e.id, { speed: e.speed, damage: e.damage, hp: e.hp }]))
+  let most = 0
+  let warnShort = 0
+  const seenWarn = new Map()
+  let shotHurt = 0
+  let peakOrbs = 0
+  const fast = []
+  for (let i = 0; i < 60 * 40; i++) {
+    r.spawnT = -1e9 // (only the placed ones)
+    p.armor = 0 // (her hurts are counted, not felt: chapter 30 would end it at once)
+    // she walks a circle round the middle, never stopping
+    step(r, FIXED, { x: Math.cos(i / 70), y: Math.sin(i / 70) })
+    if (r.state === 'levelup') choose(r, r.choices[0], r.choiceSeq)
+    let n = 0
+    for (const e of r.enemies) {
+      if (e.state !== 'live' || !e.cStage) continue
+      n++
+      if (e.cStage === 1 && !seenWarn.has(e.id)) seenWarn.set(e.id, r.t)
+      if (e.cStage === 2 && !fast.includes(e)) {
+        fast.push(e)
+        if (!seenWarn.has(e.id) || r.t - seenWarn.get(e.id) < c.warn - 0.02) warnShort++
+      }
+    }
+    most = Math.max(most, n)
+    peakOrbs = Math.max(peakOrbs, r.shots.filter((x) => x.kind === 'abyss').length)
+    for (const ev of r.events) if (ev.type === 'hurt' && ev.from === 'shot') shotHurt++
+    r.events.length = 0
+  }
+  const M = C.mul
+  const grew = fast.every((e) => {
+    const b = before.get(e.id)
+    return b && near(e.speed, b.speed * M.speed, 1e-6) && near(e.damage, b.damage * M.damage, 1e-6)
+  })
+  ok(can.length > 5 && can.length < mobs.length, `only some can turn: ${can.length} of ${mobs.length} placed (chapter 30's share ${c.share})`)
+  ok(fast.length > 0 && most <= c.cap, `never more than ${c.cap} turning or turned at once (most seen ${most}; ${fast.length} turned in 40 s)`)
+  ok(warnShort === 0, `each turned only after its warning (${c.warn} s of cracks) had run its time: ${fast.length} of ${fast.length}`)
+  ok(grew, `a turned one is ${M.speed}× as fast and hits ${M.damage}× as hard (and has ${M.hp}× the HP)`)
+  ok(r.stats.corrupt.shots > 0 && peakOrbs <= c.maxShots, `turned ones shoot (${r.stats.corrupt.shots} dark orbs), never more than ${c.maxShots} in the air (most ${peakOrbs})`)
+  ok(shotHurt <= Math.max(1, r.stats.corrupt.shots * 0.1), `Mano walking on (a circle, never dodging on purpose) is seldom hit by them: ${shotHurt} of ${r.stats.corrupt.shots}`)
+  // (and standing still she is: they are a real danger, not a decoration)
+  {
+    const s3 = createRun(D, { chapter: 30, weaponId: 'bouncy_ball', grade: 'D', seed: 7 })
+    s3.fireT = 1e9
+    const q3 = s3.player
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2
+      spawnAt(s3, ['imp', 'spider', 'slime', 'bone_beast'][i % 4], { x: q3.x + Math.cos(a) * 150, y: q3.y + Math.sin(a) * 150 })
+    }
+    let hits = 0
+    for (let i = 0; i < 60 * 40; i++) {
+      s3.spawnT = -1e9
+      q3.armor = 0
+      q3.inv = 0 // (every orb that reaches her counts)
+      step(s3, FIXED, { x: 0, y: 0 })
+      if (s3.state === 'levelup') choose(s3, s3.choices[0], s3.choiceSeq)
+      for (const ev of s3.events) if (ev.type === 'hurt' && ev.from === 'shot') hits++
+      s3.events.length = 0
+    }
+    ok(hits >= s3.stats.corrupt.shots * 0.4, `standing still, she is hit by many of them (${hits} of ${s3.stats.corrupt.shots}): leaving them alive costs`)
+  }
+
+  // no invasion elsewhere; a frozen monster's clock stands still; never the thief
+  const q = createRun(D, { chapter: 25, weaponId: 'bouncy_ball', grade: 'D', seed: 3 })
+  const e25 = spawnAt(q, 'imp', { x: q.player.x + 120, y: q.player.y })
+  const r2 = createRun(D, { chapter: 30, weaponId: 'bouncy_ball', grade: 'D', seed: 11 })
+  r2.fireT = 1e9
+  let fz = null
+  for (let i = 0; i < 40 && !fz; i++) {
+    const e = spawnAt(r2, 'slime', { x: r2.player.x + 140, y: r2.player.y })
+    if (e && e.cAt !== undefined) fz = e
+  }
+  const th = spawnAt(r2, 'thief', { x: r2.player.x - 140, y: r2.player.y })
+  for (let i = 0; i < 60 * 12; i++) {
+    r2.spawnT = -1e9
+    r2.player.armor = 0
+    if (fz.state === 'live') (fz.freezeT = 1), (fz.x = r2.player.x + 140), (fz.y = r2.player.y)
+    step(r2, FIXED, { x: 0, y: 0 })
+    r2.events.length = 0
+  }
+  // chapter 30's boss turns on time, even with the field's turned ones at
+  // their cap; it keeps its HP (its fight is no longer), runs and hits harder
+  // and fires its fan of orbs
+  const r3 = createRun(D, { chapter: 30, weaponId: 'bouncy_ball', grade: 'D', seed: 5 })
+  r3.fireT = 1e9
+  const filled = []
+  for (let i = 0; i < 60 && filled.length < r3.corrupt.cap; i++) {
+    const e = spawnAt(r3, 'slime', { x: r3.player.x + 100 + (i % 6) * 20, y: r3.player.y - 120 + Math.floor(i / 6) * 25 })
+    if (e && e.cAt !== undefined) filled.push(e), (e.cT = e.cAt)
+  }
+  const boss = spawnAt(r3, 'boss', { x: r3.player.x - 150, y: r3.player.y })
+  const b0 = { speed: boss.speed, damage: boss.damage, hp: boss.hp }
+  let bossFan = 0
+  for (let i = 0; i < 60 * (r3.corrupt.bossAfter + r3.corrupt.warn + 6); i++) {
+    r3.spawnT = -1e9
+    r3.player.armor = 0
+    for (const e of filled) if (e.state === 'live') e.hp = e.maxHp
+    boss.hp = boss.maxHp
+    step(r3, FIXED, { x: 0, y: 0 })
+    if (r3.state === 'levelup') choose(r3, r3.choices[0], r3.choiceSeq)
+    bossFan = Math.max(bossFan, r3.shots.filter((x) => x.kind === 'abyss' && x.owner === boss.id).length)
+    r3.events.length = 0
+  }
+  ok(filled.length === r3.corrupt.cap && boss.cStage === 2 && near(boss.speed, b0.speed * C.mul.bossSpeed, 1e-6) && near(boss.damage, b0.damage * C.mul.bossDamage, 1e-6) && boss.maxHp === b0.hp && bossFan >= C.shot.bossShots, `chapter 30's boss turns after ${r3.corrupt.bossAfter} s though ${filled.length} turned ones fill the field's cap: ${C.mul.bossSpeed}× its speed, ${C.mul.bossDamage}× its hits, its HP as it was, and a fan of ${C.shot.bossShots} orbs`)
+  ok(e25.cAt === undefined && !q.corrupt, 'chapter 25: no monster ever turns')
+  ok(fz && fz.cT === 0 && !fz.cStage && th.cAt === undefined, 'a frozen monster does not turn while it is held; the thief never turns')
 }
 
 // ── no swinging beam (it could not be dodged: asked for); the crossfire that

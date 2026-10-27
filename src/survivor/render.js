@@ -14,6 +14,8 @@ import { FRAMES, ART, animFrame } from './sprites.js'
 import { chargePath } from './game.js'
 import { createExtraFx } from './render-extra.js'
 import { createZyoFx } from './render-zyo.js'
+import { createCorruptFx, voidOf, cracksOf, paintRifts } from './render-corrupt.js'
+import { corruptLook } from './corruption.js'
 
 // a damage number short enough to read over the fight: 9876, 12.3K, 456K, 7.8M …
 const UNITS = ['', 'K', 'M', 'B', 'T']
@@ -98,6 +100,13 @@ const critPop = (t) => (t < 0.08 ? 0.75 + (t / 0.08) * 0.5 : t < 0.18 ? 1.25 - (
 const ENEMY_DIE = 0.28
 const BOLT = 0.18 // s a lightning stroke stays
 const MAX_BOLTS = 12
+const CORRUPT_GROW = 1.12 // a turned monster (corruption.js) shows this much bigger
+// a short string's number (the corruption cracks' pattern for a look)
+const hashOf = (str = '') => {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619)
+  return h >>> 0
+}
 // how far a monster's entry has gone (0 → 1): 0.35 s for most; the extra
 // special boss's lasts its own `enter` s
 const spawnK = (e) => {
@@ -116,6 +125,7 @@ const SHOT_LOOK = {
   crystal: ['#e9fbff', '#7fd4f0'],
   ice: ['#f2fbff', '#9fdcff'],
   void: ['#2a1240', '#b06cff'],
+  abyss: ['#16061f', '#a24dff'], // a turned sky monster's dark orb (corruption.js)
   leaf: ['#5fae4a', '#c9f08a'],
   petal: ['#ff8fb8', '#ffd3e6'],
   spore: ['#8fc95a', '#e2ff9e'],
@@ -183,6 +193,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
   const MOTION = D.motion.characters
   let xfx = null // the extra special bosses' attacks (render-extra.js)
   let zfx = null // zyo_'s class change (render-zyo.js)
+  let cfx = null // 마계 침공, chapters 26–30 (render-corrupt.js)
   const bolts = [] // lightning of the thunder blessing, a moment each
   const E = D.balance.enemies
   const CATS = D.balance.cats
@@ -344,14 +355,16 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const id = run.region && bg(run.region.background)
     return id && art.now(id) ? id : 'tile'
   }
+  // (an invaded chapter's ground has its rifts painted in: one picture each)
+  const groundKey = (run) => fieldKey(run) + (run.corrupt ? '|rift' + run.corrupt.rift : '')
   function paintField(run) {
     const c = document.createElement('canvas')
     c.width = canvas.width
     c.height = canvas.height
     const g = c.getContext('2d')
     const K = kd()
-    c.key = fieldKey(run)
-    const pic = c.key !== 'tile' && art.now(c.key)
+    c.key = groundKey(run)
+    const pic = fieldKey(run) !== 'tile' && art.now(fieldKey(run))
     if (pic) {
       const s = Math.max(SW / pic.width, SH / pic.height)
       const w = pic.width * s
@@ -362,6 +375,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       g.drawImage(pic, (SW - w) / 2, (SH - h) / 2, w, h)
       g.fillStyle = 'rgba(24, 18, 28, 0.16)'
       g.fillRect(0, 0, SW, SH)
+      paintRifts(g, run, SW, SH)
     } else {
       const tile = img['09_ground.png']
       const T = tile.width // one art pixel per logical pixel
@@ -402,7 +416,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const [l, t, r, b] = inset
     const K = kd()
     const c = document.createElement('canvas')
-    c.key = fieldKey(run) + '|' + K
+    c.key = groundKey(run) + '|' + K
     c.gx = x0 - l
     c.gy = y0 - t
     const gw = x1 - x0 + l + r
@@ -410,7 +424,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     c.width = Math.ceil(gw * K)
     c.height = Math.ceil(gh * K)
     const g = c.getContext('2d')
-    const pic = !c.key.startsWith('tile|') && art.now(fieldKey(run))
+    const pic = fieldKey(run) !== 'tile' && art.now(fieldKey(run))
     g.setTransform(K, 0, 0, K, 0, 0)
     if (pic) {
       const s = Math.max(gw / pic.width, gh / pic.height)
@@ -420,11 +434,12 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       g.fillStyle = 'rgba(24, 18, 28, 0.16)'
     } else g.fillStyle = '#6d7356'
     g.fillRect(0, 0, gw, gh)
+    if (pic) paintRifts(g, run, gw, gh)
     return c
   }
   function drawGround(run) {
     const K = kd()
-    if (!ground || ground.key !== fieldKey(run) + '|' + K) ground = paintGround(run)
+    if (!ground || ground.key !== groundKey(run) + '|' + K) ground = paintGround(run)
     device()
     const sx = Math.round((cam.x - ground.gx) * K)
     const sy = Math.round((cam.y - ground.gy) * K)
@@ -548,12 +563,18 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     const flip = meta.faces === 'right' && e.face < 0
     const pu = punch(run, e)
-    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx + pu.ox - cam.x) * K, (e.y + 3 + bob + pu.oy - cam.y) * K)
+    const L = e.cStage && e.state === 'live' ? corruptLook(run, e) : null
+    const grow = L && L.stage === 2 ? CORRUPT_GROW : 1
+    const foot = e.y + 3 + bob + pu.oy
+    if (L) cfx.under(run, e, L, foot - (h / 2) * grow, performance.now())
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + dx + pu.ox - cam.x) * K, (foot - cam.y) * K)
     if (rot) ctx.rotate(flip ? -rot : rot)
     if (pu !== still) ctx.scale(pu.sx, pu.sy)
+    if (grow !== 1) ctx.scale(grow, grow)
     ctx.imageSmoothingEnabled = true
     ctx.globalAlpha = alpha
-    ctx.drawImage(set.base, -w / 2, -h, w, h)
+    if (L) paintCorrupt(L, set, e.skin, alpha, -w / 2, -h, w, h)
+    else ctx.drawImage(set.base, -w / 2, -h, w, h)
     if (frozen) {
       ctx.globalAlpha = alpha * 0.55
       ctx.drawImage(set.ice, -w / 2, -h, w, h)
@@ -563,6 +584,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       ctx.drawImage(set.white, -w / 2, -h, w, h)
     }
     ctx.globalAlpha = 1
+    if (L) cfx.over(run, e, L, foot - h * grow, foot - (h / 2) * grow, performance.now())
   }
 
   // ── the animated monsters (data/motion.json) ──
@@ -666,15 +688,23 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     const pad = s / q // one canvas px, in logical px
     const flip = e.face < 0 // the art faces right
     const pu = punch(run, e)
-    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + pu.ox - cam.x) * K, (e.y + 3 - set.lift + pu.oy - cam.y) * K)
-    if (pu !== still) ctx.scale(pu.sx, pu.sy)
-    ctx.imageSmoothingEnabled = true
     const x = -px * s - pad
     const y = -py * s - pad
     const w = fr.base.width * pad
     const h = fr.base.height * pad
+    // (an invaded chapter's monster turning or turned: render-corrupt.js)
+    const L = e.cStage && e.state === 'live' ? corruptLook(run, e) : null
+    const grow = L && L.stage === 2 ? CORRUPT_GROW : 1
+    const shake = L && L.stage === 1 && L.k > 0.8 ? (Math.random() - 0.5) * 2.4 : 0
+    const foot = e.y + 3 - set.lift + pu.oy
+    if (L) cfx.under(run, e, L, foot + (y + h / 2) * grow, performance.now())
+    ctx.setTransform(flip ? -K : K, 0, 0, K, (e.x + pu.ox + shake - cam.x) * K, (foot - cam.y) * K)
+    if (pu !== still) ctx.scale(pu.sx, pu.sy)
+    if (grow !== 1) ctx.scale(grow, grow)
+    ctx.imageSmoothingEnabled = true
     ctx.globalAlpha = alpha
-    ctx.drawImage(fr.base, x, y, w, h)
+    if (L) paintCorrupt(L, fr, e.skin, alpha, x, y, w, h)
+    else ctx.drawImage(fr.base, x, y, w, h)
     if (e.freezeT > 0) {
       ctx.globalAlpha = alpha * 0.55
       ctx.drawImage(fr.ice, x, y, w, h)
@@ -684,6 +714,29 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       ctx.drawImage(fr.white, x, y, w, h)
     }
     ctx.globalAlpha = 1
+    if (L) cfx.over(run, e, L, foot + y * grow, foot + (y + h / 2) * grow, performance.now())
+  }
+
+  // a sprite of a monster turning (L.stage 1: its own picture, the violet
+  // cast and cracks coming over it) or turned (2: its black-violet copy, the
+  // cracks glowing); the copies are made once per picture (pic: one with
+  // base; seed: the cracks' pattern, the same for all of one look)
+  function paintCorrupt(L, pic, seed, alpha, x, y, w, h) {
+    pic.void ??= voidOf(pic.base)
+    pic.crack ??= cracksOf(pic.base, hashOf(seed))
+    const t = performance.now()
+    if (L.stage === 1) {
+      ctx.drawImage(pic.base, x, y, w, h)
+      ctx.globalAlpha = alpha * (0.3 + 0.5 * L.k) * (0.75 + 0.25 * Math.sin(t / 60))
+      ctx.drawImage(pic.void, x, y, w, h)
+      ctx.globalAlpha = alpha * (0.35 + 0.65 * L.k)
+      ctx.drawImage(pic.crack, x, y, w, h)
+    } else {
+      ctx.drawImage(pic.void, x, y, w, h)
+      ctx.globalAlpha = alpha * (0.65 + 0.3 * Math.sin(t / 200))
+      ctx.drawImage(pic.crack, x, y, w, h)
+    }
+    ctx.globalAlpha = alpha
   }
 
   function drawEnemy(run, e) {
@@ -711,8 +764,13 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     else if (e.state === 'gone') alpha = Math.max(0, 1 - e.t / ENEMY_DIE)
     // frozen (snow blessing): a pale blue cast
     const pu = punch(run, e)
+    // (turning or turned, in an invaded chapter: a violet cast here)
+    const L = e.cStage && e.state === 'live' ? corruptLook(run, e) : null
+    if (L) cfx.under(run, e, L, e.y - e.r, performance.now())
     if (e.freezeT > 0 && !flash) put(name, e.x, e.y, s, { flip, alpha, flash: 0.5, flashColor: '#bfeaff' })
+    else if (L && !flash) put(name, e.x + pu.ox, e.y + pu.oy, s * pu.sx, { flip, alpha, flash: L.stage === 2 ? 0.6 : 0.4 * L.k, flashColor: '#3c1260' })
     else put(name, e.x + pu.ox, e.y + pu.oy, s * pu.sx, { flip, alpha, flash })
+    if (L) cfx.over(run, e, L, e.y - e.r * 2.6, e.y - e.r, performance.now())
   }
 
   // a stroke of lightning: a few jagged steps from above the hit to the one struck
@@ -1070,6 +1128,30 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
         ctx.fillStyle = glow
         ctx.fill()
         ctx.stroke()
+        break
+      case 'abyss':
+        // a turned monster's orb: black-violet, a violet rim, its wake
+        // trailing behind it and a light flickering inside
+        ctx.rotate(a)
+        ctx.fillStyle = glow
+        ctx.globalAlpha = 0.45
+        for (let i = 1; i <= 3; i++) {
+          ctx.beginPath()
+          ctx.arc(-i * r * 0.9, Math.sin(spin + i) * 1.2, r * (1 - i * 0.22), 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.globalAlpha = 1
+        ctx.fillStyle = core
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.lineWidth = 1.8
+        ctx.strokeStyle = glow
+        ctx.stroke()
+        ctx.fillStyle = '#e2c2ff'
+        ctx.beginPath()
+        ctx.arc(r * 0.25, -r * 0.2, r * (0.22 + 0.08 * Math.sin(spin * 2)), 0, Math.PI * 2)
+        ctx.fill()
         break
       case 'void':
         // a dark orb in a turning purple ring
@@ -1611,7 +1693,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
       drawGround(run)
     } else {
       cam.x = cam.y = 0
-      if (!field || field.key !== fieldKey(run)) field = paintField(run)
+      if (!field || field.key !== groundKey(run)) field = paintField(run)
       device()
       ctx.drawImage(field, 0, 0)
     }
@@ -1639,6 +1721,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     if (!busy) for (const b of run.balls) shadow(b.x, b.y, b.r * 0.9, b.r * 0.35, 0.16)
     zfx ??= createZyoFx({ ctx, world, put, shadow, drawFriend, lift: BALL_LIFT, font: '16px ' + GAME_FONT, ninja: NINJA_ART && { info: NINJA_ART, now: () => art.now('ninja_cat') } })
     zfx.shadows(run)
+    cfx ??= createCorruptFx({ ctx, world, device, screen: () => [canvas.width, canvas.height] })
     drawShadows()
     for (const e of run.enemies) {
       if (e.behavior !== 'boss' || e.state !== 'live') continue
@@ -1666,6 +1749,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     zfx.over(run, now, dt)
     drawHazardsOver(run)
     xfx.over(run, now, dt, busy)
+    cfx.frame(run, now, dt)
     if (inset) drawArrows(run, now)
     const maxFx = busy ? MAX_FX / 3 : MAX_FX
     const maxNumbers = busy ? MAX_NUMBERS / 4 : MAX_NUMBERS
@@ -1674,6 +1758,7 @@ export function createRenderer(canvas, img, D, art = { now: () => null }, { scre
     for (const ev of run.events) {
       xfx.event(run, ev)
       zfx.event(run, ev)
+      cfx.event(run, ev)
       if (ev.type === 'skillHit') kick(ev.kind === 'ball' ? KICK.meteor : KICK.slash)
       if (ev.type === 'turretShot' && shots.length < MAX_SHOTS) {
         const a = Math.atan2(ev.ty - ev.y, ev.tx - ev.x)

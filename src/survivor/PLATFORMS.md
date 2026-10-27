@@ -50,6 +50,14 @@ only in its platform-specific part.
   run. On the PC the camera holds still for the extra boss's fight, so its
   attacks over the whole area are all on screen. The field comes in as `opts.arena`; nothing else in the fight knows
   the platform.
+- `corruption.js` — 마계 침공, chapters 26–30: sky monsters left alive turn
+  (a warning, then faster, stronger, shooting dark orbs; `balance.json →
+  corruption`), drawn by `render-corrupt.js` (the warning, the turned look,
+  the rifts painted into the ground, the violet screen edge). The same on
+  both: the cap of turned ones counts the whole field, and a turned one
+  shoots only within `shot.range` of Mano (field px), so on the PC the ones
+  left far behind out of sight do not shoot. The ground's rifts are as dense
+  per field px on both (the PC's larger field has more of them).
 - `room.js`, `room-items.js` — 마노의 방, the 마노 강화 tab's room: one of
   six pictures of it (growth stages, `data/room.json → stages`), chosen by
   the coin stats' levels added up, with Mano and the cats living in it
