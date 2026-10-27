@@ -34,9 +34,10 @@ import ep04 from './data/ep04-assets.json'
 import turret from './data/turret.json'
 import room from './data/room.json'
 import zyo from './data/zyo.json'
+import tips from './data/tips.json'
 
 const motion = { ...motionBase, characters: { ...motionBase.characters, ...extraMotion.characters } }
 
 const storyAssets = { ...storyBase, images: [...storyBase.images, ...ep01.images, ...ep02.images, ...ep03.images, ...ep04.images] }
 
-export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, zyo, turret, room, story, storyAssets, motion, friendCat: ep01.friendCat }
+export const D = { balance, weapons, upgrades, ui, art, cats, catFrames, tizzzz, zyo, turret, room, tips, story, storyAssets, motion, friendCat: ep01.friendCat }

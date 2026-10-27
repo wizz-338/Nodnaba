@@ -1,0 +1,102 @@
+{
+  "note": "Short guides to what each episode's reward adds to the fight (asked for: the systems that come every 5 chapters needed explaining). Each is shown once, before the fight, the first time a chapter from `chapter` to chapter + 4 is started (a save already further on sees none of the earlier ones; all of them can be read again in 설정 once their chapter is open). pages: a picture (story art id) and a few short lines each. The numbers in the lines follow balance.json (tests check them).",
+  "list": [
+    {
+      "id": "cats",
+      "chapter": 6,
+      "title": "고양이 동료 · 다시 뽑기",
+      "pages": [
+        {
+          "image": "reward_cats",
+          "head": "단추·호두·모루가 함께 다녀요",
+          "lines": ["바닥에 떨어진 코인과 경험치를 대신 주워 와요.", "싸우지도, 다치지도 않아요."]
+        },
+        {
+          "image": "reward_reroll",
+          "head": "강화 선택지가 늘었어요",
+          "lines": ["친구냥이 카드를 고르면 함께 싸우는 고양이가 한 마리씩 늘어요.", "선택지가 마음에 안 들면 아래 '다시 뽑기'를 눌러요. 한 판에 정해진 횟수만큼 쓸 수 있어요."]
+        }
+      ]
+    },
+    {
+      "id": "tizzzz",
+      "chapter": 11,
+      "title": "Tizzzz의 선택지 수정",
+      "pages": [
+        {
+          "image": "blessing_tizzzz",
+          "head": "레벨업마다 카드 하나를 고쳐 써 줘요",
+          "lines": ["'Tizzzz 수정' 표시가 붙은 카드예요.", "고쳐 쓴 카드는 효과가 두 번 들어가고, 강화 횟수도 2번으로 쳐요."]
+        }
+      ]
+    },
+    {
+      "id": "zyo",
+      "chapter": 16,
+      "title": "zyo_의 전직",
+      "pages": [
+        {
+          "image": "reward_zyo",
+          "head": "강화를 모으면 전직할 수 있어요",
+          "lines": ["같은 계열 강화 두 가지를 각각 7번씩 모으면 전직 카드가 나와요. (한 판에 한 번)", "'zyo_ 추천' 표시가 붙은 카드가 전직 재료예요. 강화 선택 화면의 조합표를 참고하세요."]
+        },
+        {
+          "image": "reward_zyo",
+          "head": "전직하면 싸우는 방식이 바뀌어요",
+          "lines": ["탱탱볼·냥이 대신 거대 탱탱볼이나 닌자냥이가 싸워요.", "전직 뒤에 나오는 성장 카드로 계속 강해져요."]
+        }
+      ]
+    },
+    {
+      "id": "turret",
+      "chapter": 21,
+      "title": "포탑 제작 · 피닉스의 보석",
+      "pages": [
+        {
+          "image": "reward_turret",
+          "head": "강화 2개 = 포탑 1개",
+          "lines": ["레벨업 화면 아래 '포탑 제작'을 누르면 이번 판에 고른 강화 2개를 포탑 1개로 바꿔요. 카드는 그대로 골라요.", "포탑은 맵에 서서 알아서 쏴요."]
+        },
+        {
+          "image": "reward_turret",
+          "head": "빨간 느낌표가 보이면 공짜예요",
+          "lines": ["전직 뒤에는 효과가 없어진 강화가 생겨요. 이걸로 포탑을 만들면 손해가 없어요.", "그럴 땐 '포탑 제작' 버튼에 빨간 느낌표(!)가 떠요."]
+        },
+        {
+          "image": "gem_phoenix",
+          "head": "피닉스의 보석",
+          "lines": ["탱탱볼에 맞은 몬스터가 일정 확률로 느려져요."]
+        }
+      ]
+    },
+    {
+      "id": "sky",
+      "chapter": 26,
+      "title": "마계 침공 · 설원의 축복",
+      "pages": [
+        {
+          "image": "blessing_snow",
+          "head": "하늘에서는 몬스터가 마계에 물들어요",
+          "lines": ["오래 살아남은 몬스터에 보라색 금이 가면 곧 변한다는 신호예요.", "물든 몬스터는 더 빠르고 단단하고, 멀리서 어둠 구슬을 쏴요. 금이 갔을 때 빨리 잡아요."]
+        },
+        {
+          "image": "blessing_snow",
+          "head": "설원의 축복",
+          "lines": ["탱탱볼에 맞은 몬스터가 일정 확률로 얼어붙어요. 보스는 얼지 않고 잠깐 느려져요."]
+        }
+      ]
+    },
+    {
+      "id": "thunder",
+      "chapter": 31,
+      "title": "천둥신의 축복",
+      "pages": [
+        {
+          "image": "blessing_thunder",
+          "head": "번개가 함께 싸워요",
+          "lines": ["탱탱볼이 맞힐 때 일정 확률로 주변 적에게 번개가 떨어져요.", "마지막 에피소드예요. 35장을 깨면 마왕의 탱탱볼을 받아요."]
+        }
+      ]
+    }
+  ]
+}

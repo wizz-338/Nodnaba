@@ -724,7 +724,11 @@ function Game({ exitHref, tester }) {
     if (g.run.turretOn) loadArt('turret')
     // the episodes' opening cutscenes (play: false) are kept but never played
     const enter = CUT_GROUPS.filter((c) => c.chapter === ch && c.when === 'enter' && c.play !== false && !seen.has(c.id))
-    setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id) } : null)
+    // an episode's new systems explained, once, before its first fight
+    // (after the cutscenes, if any): the fight waits
+    const tip = tipFor(P.current.get(), ch)
+    const tipModal = tip ? { kind: 'tip', id: tip.id } : null
+    setModal(enter.length ? { kind: 'cut', groups: enter.map((c) => c.id), after: tipModal } : tipModal)
     setScreen('battle')
     refresh()
   }
@@ -839,6 +843,7 @@ function Game({ exitHref, tester }) {
           save={save}
           img={img}
           onReplay={(groups) => setModal({ kind: 'cut', groups, replay: true })}
+          onTip={(id) => setModal({ kind: 'tip', id, replay: true })}
           equipped={equipped}
           chapter={chapter}
           setChapter={setChapter}
@@ -962,7 +967,89 @@ function Game({ exitHref, tester }) {
         </div>
       )}
       {modal && modal.kind === 'gift' && <GiftModal gifts={modal.gifts} save={save} onClose={() => setModal(null)} />}
+      {modal && modal.kind === 'tip' && (
+        <TipModal
+          key={modal.id}
+          tip={TIPS.find((t) => t.id === modal.id)}
+          replay={!!modal.replay}
+          onDone={() => {
+            if (!modal.replay) P.current.seenTip(modal.id)
+            refresh()
+            setModal(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+// the guides to each episode's new systems (data/tips.json): the one for a
+// chapter (its episode's, from the chapter its reward is first used in) not
+// yet shown
+const TIPS = D.tips.list
+const tipFor = (save, ch) => TIPS.find((t) => ch >= t.chapter && ch < t.chapter + 5 && !save.tips.includes(t.id))
+
+// a guide: a few short pages, a picture and lines each; 다음 to the next,
+// the last starts the fight (or closes, read again from 설정)
+function TipModal({ tip, replay, onDone }) {
+  const [i, setI] = useState(0)
+  const last = i >= tip.pages.length - 1
+  const next = () => (last ? onDone() : setI(i + 1))
+  useEffect(() => {
+    const key = (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      e.preventDefault()
+      next()
+    }
+    addEventListener('keydown', key)
+    return () => removeEventListener('keydown', key)
+  })
+  const pg = tip.pages[i]
+  return (
+    <div className="ms-modal ms-modal--in" role="dialog" aria-modal="true" aria-label={tip.title}>
+      <div className="ms-panel ms-menu ms-tip">
+        <p className="ms-tip__kicker">
+          새로운 기능 · {tip.chapter}장부터
+        </p>
+        <h2 className="ms-h">{tip.title}</h2>
+        <Art id={pg.image} className="ms-tip__art" />
+        <h3 className="ms-tip__head">{pg.head}</h3>
+        <ul className="ms-tip__lines">
+          {pg.lines.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+        <div className="ms-row">
+          <span className="ms-dim">
+            {i + 1} / {tip.pages.length}
+          </span>
+          <button type="button" className="ms-btn ms-btn--primary ms-btn--small" onClick={next}>
+            {last ? (replay ? '닫기' : '시작하기') : '다음'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 설정: the guides of the chapters already open, to read again
+function TipReplay({ save, onTip }) {
+  const open = TIPS.filter((t) => save.unlockedChapter >= t.chapter)
+  return (
+    <section className="ms-panel">
+      <h3 className="ms-sub">새로운 기능 설명 다시 보기</h3>
+      {open.length ? (
+        <div className="ms-replay">
+          {open.map((t) => (
+            <button key={t.id} type="button" className="ms-btn ms-btn--small" onClick={() => onTip(t.id)}>
+              {t.chapter}장 · {t.title}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="ms-dim">{TIPS[0].chapter}장부터 새로운 기능이 열리면 여기에 설명이 모여요.</p>
+      )}
+    </section>
   )
 }
 
@@ -1099,7 +1186,7 @@ function TesterBar({ run, onEnd, onRetry }) {
   )
 }
 
-function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, refresh, onImported, onReplay, exitHref, saveError }) {
+function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, onNotice, onEquip, onStart, onFusion, onFuseAll, onChests, onBuy, P, refresh, onImported, onReplay, onTip, exitHref, saveError }) {
   const pf = usePlatform()
   const region = regionOf(D, chapter)
   // after chapter 1's first clear, once: a bubble on 마노의 방 saying the
@@ -1175,7 +1262,7 @@ function Lobby({ tab, setTab, save, img, equipped, chapter, setChapter, notice, 
         {tab === 'go' && <Go save={save} equipped={equipped} chapter={chapter} setChapter={setChapter} onStart={go} />}
         {tab === 'gear' && <Gear save={save} equipped={equipped} onEquip={onEquip} onFusion={onFusion} onFuseAll={onFuseAll} onChests={onChests} />}
         {tab === 'stats' && <Stats save={save} img={img} onBuy={onBuy} />}
-        {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} />}
+        {tab === 'settings' && <Settings save={save} P={P} onImported={onImported} onReplay={onReplay} onTip={onTip} />}
       </div>
     </div>
   )
@@ -1596,7 +1683,7 @@ function PauseSettings({ save, P, refresh }) {
   )
 }
 
-function Settings({ save, P, onImported, onReplay }) {
+function Settings({ save, P, onImported, onReplay, onTip }) {
   const file = useRef(null)
   const [snd, setSnd] = useState(audio.getPrefs)
   const setAudio = (p) => {
@@ -1684,6 +1771,7 @@ function Settings({ save, P, onImported, onReplay }) {
         {msg && <p className={msg.bad ? 'ms-why' : 'ms-ok'}>{msg.text}</p>}
       </section>
       <StoryReplay save={save} onReplay={onReplay} />
+      <TipReplay save={save} onTip={onTip} />
       <FullscreenSetting />
       <section className="ms-panel ms-sound">
         <div className="ms-row">
@@ -2780,6 +2868,13 @@ function Battle({ img, G, P, save, firstTime, modal, setModal, onRetry, onNext, 
                 }}
               >
                 <TurretIcon size={48} className="ms-turretopt__art" />
+                {/* after the class change: picks that do nothing now can
+                    become turrets at no loss — a red mark says so */}
+                {run.cls && Object.keys(materials(run)).some((id) => sunk(run, id)) && (
+                  <em className="ms-turretopt__alert" aria-label="효과가 없어진 강화로 손해 없이 포탑을 만들 수 있어요">
+                    !
+                  </em>
+                )}
                 <span className="ms-turretopt__body">
                   <b>{D.turret.option}</b>
                   <span>{D.turret.optionText}</span>

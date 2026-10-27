@@ -2059,6 +2059,50 @@
   min-width: 64px;
 }
 
+/* a guide to an episode's new systems (data/tips.json) */
+.ms-tip {
+  gap: 10px;
+}
+
+.ms-tip__kicker {
+  margin: 0;
+  justify-self: center;
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ms-tip__art {
+  justify-self: center;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.ms-tip__head {
+  margin: 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+.ms-tip__lines {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.1em;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.ms--pc .ms-tip {
+  width: min(100%, 460px);
+}
+
 /* the pause's own settings, under its buttons */
 .ms-pauseset {
   display: grid;
