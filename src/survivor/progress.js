@@ -81,6 +81,8 @@ export function fresh(D) {
     gifts: [],
     // the guides to each episode's new systems (data/tips.json) already shown
     tips: [],
+    // stuck on a chapter: its losses in a row (balance.json → rewards.retryBonus)
+    retry: { chapter: 0, losses: 0 },
     sound: true,
   }
 }
@@ -155,7 +157,7 @@ function validate(D, d) {
   out.firstCleared = Array.isArray(fc) ? [...new Set(fc.filter((x) => int(x) && x >= 1 && x <= last))] : []
   out.chests = Array.isArray(d.chests) ? d.chests.filter((c) => isObj(c) && typeof c.id === 'string').map((c) => ({ id: c.id, chapter: int(c.chapter) ? c.chapter : 1 })) : []
   out.nextSeq = int(d.nextSeq) && d.nextSeq > 0 ? d.nextSeq : inventory.length + 1
-  out.activeRun = isObj(d.activeRun) && typeof d.activeRun.runId === 'string' ? { runId: d.activeRun.runId, chapter: int(d.activeRun.chapter) ? d.activeRun.chapter : 1 } : null
+  out.activeRun = isObj(d.activeRun) && typeof d.activeRun.runId === 'string' ? { runId: d.activeRun.runId, chapter: int(d.activeRun.chapter) ? d.activeRun.chapter : 1, coinBonus: Number.isFinite(d.activeRun.coinBonus) ? Math.min(1 + D.balance.rewards.retryBonus.max, Math.max(1, d.activeRun.coinBonus)) : 1 } : null
   out.seenHelp = d.seenHelp === true
   out.seenCoinTip = d.seenCoinTip === true
   if (isObj(d.perma)) for (const s of STATS) out.perma[s] = int(d.perma[s]) && d.perma[s] >= 0 ? d.perma[s] : 0
@@ -173,6 +175,7 @@ function validate(D, d) {
   out.story = { v: st && int(st.v) ? st.v : 0, seen: only(st && st.seen, groups), rewards: only(st && st.rewards, rewards), news: only(st && st.news, new Set([...rewards, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS])) }
   out.gifts = only(d.gifts, new Set(GIFT_KEYS))
   out.tips = only(d.tips, new Set(D.tips.list.map((t) => t.id)))
+  out.retry = isObj(d.retry) && int(d.retry.chapter) && int(d.retry.losses) && d.retry.chapter > 0 && d.retry.losses > 0 ? { chapter: d.retry.chapter, losses: d.retry.losses } : { chapter: 0, losses: 0 }
   out.sound = d.sound !== false
   // ids must keep growing past every id in use
   for (const it of inventory) {
@@ -360,9 +363,11 @@ export function createProgress(D, storage) {
     startRun(chapter) {
       return change((d) => {
         const runId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-        d.activeRun = { runId, chapter }
+        // (stuck on this chapter: its coins × this, the whole run)
+        const coinBonus = 1 + retryBonus(D, d, chapter)
+        d.activeRun = { runId, chapter, coinBonus }
         const eq = d.inventory.find((it) => it.id === d.equippedInstanceId) || d.inventory[0]
-        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, zyo: d.zyo.unlocked, turret: d.turret.unlocked, blessings: { ...d.blessings }, rerolls: d.rerolls }
+        return { runId, weapon: eq ? { ...eq } : null, perma: { ...d.perma }, cats: d.cats.unlocked, tizzzz: d.tizzzz.unlocked, zyo: d.zyo.unlocked, turret: d.turret.unlocked, blessings: { ...d.blessings }, rerolls: d.rerolls, coinBonus }
       })
     },
 
@@ -371,7 +376,7 @@ export function createProgress(D, storage) {
     award(runId, chapter, key) {
       return change((d) => {
         if (!R[key] || !spend(d, `${runId}:${key}`)) return { already: true, chests: [], coins: 0 }
-        const coins = rewardCoins(d, R[key].coins, chapter)
+        const coins = Math.round(rewardCoins(d, R[key].coins, chapter) * runBonus(d, runId))
         d.currency += coins
         return { already: false, chests: addChests(d, runId, key, R[key].chests, chapter), coins }
       })
@@ -382,12 +387,21 @@ export function createProgress(D, storage) {
     // for some chapters, a C weapon of the kind equipped). Paid once.
     finishRun(runId, chapter, result) {
       return change((d) => {
+        const bonus = runBonus(d, runId)
         if (d.activeRun && d.activeRun.runId === runId) d.activeRun = null
-        const out = { already: false, coins: 0, chests: [], firstClear: false, gift: null, story: null }
+        const out = { already: false, coins: 0, chests: [], firstClear: false, gift: null, story: null, bonus, retry: 0 }
         if (!spend(d, `${runId}:end`)) return { ...out, already: true }
         out.coins = Math.max(0, Math.floor(result.coins || 0))
+        // stuck on it: a loss makes the next try's coins richer; a clear ends that
+        const RB = D.balance.rewards.retryBonus
         if (result.cleared) {
-          out.coins += rewardCoins(d, R.clear.coins, chapter)
+          if (d.retry.chapter === chapter) d.retry = { chapter: 0, losses: 0 }
+        } else if ((result.time || 0) >= RB.minSeconds) {
+          d.retry = { chapter, losses: d.retry.chapter === chapter ? d.retry.losses + 1 : 1 }
+        }
+        out.retry = retryBonus(D, d, chapter)
+        if (result.cleared) {
+          out.coins += Math.round(rewardCoins(d, R.clear.coins, chapter) * bonus)
           out.chests.push(...addChests(d, runId, 'clear', R.clear.chests, chapter))
           if (!d.firstCleared.includes(chapter)) {
             d.firstCleared.push(chapter)
@@ -565,6 +579,16 @@ function fuseEverything(D, d) {
   }
   return { ok: fusions > 0, made, fusions, equipped: d.inventory.find((it) => it.id === d.equippedInstanceId) || null }
 }
+
+// ── stuck on a chapter (balance.json → rewards.retryBonus) ──────────────────
+
+// the extra share of coins the next run of `chapter` gets (0 … max)
+export function retryBonus(D, d, chapter) {
+  const RB = D.balance.rewards.retryBonus
+  return d.retry && d.retry.chapter === chapter ? Math.min(RB.max, RB.step * d.retry.losses) : 0
+}
+// the coins × of the run `runId` (the one under way; 1 for any other)
+const runBonus = (d, runId) => (d.activeRun && d.activeRun.runId === runId && d.activeRun.coinBonus) || 1
 
 // ── the story's rewards ─────────────────────────────────────────────────────
 

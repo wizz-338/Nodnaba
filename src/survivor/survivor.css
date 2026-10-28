@@ -2954,8 +2954,31 @@
   gap: 4px;
 }
 
+/* stuck on a chapter: its next try's coins are richer (a second line in
+   the start button; a line on the result) */
+.ms-startbtn__bonus {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff3c4;
+}
+
+.ms-retrybonus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  color: #c2410c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .ms-startbtn {
   flex: 1;
+  flex-direction: column;
+  justify-content: center;
   min-height: 54px;
   border-radius: 16px;
   border-color: var(--wood-dark);

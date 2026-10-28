@@ -167,8 +167,8 @@ export function pick(run, policy) {
 }
 
 // one chapter. opts: { policy, skill, seed, chapter, grade, perma, cats, tizzzz, blessings, rerolls, arena, maxTime, turret, craft }
-export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, zyo = false, blessings = {}, rerolls = 0, arena, maxTime = 600, turret = false, craft } = {}) {
-  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, zyo, blessings, rerolls, arena, turret })
+export function playRun(D, { policy = 'natural', skill = 'good', seed = 1, chapter = 1, grade = 'D', perma = {}, cats = false, tizzzz = false, zyo = false, blessings = {}, rerolls = 0, arena, maxTime = 600, turret = false, craft, coinBonus = 1 } = {}) {
+  const run = createRun(D, { chapter, weaponId: 'bouncy_ball', grade, seed, perma, cats, tizzzz, zyo, blessings, rerolls, arena, turret, coinBonus })
   const mem = {}
   const S = SKILLS[skill]
   for (let t = 0; t < maxTime && run.state !== 'over'; t += FIXED) {
