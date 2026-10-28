@@ -4,7 +4,7 @@ import { createRun, step, choose, reroll, makeTurret, previewTimes, isEdited, bu
 import { catDamage, catInterval, catSpeed, catSwipe, packMul } from './friends.js'
 import { isClassCard, classOf, classDps, firepower, recipes, zyoTargets, bonusOf, classLevel, optionName, powerMul } from './zyo.js'
 import { artUrl, artNow, artInfo, loadArt, preloadRegion } from './story-art.js'
-import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS } from './progress.js'
+import { browserStorage, canFuse, createProgress, exportName, fuseAllPreview, parseBackup, statPrice, statValue, statMaxLevel, STATS, NEWS_EP01, NEWS_EP02, NEWS_EP03, NEWS_EP04, NEWS_BALLS, retryBonus } from './progress.js'
 import { createRenderer, short } from './render.js'
 import { materials, canMake, sunk } from './turret.js'
 import { extraOf } from './bosses.js'
@@ -704,7 +704,7 @@ function Game({ exitHref, tester }) {
     g.paid = false
     g.choosing = false
     g.input = { x: 0, y: 0 }
-    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, turret: r.turret, blessings: r.blessings, rerolls: r.rerolls, arena: pf.arena, bossBag: BOSS_BAG })
+    g.run = createRun(D, { chapter: ch, weaponId: r.weapon.weaponId, grade: r.weapon.grade, seed: (Math.random() * 2 ** 31) | 0, runId: r.runId, perma: r.perma, cats: r.cats, tizzzz: r.tizzzz, zyo: r.zyo, turret: r.turret, blessings: r.blessings, rerolls: r.rerolls, coinBonus: r.coinBonus, arena: pf.arena, bossBag: BOSS_BAG })
     g.saved = 0 // rewards of this run already saved
     g.earned = { chests: 0, coins: 0 } // what the elites and the boss gave
     g.reward = null
@@ -1457,6 +1457,8 @@ function Go({ save, equipped, chapter, setChapter, onStart }) {
           <img className="ms-lobbymano" src={LOBBY_IMG.mano} alt="" draggable="false" />
           <button type="button" className="ms-btn ms-btn--primary ms-btn--big ms-startbtn" data-sfx="go" onClick={onStart} disabled={!equipped || locked}>
             {locked ? `${chapter - 1}장을 깨면 열려요` : `${chapter}장 출발`}
+            {/* stuck on this chapter: its next try's coins are richer (progress.js → retryBonus) */}
+            {!locked && retryBonus(D, save, chapter) > 0 && <small className="ms-startbtn__bonus">연속 도전 보너스 · 코인 +{Math.round(retryBonus(D, save, chapter) * 100)}%</small>}
           </button>
         </div>
       </section>
@@ -3164,7 +3166,13 @@ function Result({ run, reward, save, onRetry, onNext, onEquip, onChests }) {
           </p>
           <p>
             <Sprite name="coin" size={16} /> 코인 +{money(coins)}
+            {rw.bonus > 1 ? ` (연속 도전 보너스 +${Math.round((rw.bonus - 1) * 100)}% 포함)` : ''}
           </p>
+          {!r.cleared && rw.retry > 0 && (
+            <p className="ms-retrybonus">
+              다음 {run.chapter}장 도전은 코인 +{Math.round(rw.retry * 100)}% (질 때마다 +{Math.round(D.balance.rewards.retryBonus.step * 100)}%, 최대 +{Math.round(D.balance.rewards.retryBonus.max * 100)}%)
+            </p>
+          )}
           {rw.gift && (
             <p>
               <Sprite name={weaponIcon(rw.gift.weaponId)} size={18} /> 첫 클리어 선물: {weaponName(rw.gift.weaponId)} <Grade g={rw.gift.grade} />

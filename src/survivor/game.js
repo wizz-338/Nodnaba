@@ -97,7 +97,9 @@ function perma(D, levels = {}) {
 //         bossBag: { order: [] } kept by the page from run to run, so the
 //                ordinary bosses' types go round all four (see nextBossType),
 //         arena: the platform's field (default: balance.logicalArena, mobile;
-//                a field with a view is larger than the screen: see follow) }
+//                a field with a view is larger than the screen: see follow),
+//         coinBonus: the coins of this run × this (the save's retry bonus:
+//                    progress.js → startRun; 1 without) }
 export function createRun(D, opts) {
   const B = D.balance
   const def = weaponDef(D, opts.weaponId)
@@ -168,7 +170,7 @@ export function createRun(D, opts) {
       regen: pm.regen,
       armor: pm.armor,
       xpMul: 1,
-      coinMul: pm.coins,
+      coinMul: pm.coins * (opts.coinBonus || 1),
       inv: 0,
       slow: 1, // frost under her feet: her speed × this
       push: null, // a gust (the storm ray's): { vx, vy, until }
@@ -1640,6 +1642,7 @@ function spawning(run, dt) {
   const iv = spawnInterval(run)
   const alive = run.enemies.reduce((n, e) => n + (e.state === 'live' || e.state === 'spawn'), 0)
   run.spawnT += dt
+  run.refillT = (run.refillT || 0) + dt
   if (alive >= B.performance.enemySoftLimit) {
     // full: wait, and do not save up spawns to pour out later
     run.spawnT = Math.min(run.spawnT, iv)
@@ -1649,7 +1652,35 @@ function spawning(run, dt) {
     // one pack per tick at most; a long frame never spawns a crowd at once
     if (spawnPack(run, B.performance.enemySoftLimit - alive)) run.spawnT -= iv
     run.spawnT = Math.min(run.spawnT, iv)
+    return
   }
+  // fewer than the phase's least around Mano (killed faster than they
+  // come): another pack now, one every refillEvery s at most — the faster
+  // she kills, the more come (and the more experience and coins). Spawning
+  // held (spawnT below 0) holds this too
+  const least = minAlive(run)
+  if (least && run.spawnT >= 0 && run.refillT >= B.chapter.refillEvery && aliveNear(run) < least) {
+    if (spawnPack(run, B.performance.enemySoftLimit - alive)) run.refillT = 0
+  }
+}
+
+// the phase's least monsters around Mano (balance.json → chapter.phases →
+// minAlive), × the chapter's spawn factor
+export const minAlive = (run) => Math.round((phaseAt(run).minAlive || 0) * run.factor.spawn)
+
+// the ordinary monsters standing around Mano: the whole field on the phone;
+// on the PC (whose field is larger than its screen, and whose monsters stay
+// where she left them) those in the box they come in on around her
+export function aliveNear(run) {
+  const box = run.arena.spawnBox
+  const p = run.player
+  let n = 0
+  for (const e of run.enemies) {
+    if (e.rank || (e.state !== 'live' && e.state !== 'spawn')) continue
+    if (box && (Math.abs(e.x - p.x) > box[0] / 2 || Math.abs(e.y - p.y) > box[1] / 2)) continue
+    n++
+  }
+  return n
 }
 
 // A pack: the phase's pack size of one kind of monster, bunched at one point

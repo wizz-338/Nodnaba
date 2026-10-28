@@ -29,7 +29,7 @@ async function campaign(seed, skill, policy, maxCh, MAX_TRIES, field) {
     while (!cleared && tries < MAX_TRIES) {
       tries++
       const s = P.startRun(ch)
-      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, blessings: s.blessings, arena })
+      const { run } = playRun(D, { policy, skill, seed: seed * 1009 + ++n, chapter: ch, grade: s.weapon.grade, perma: s.perma, cats: s.cats, tizzzz: s.tizzzz, blessings: s.blessings, coinBonus: s.coinBonus, arena })
       for (const key of run.awards) P.award(s.runId, ch, key)
       const r = run.result || { cleared: false, coins: Math.floor(run.coins), time: run.t }
       P.finishRun(s.runId, ch, r)

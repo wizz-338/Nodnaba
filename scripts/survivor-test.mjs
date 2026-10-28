@@ -1,9 +1,9 @@
 // MANO SURVIVOR rule and save tests (no browser; storage is an in-memory stand-in).
 //   node scripts/survivor-test.mjs
 import { D } from './survivor-data.mjs'
-import { createRun, step, choose, reroll, makeTurret, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, FIXED } from '../src/survivor/game.js'
+import { createRun, step, choose, reroll, makeTurret, spawnAt, drawChoices, chapterCoins, maxed, lateGame, previewTimes, canEdit, isEdited, applyPreview, nextNeed, chargePath, overtime, overtimeHit, mobSpeed, spawnInterval, gradeMul, regionOf, enemyName, lastChapter, minAlive, aliveNear, FIXED } from '../src/survivor/game.js'
 import { BEHAVIORS, ballTtl, fanAngles, volley, critCount, implemented } from '../src/survivor/weapons.js'
-import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, statMaxLevel, KEY, SCHEMA } from '../src/survivor/progress.js'
+import { createProgress, canFuse, fuseAllPreview, parseBackup, exportName, BEFORE_IMPORT_KEY, BEFORE_RESET_KEY, rollGrade, statPrice, statValue, statMaxLevel, retryBonus, KEY, SCHEMA } from '../src/survivor/progress.js'
 import { playRun, pick } from './survivor-bot.mjs'
 import { MOVE_KEYS, keyVector } from '../src/survivor/keys.js'
 import { extraOf, touchesAt, inGap, reachesAt, bossSkills, bossSkill, tierOf, startAttack, tickAttack } from '../src/survivor/bosses.js'
@@ -56,6 +56,41 @@ const pickIn = (run, id) => {
   return choose(run, id, run.choiceSeq)
 }
 const still = { x: 0, y: 0 }
+
+// ── killing faster brings more (balance.json → chapter.phases → minAlive) ──
+{
+  const C = B.chapter
+  ok(C.phases.every((ph) => ph.minAlive > 0) && C.refillEvery > 0, 'every phase has its least monsters around Mano, and a refill pace')
+  // everything ordinary falls as soon as it comes: the refill keeps bringing packs
+  const fast = newRun()
+  fast.spawnT = 0
+  let came = 0
+  for (let t = 0; t < 10; t += FIXED) {
+    step(fast, FIXED, still)
+    const ord = fast.enemies.filter((e) => !e.rank)
+    came += ord.length
+    fast.enemies = fast.enemies.filter((e) => e.rank)
+  }
+  const ph0 = C.phases[0]
+  const timed = Math.ceil(10 / spawnInterval(newRun())) * ph0.pack
+  ok(came >= 3 * timed, `killing all at once for 10 s: ${came} came (by the clock alone about ${timed}; refilled every ${C.refillEvery} s)`)
+  // a full field: nothing extra
+  const full = newRun()
+  full.spawnT = 0
+  for (let i = 0; i < minAlive(full) + 10; i++) enemy(full, 60 + (i % 10) * 25, 100 + Math.floor(i / 10) * 25)
+  const before = full.enemies.length
+  for (let t = 0; t < 10; t += FIXED) step(full, FIXED, still)
+  const extra = full.enemies.length - before
+  ok(extra <= timed + ph0.pack, `with ${before} standing (more than the least, ${minAlive(full)}): only the clock's packs come (${extra} in 10 s)`)
+  ok(minAlive(newRun({ chapter: 5 })) === Math.round(ph0.minAlive * newRun({ chapter: 5 }).factor.spawn), "the least grows with the chapter's spawn factor")
+  // the PC field: only those around Mano count (the ones she left behind do not)
+  const pc = newRun({ arena: B.logicalArenaPc })
+  pc.spawnT = -1e9
+  const box = B.logicalArenaPc.spawnBox
+  enemy(pc, pc.player.x + box[0], pc.player.y)
+  enemy(pc, pc.player.x + 20, pc.player.y + 20)
+  ok(aliveNear(pc) === 1, 'on the PC field a monster far behind her does not count toward the least; one near her does')
+}
 
 // ── movement ────────────────────────────────────────────────────────────────
 {
@@ -762,6 +797,37 @@ const still = { x: 0, y: 0 }
   P.seenTip('cats')
   P.seenTip('cats')
   ok(createProgress(D, mem).boot().data.tips.join() === 'cats', 'a guide shown is kept (once) across a reload')
+}
+{
+  // stuck on a chapter: each loss of a minute or more makes the next try's coins richer
+  const RB = B.rewards.retryBonus
+  const mem = new Mem()
+  const P = createProgress(D, mem)
+  P.boot()
+  const lose = (ch, time = 90, coins = 100) => {
+    const s = P.startRun(ch)
+    return { s, f: P.finishRun(s.runId, ch, { cleared: false, coins, kills: 1, time, elites: 0 }) }
+  }
+  ok(P.startRun(3).coinBonus === 1, 'no loss yet: coins as ever')
+  const a = lose(3)
+  ok(a.f.retry === RB.step && P.get().retry.chapter === 3 && P.get().retry.losses === 1, `a loss of chapter 3: the next try +${RB.step * 100}%`)
+  const s2 = P.startRun(3)
+  ok(s2.coinBonus === 1 + RB.step && createRun(D, { chapter: 3, weaponId: 'bouncy_ball', grade: 'D', seed: 1, coinBonus: s2.coinBonus }).player.coinMul === 1 + RB.step, "that run's coins on the field are worth that much more")
+  const base = P.award('x', 3, 'elite1').coins
+  const got = P.award(s2.runId, 3, 'elite1').coins
+  ok(got === Math.round(base * (1 + RB.step)), `and an elite's reward too (${base} → ${got})`)
+  P.finishRun(s2.runId, 3, { cleared: false, coins: 0, kills: 1, time: 90, elites: 0 })
+  ok(lose(3, 20).f.retry === 2 * RB.step, 'a run lost within a minute counts for nothing (no bonus for quitting at once)')
+  for (let i = 0; i < 9; i++) lose(3)
+  ok(retryBonus(D, P.get(), 3) === RB.max, `it stops at +${RB.max * 100}%`)
+  ok(retryBonus(D, P.get(), 4) === 0, 'another chapter has none')
+  const c = P.startRun(3)
+  const fc = P.finishRun(c.runId, 3, { cleared: true, coins: 0, kills: 1, time: 240, elites: 2 })
+  ok(fc.bonus === 1 + RB.max && retryBonus(D, P.get(), 3) === 0 && P.get().retry.losses === 0, 'the clear itself is paid with the bonus, then it ends')
+  lose(5)
+  lose(6)
+  ok(P.get().retry.chapter === 6 && P.get().retry.losses === 1, 'a loss of another chapter starts over there')
+  ok(createProgress(D, mem).boot().data.retry.chapter === 6, 'kept across a reload')
 }
 {
   // 마노의 방's coin bubble in the lobby: once, kept across a reload
