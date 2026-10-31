@@ -25,7 +25,7 @@ function Links({ links }) {
   )
 }
 
-// one artist in the grid: the picture, its number and name; opens the large view
+// one artist in the grid: the picture and its name; opens the large view
 function Tile({ a, i, onOpen }) {
   return (
     <li className={`artist-tile artist-tile--${a.id}`} style={{ '--i': Math.min(i, 12) }}>
@@ -36,9 +36,6 @@ function Tile({ a, i, onOpen }) {
           <span className="artist-tile__ghost artist-tile__ghost--c" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
           <span className="artist-tile__ghost artist-tile__ghost--m" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
           <span className="artist-tile__crt" aria-hidden="true" />
-        </span>
-        <span className="artist-tile__no mono" aria-hidden="true">
-          #{pad(i + 1)}
         </span>
         {a.links.length > 0 && (
           <span className="artist-tile__more mono" aria-hidden="true">
@@ -99,7 +96,7 @@ function Viewer({ i, onClose, onStep }) {
         </div>
         <div className="artist-view__body">
           <p className="artist-view__no mono">
-            ARTIST #{pad(i + 1)} / {pad(ARTISTS.length)}
+            {pad(i + 1)} / {pad(ARTISTS.length)}
           </p>
           <h2 className="artist-view__name glitch" data-text={a.name}>
             {a.name}
