@@ -44,6 +44,7 @@ export const ARTISTS = [
     h: 1536,
     links: [
       { label: 'YouTube ↗', href: YOUTUBE_URL, ...external, icon: true },
+      { label: '어떤 ↗', href: 'https://youtu.be/gbPtsSWSiA4', ...external, small: true },
       { label: '다락 (Attic) ↗', href: 'https://youtu.be/Yoepw1Lgt4Y', ...external, small: true },
     ],
   },
