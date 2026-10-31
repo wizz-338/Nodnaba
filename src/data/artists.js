@@ -4,6 +4,7 @@ import tizzzzImg from '../assets/artist/tizzzz.webp'
 import peachyImg from '../assets/artist/peachy.webp'
 import jinxieImg from '../assets/artist/jinxie.webp'
 import hazeImg from '../assets/artist/haze.webp'
+import boltImg from '../assets/artist/bolt.webp'
 import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
 import { GAMES } from './games'
 import { YOUTUBE_URL } from '../components/Footer'
@@ -47,4 +48,5 @@ export const ARTISTS = [
   { id: 'peachy', name: 'PEACHY', img: peachyImg, w: 1024, h: 1487, links: [] },
   { id: 'jinxie', name: 'Jinxie', img: jinxieImg, w: 1024, h: 1487, links: [] },
   { id: 'haze', name: 'Haze', img: hazeImg, w: 1024, h: 1487, links: [] },
+  { id: 'bolt', name: 'Bolt', img: boltImg, w: 832, h: 1216, links: [] },
 ]

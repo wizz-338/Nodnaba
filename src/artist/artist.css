@@ -1,5 +1,5 @@
 /* ARTIST — dark, quiet, a little CRT. Many artists: a grid of small
-   portrait tiles (2 across on phones, up to 5 on wide screens), each opening
+   portrait tiles (4 across on phones, up to 5 on wide screens), each opening
    a large view with its picture whole, its name and links. */
 
 .artist {
@@ -42,8 +42,8 @@
 
 .artist__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0;
@@ -156,19 +156,32 @@
   overflow-wrap: anywhere;
 }
 
-.artist-tile__no,
 .artist-tile__more {
   position: absolute;
   top: 8px;
+  right: 8px;
   z-index: 1;
   padding: 3px 6px;
   font-size: 10px;
   letter-spacing: 0.12em;
+  color: var(--cyan);
   background: rgba(8, 5, 10, 0.7);
 }
 
-.artist-tile__no { left: 8px; color: var(--dim); }
-.artist-tile__more { right: 8px; color: var(--cyan); }
+/* phones, four across: a smaller name, no link tag */
+@media (max-width: 639px) {
+  .artist-tile__name {
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    font-size: clamp(8px, 2.5vw, 12px);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .artist-tile__more { display: none; }
+}
 
 /* ───────── hover / touch: a subtle glitch ───────── */
 
