@@ -3,7 +3,7 @@ import zyoImg from '../assets/artist/zyo.webp'
 import tizzzzImg from '../assets/artist/tizzzz.webp'
 import peachyImg from '../assets/artist/peachy.webp'
 import jinxieImg from '../assets/artist/jinxie.webp'
-import lavvvImg from '../assets/artist/lavvv.webp'
+import hazeImg from '../assets/artist/haze.webp'
 import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
 import { GAMES } from '../data/games'
 import { YOUTUBE_URL } from '../components/Footer'
@@ -63,9 +63,9 @@ const ARTISTS = [
     links: [],
   },
   {
-    id: 'lavvv',
-    name: 'lavvv',
-    img: lavvvImg,
+    id: 'haze',
+    name: 'Haze',
+    img: hazeImg,
     w: 1024,
     h: 1487,
     links: [],
