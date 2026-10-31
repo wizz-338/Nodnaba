@@ -1,5 +1,6 @@
-/* ARTIST — dark, quiet, a little CRT. Two equal cards: 2 columns on wide
-   screens, 1 column on phones. */
+/* ARTIST — dark, quiet, a little CRT. Many artists: a grid of small
+   portrait tiles (2 across on phones, up to 5 on wide screens), each opening
+   a large view with its picture whole, its name and links. */
 
 .artist {
   position: relative;
@@ -13,10 +14,17 @@
     var(--void);
 }
 
+.artist__head {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 0 auto 32px;
+}
+
 .artist__title {
   display: block;
   width: fit-content;
-  margin: 0 auto 36px;
+  margin: 0;
   font-family: var(--display);
   font-weight: 800;
   font-size: clamp(36px, 11vw, 88px);
@@ -25,64 +33,83 @@
   text-shadow: -2px 0 rgba(79, 227, 224, 0.6), 2px 0 rgba(255, 51, 85, 0.6);
 }
 
-.artist__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
-  max-width: 980px;
-  margin: 0 auto;
+.artist__count {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--dim);
 }
 
-@media (min-width: 720px) {
+.artist__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
   .artist__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 32px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 18px;
   }
 }
 
-/* ───────── card ───────── */
+/* ───────── tile ───────── */
 
-.artist-card {
-  display: flex;
-  flex-direction: column;
-  background: rgba(16, 11, 18, 0.7);
-  border: 1px solid var(--line);
+.artist-tile {
   opacity: 0;
   transform: translateY(16px);
-  animation: artist-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  animation-delay: calc(0.12s + var(--i) * 0.12s);
-  transition: border-color 0.3s, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: artist-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(0.08s + var(--i) * 0.06s);
 }
 
 @keyframes artist-in {
   to { opacity: 1; transform: none; }
 }
 
-/* both originals are ~2:3 portraits: show them whole, anchored to the top so
-   ears and hair are never cut */
-.artist-card__frame {
+.artist-tile__btn {
   position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: rgba(16, 11, 18, 0.7);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.3s, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* the originals are ~2:3 portraits: anchored to the top so hair and ears are
+   never cut */
+.artist-tile__frame {
+  position: relative;
+  display: block;
   aspect-ratio: 2 / 3;
   overflow: hidden;
   background: #000;
 }
 
-.artist-card__img,
-.artist-card__ghost {
+.artist-tile__img,
+.artist-tile__ghost {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.artist-card__img {
+.artist-tile__img {
   display: block;
   object-fit: cover;
   object-position: 50% 0%;
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.artist-card__ghost {
+.artist-tile__ghost {
   background-size: cover;
   background-position: 50% 0%;
   mix-blend-mode: screen;
@@ -90,11 +117,11 @@
   pointer-events: none;
 }
 
-.artist-card__ghost--c { filter: sepia(1) hue-rotate(140deg) saturate(4); }
-.artist-card__ghost--m { filter: sepia(1) hue-rotate(290deg) saturate(5); }
+.artist-tile__ghost--c { filter: sepia(1) hue-rotate(140deg) saturate(4); }
+.artist-tile__ghost--m { filter: sepia(1) hue-rotate(290deg) saturate(5); }
 
 /* CRT: fine scanlines + soft vignette, always on */
-.artist-card__crt {
+.artist-tile__crt {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -103,26 +130,229 @@
     radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(0, 0, 0, 0.45));
 }
 
-.artist-card__body {
-  display: grid;
-  gap: 12px;
-  padding: 18px 18px 20px;
+/* the name over the picture's foot, on a dark fade */
+.artist-tile__frame::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 38%;
+  background: linear-gradient(to top, rgba(8, 5, 10, 0.92), transparent);
+  pointer-events: none;
 }
 
-.artist-card__name {
-  margin: 0;
+.artist-tile__name {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 1;
   font-family: var(--display);
   font-weight: 800;
-  font-size: clamp(28px, 7vw, 40px);
+  font-size: clamp(18px, 4.6vw, 26px);
   line-height: 1;
   letter-spacing: 0.04em;
   /* never uppercase: "zyo_" is the official spelling */
   text-transform: none;
+  overflow-wrap: anywhere;
 }
 
-.artist-card__links {
+.artist-tile__no,
+.artist-tile__more {
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  padding: 3px 6px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  background: rgba(8, 5, 10, 0.7);
+}
+
+.artist-tile__no { left: 8px; color: var(--dim); }
+.artist-tile__more { right: 8px; color: var(--cyan); }
+
+/* ───────── hover / touch: a subtle glitch ───────── */
+
+.artist-tile__btn:hover,
+.artist-tile__btn:focus-visible {
+  border-color: rgba(247, 238, 236, 0.45);
+  transform: translateY(-3px);
+}
+
+.artist-tile__btn:hover .artist-tile__img {
+  transform: scale(1.03);
+}
+
+.artist-tile__btn:hover .artist-tile__ghost--c {
+  opacity: 0.32;
+  animation: artist-tear-c 2.4s steps(1) infinite;
+}
+
+.artist-tile__btn:hover .artist-tile__ghost--m {
+  opacity: 0.28;
+  animation: artist-tear-m 2.4s steps(1) infinite;
+}
+
+.artist-tile__btn:hover .artist-tile__name::before,
+.artist-tile__btn:hover .artist-tile__name::after {
+  opacity: 0.8;
+}
+
+/* mostly a soft 2px RGB split, with a brief torn band now and then */
+@keyframes artist-tear-c {
+  0%, 100% { transform: translate(-2px, 0); clip-path: inset(0); }
+  82% { transform: translate(-6px, 0); clip-path: inset(28% 0 58% 0); }
+  86% { transform: translate(-2px, 0); clip-path: inset(0); }
+}
+
+@keyframes artist-tear-m {
+  0%, 100% { transform: translate(2px, 0); clip-path: inset(0); }
+  82% { transform: translate(7px, 0); clip-path: inset(62% 0 26% 0); }
+  86% { transform: translate(2px, 0); clip-path: inset(0); }
+}
+
+/* the site-wide glitch bursts touch the tiles too, very lightly */
+.is-glitching .artist-tile__ghost--c { opacity: 0.25; transform: translate(-4px, 0); }
+.is-glitching .artist-tile__ghost--m { opacity: 0.22; transform: translate(4px, 0); }
+
+/* ───────── the large view ───────── */
+
+.artist-view {
+  position: fixed;
+  inset: 0;
+  /* over the site's header (30–40) and boot (50); under the page warp (60) */
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: rgba(6, 4, 8, 0.9);
+  backdrop-filter: blur(6px);
+  animation: artist-fade 0.25s ease-out;
+}
+
+@keyframes artist-fade {
+  from { opacity: 0; }
+}
+
+.artist-view__box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  width: min(100%, 980px);
+  max-height: 100%;
+  outline: none;
+  animation: artist-pop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes artist-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+
+.artist-view__frame {
+  position: relative;
+  justify-self: center;
+  max-height: calc(100svh - 220px);
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #000;
+}
+
+.artist-view__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 0%;
+}
+
+.artist-view__body {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.artist-view__no {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--dim);
+}
+
+.artist-view__name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(30px, 8vw, 52px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* wide screens: the picture on the left, its name and links beside it */
+@media (min-width: 820px) {
+  .artist-view__box {
+    grid-template-columns: auto minmax(240px, 1fr);
+    align-items: center;
+    gap: 36px;
+  }
+
+  .artist-view__frame {
+    height: min(calc(100vh - 80px), 860px);
+    max-height: none;
+  }
+
+  .artist-view__body {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .artist-view__body .artist-links {
+    justify-content: flex-start;
+  }
+}
+
+.artist-view__step,
+.artist-view__close {
+  position: fixed;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(16, 11, 18, 0.8);
+  color: var(--white);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.artist-view__step:hover,
+.artist-view__close:hover {
+  background: var(--white);
+  color: var(--void);
+}
+
+.artist-view__step { top: 50%; transform: translateY(-50%); }
+.artist-view__step--prev { left: 12px; }
+.artist-view__step--next { right: 12px; }
+.artist-view__close { top: calc(12px + env(safe-area-inset-top)); right: 12px; font-size: 16px; }
+
+/* phones: the arrows under the picture's sides, out of its way */
+@media (max-width: 819px) {
+  .artist-view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .artist-view__step { top: auto; bottom: calc(14px + env(safe-area-inset-bottom)); transform: none; }
+}
+
+/* ───────── links (in the large view) ───────── */
+
+.artist-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 10px 14px;
   margin: 0;
@@ -171,52 +401,10 @@
   color: var(--pink);
 }
 
-/* ───────── hover / touch: a subtle glitch ───────── */
-
-.artist-card:hover,
-.artist-card:focus-within {
-  border-color: rgba(247, 238, 236, 0.4);
-  transform: translateY(-3px);
-}
-
-.artist-card:hover .artist-card__img {
-  transform: scale(1.02);
-}
-
-.artist-card:hover .artist-card__ghost--c {
-  opacity: 0.32;
-  animation: artist-tear-c 2.4s steps(1) infinite;
-}
-
-.artist-card:hover .artist-card__ghost--m {
-  opacity: 0.28;
-  animation: artist-tear-m 2.4s steps(1) infinite;
-}
-
-.artist-card:hover .artist-card__name::before,
-.artist-card:hover .artist-card__name::after {
-  opacity: 0.8;
-}
-
-/* mostly a soft 2px RGB split, with a brief torn band now and then */
-@keyframes artist-tear-c {
-  0%, 100% { transform: translate(-2px, 0); clip-path: inset(0); }
-  82% { transform: translate(-6px, 0); clip-path: inset(28% 0 58% 0); }
-  86% { transform: translate(-2px, 0); clip-path: inset(0); }
-}
-
-@keyframes artist-tear-m {
-  0%, 100% { transform: translate(2px, 0); clip-path: inset(0); }
-  82% { transform: translate(7px, 0); clip-path: inset(62% 0 26% 0); }
-  86% { transform: translate(2px, 0); clip-path: inset(0); }
-}
-
-/* the site-wide glitch bursts touch the cards too, very lightly */
-.is-glitching .artist-card__ghost--c { opacity: 0.25; transform: translate(-4px, 0); }
-.is-glitching .artist-card__ghost--m { opacity: 0.22; transform: translate(4px, 0); }
-
 @media (prefers-reduced-motion: reduce) {
-  .artist-card { opacity: 1; transform: none; animation: none; }
-  .artist-card:hover .artist-card__ghost--c,
-  .artist-card:hover .artist-card__ghost--m { animation: none; }
+  .artist-tile { opacity: 1; transform: none; animation: none; }
+  .artist-view,
+  .artist-view__box { animation: none; }
+  .artist-tile__btn:hover .artist-tile__ghost--c,
+  .artist-tile__btn:hover .artist-tile__ghost--m { animation: none; }
 }
