@@ -3,6 +3,7 @@ import { GAMES } from './games'
 import tizzzzImg from '../assets/artist/tizzzz.webp'
 import bannerImg from '../assets/banner.webp'
 import darakImg from '../assets/news/darak.webp'
+import eotteonImg from '../assets/news/eotteon.webp'
 import artistsImg from '../assets/news/artists.webp'
 import survivorImg from '../assets/news/mano-survivor.webp'
 import colonyImg from '../assets/news/mano-colony.webp'
@@ -26,6 +27,18 @@ import visitorImg from '../assets/news/visitor.webp'
 //   img         optional picture shown with the news, with its size in
 //   imgW, imgH  pixels (it keeps its own shape: tall, square or wide)
 export const NEWS = [
+  {
+    date: '2026-11-01',
+    time: '08:40',
+    category: 'MUSIC',
+    title: 'zyo_ — 어떤 공개',
+    description: 'zyo_의 두 번째 싱글 《어떤》이 YouTube에 공개되었습니다.',
+    link: 'https://youtu.be/gbPtsSWSiA4',
+    linkText: 'LISTEN',
+    img: eotteonImg,
+    imgW: 800,
+    imgH: 800,
+  },
   {
     date: '2026-10-19',
     time: '18:30',
