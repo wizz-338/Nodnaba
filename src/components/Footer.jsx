@@ -1,13 +1,13 @@
 import Logo from './Logo'
 
 export const YOUTUBE_URL = 'https://youtube.com/@zyo_musix'
-// PEACHY's economics channel, Econ Dork
-export const ECON_DORK_URL = 'https://youtube.com/@econ_peachy'
+// PEACHY's channel
+export const PEACHY_YOUTUBE_URL = 'https://youtube.com/@nod_peachy'
 
 // the channels at the foot of every page: YouTube's mark and the handle
 const CHANNELS = [
   { href: YOUTUBE_URL, handle: '@zyo_musix' },
-  { href: ECON_DORK_URL, handle: '@econ_peachy', label: 'Econ Dork' },
+  { href: PEACHY_YOUTUBE_URL, handle: '@nod_peachy' },
 ]
 
 export default function Footer() {
