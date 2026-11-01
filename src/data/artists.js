@@ -12,7 +12,7 @@ import cozyImg from '../assets/artist/cozy.webp'
 import mapleImg from '../assets/artist/maple.webp'
 import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
 import { GAMES } from './games'
-import { YOUTUBE_URL } from '../components/Footer'
+import { ECON_DORK_URL, YOUTUBE_URL } from '../components/Footer'
 
 const external = { target: '_blank', rel: 'noopener noreferrer' }
 
@@ -51,7 +51,14 @@ export const ARTISTS = [
     ],
   },
   { id: 'tizzzz', name: 'Tizzzz', img: tizzzzImg, w: 1024, h: 1536, links: [] },
-  { id: 'peachy', name: 'PEACHY', img: peachyImg, w: 1024, h: 1487, links: [] },
+  {
+    id: 'peachy',
+    name: 'PEACHY',
+    img: peachyImg,
+    w: 1024,
+    h: 1487,
+    links: [{ label: 'Econ Dork ↗', href: ECON_DORK_URL, ...external, icon: true }],
+  },
   { id: 'jinxie', name: 'Jinxie', img: jinxieImg, w: 1024, h: 1487, links: [] },
   { id: 'haze', name: 'Haze', img: hazeImg, w: 1024, h: 1487, links: [] },
   { id: 'sunny', name: 'Sunny', img: sunnyImg, w: 832, h: 1216, links: [] },

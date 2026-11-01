@@ -1,6 +1,8 @@
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 import { GAMES } from './games'
 import tizzzzImg from '../assets/artist/tizzzz.webp'
+import peachyImg from '../assets/artist/peachy.webp'
+import { ECON_DORK_URL } from '../components/Footer'
 import bannerImg from '../assets/banner.webp'
 import darakImg from '../assets/news/darak.webp'
 import eotteonImg from '../assets/news/eotteon.webp'
@@ -27,6 +29,18 @@ import visitorImg from '../assets/news/visitor.webp'
 //   img         optional picture shown with the news, with its size in
 //   imgW, imgH  pixels (it keeps its own shape: tall, square or wide)
 export const NEWS = [
+  {
+    date: '2026-11-02',
+    time: '03:50',
+    category: 'NOTICE',
+    title: 'PEACHY, 경제 유튜브 Econ Dork 개설',
+    description: 'PEACHY가 경제 이야기를 다루는 YouTube 채널 《Econ Dork》를 열었습니다.',
+    link: ECON_DORK_URL,
+    linkText: 'WATCH',
+    img: peachyImg,
+    imgW: 1024,
+    imgH: 1487,
+  },
   {
     date: '2026-11-01',
     time: '08:40',
