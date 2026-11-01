@@ -122,10 +122,28 @@ function Viewer({ i, onClose, onStep }) {
   )
 }
 
+// The large view has its own step in the browser's history (the address does
+// not change, so the site's hash routing never sees it): the browser's back
+// button (or a phone's back gesture) closes the view instead of leaving the
+// page, and closing it with ✕ / Esc takes that step back.
+const VIEW_STATE = 'artist-view'
+const inView = () => history.state && history.state[VIEW_STATE] === true
+
 export default function ArtistPage() {
   const [open, setOpen] = useState(null)
-  const close = useCallback(() => setOpen(null), [])
+  const openAt = useCallback((i) => {
+    if (!inView()) history.pushState({ ...(history.state || {}), [VIEW_STATE]: true }, '')
+    setOpen(i)
+  }, [])
+  const close = useCallback(() => (inView() ? history.back() : setOpen(null)), [])
   const step = useCallback((d) => setOpen((i) => (i == null ? i : (i + d + ARTISTS.length) % ARTISTS.length)), [])
+  useEffect(() => {
+    // (back on the page after a link from the view: its step is left over)
+    if (inView()) history.replaceState({ ...history.state, [VIEW_STATE]: false }, '')
+    const pop = () => !inView() && setOpen(null)
+    addEventListener('popstate', pop)
+    return () => removeEventListener('popstate', pop)
+  }, [])
   return (
     <main className="artist">
       <header className="artist__head">
@@ -136,7 +154,7 @@ export default function ArtistPage() {
       </header>
       <ul className="artist__grid">
         {ARTISTS.map((a, i) => (
-          <Tile key={a.id} a={a} i={i} onOpen={setOpen} />
+          <Tile key={a.id} a={a} i={i} onOpen={openAt} />
         ))}
       </ul>
       {open != null && <Viewer i={open} onClose={close} onStep={step} />}
