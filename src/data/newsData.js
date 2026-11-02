@@ -1,7 +1,7 @@
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 import { GAMES } from './games'
 import tizzzzImg from '../assets/artist/tizzzz.webp'
-import peachyImg from '../assets/artist/peachy.webp'
+import peachyYoutubeImg from '../assets/news/peachy-youtube.webp'
 import { PEACHY_YOUTUBE_URL } from '../components/Footer'
 import bannerImg from '../assets/banner.webp'
 import darakImg from '../assets/news/darak.webp'
@@ -37,9 +37,9 @@ export const NEWS = [
     description: 'PEACHY가 YouTube 채널을 열었습니다.',
     link: PEACHY_YOUTUBE_URL,
     linkText: 'WATCH',
-    img: peachyImg,
-    imgW: 1024,
-    imgH: 1487,
+    img: peachyYoutubeImg,
+    imgW: 719,
+    imgH: 719,
   },
   {
     date: '2026-11-01',
