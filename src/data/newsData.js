@@ -6,6 +6,8 @@ import { PEACHY_YOUTUBE_URL } from '../components/Footer'
 import bannerImg from '../assets/banner.webp'
 import darakImg from '../assets/news/darak.webp'
 import eotteonImg from '../assets/news/eotteon.webp'
+import noHoopImg from '../assets/news/no-hoop.webp'
+import bloomImg from '../assets/news/bloom.webp'
 import artistsImg from '../assets/news/artists.webp'
 import survivorImg from '../assets/news/mano-survivor.webp'
 import colonyImg from '../assets/news/mano-colony.webp'
@@ -29,6 +31,30 @@ import visitorImg from '../assets/news/visitor.webp'
 //   img         optional picture shown with the news, with its size in
 //   imgW, imgH  pixels (it keeps its own shape: tall, square or wide)
 export const NEWS = [
+  {
+    date: '2026-11-09',
+    time: '02:35',
+    category: 'MUSIC',
+    title: 'zyo_ — Bloom 공개',
+    description: 'zyo_의 네 번째 싱글 《Bloom》이 YouTube에 공개되었습니다.',
+    link: 'https://youtu.be/LYVr8yF2WEs',
+    linkText: 'LISTEN',
+    img: bloomImg,
+    imgW: 800,
+    imgH: 800,
+  },
+  {
+    date: '2026-11-09',
+    time: '02:30',
+    category: 'MUSIC',
+    title: 'zyo_ — NO HOOP 공개',
+    description: 'zyo_의 세 번째 싱글 《NO HOOP》이 YouTube에 공개되었습니다.',
+    link: 'https://youtu.be/1UPlwsAqNJ0',
+    linkText: 'LISTEN',
+    img: noHoopImg,
+    imgW: 800,
+    imgH: 800,
+  },
   {
     date: '2026-11-02',
     time: '03:50',
