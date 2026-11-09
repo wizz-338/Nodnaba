@@ -45,7 +45,7 @@ export const ARTISTS = [
     w: 1024,
     h: 1536,
     links: [
-      { label: 'YouTube ↗', href: YOUTUBE_URL, ...external, icon: true },
+      { label: '338_orbitty ↗', href: YOUTUBE_URL, ...external, icon: true },
       { label: 'Bloom ↗', href: 'https://youtu.be/LYVr8yF2WEs', ...external, small: true },
       { label: 'NO HOOP ↗', href: 'https://youtu.be/1UPlwsAqNJ0', ...external, small: true },
       { label: '어떤 (Some) ↗', href: 'https://youtu.be/gbPtsSWSiA4', ...external, small: true },

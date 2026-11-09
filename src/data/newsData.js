@@ -6,7 +6,6 @@ import { PEACHY_YOUTUBE_URL } from '../components/Footer'
 import bannerImg from '../assets/banner.webp'
 import darakImg from '../assets/news/darak.webp'
 import eotteonImg from '../assets/news/eotteon.webp'
-import noHoopImg from '../assets/news/no-hoop.webp'
 import bloomImg from '../assets/news/bloom.webp'
 import artistsImg from '../assets/news/artists.webp'
 import survivorImg from '../assets/news/mano-survivor.webp'
@@ -51,9 +50,6 @@ export const NEWS = [
     description: 'zyo_의 세 번째 싱글 《NO HOOP》이 YouTube에 공개되었습니다.',
     link: 'https://youtu.be/1UPlwsAqNJ0',
     linkText: 'LISTEN',
-    img: noHoopImg,
-    imgW: 800,
-    imgH: 800,
   },
   {
     date: '2026-11-02',
