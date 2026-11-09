@@ -1,12 +1,13 @@
 import Logo from './Logo'
 
-export const YOUTUBE_URL = 'https://youtube.com/@zyo_musix'
+// 338_orbitty (zyo_'s channel)
+export const YOUTUBE_URL = 'https://youtube.com/@338music'
 // PEACHY's channel
 export const PEACHY_YOUTUBE_URL = 'https://youtube.com/@nod_peachy'
 
 // the channels at the foot of every page: YouTube's mark and the handle
 const CHANNELS = [
-  { href: YOUTUBE_URL, handle: '@zyo_musix' },
+  { href: YOUTUBE_URL, handle: '338_orbitty' },
   { href: PEACHY_YOUTUBE_URL, handle: '@nod_peachy' },
 ]
 
