@@ -74,7 +74,7 @@ export const ARTISTS = [
     h: 1216,
     links: [
       { label: '338_orbitty ↗', href: YOUTUBE_URL, ...external, icon: true },
-      { label: 'New single ↗', href: 'https://youtu.be/c4ODqoHL-jA', ...external, small: true },
+      { label: 'snap ↗', href: 'https://youtu.be/c4ODqoHL-jA', ...external, small: true },
     ],
   },
   { id: 'cozy', name: 'Cozy', img: cozyImg, w: 832, h: 1216, links: [] },
