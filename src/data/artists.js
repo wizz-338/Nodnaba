@@ -7,6 +7,7 @@ import hazeImg from '../assets/artist/haze.webp'
 import sunnyImg from '../assets/artist/sunny.webp'
 import daisyImg from '../assets/artist/daisy.webp'
 import torriImg from '../assets/artist/torri.webp'
+import pixieImg from '../assets/artist/pixie.webp'
 import cozyImg from '../assets/artist/cozy.webp'
 import mapleImg from '../assets/artist/maple.webp'
 import { MANO_COLONY_HASH, MANO_RUN_HASH } from '../route'
@@ -68,6 +69,9 @@ export const ARTISTS = [
   {
     id: 'pixie',
     name: 'vixxin',
+    img: pixieImg,
+    w: 832,
+    h: 1216,
     links: [
       { label: '338_orbitty ↗', href: YOUTUBE_URL, ...external, icon: true },
       { label: 'snap ↗', href: 'https://youtu.be/c4ODqoHL-jA', ...external, small: true },
