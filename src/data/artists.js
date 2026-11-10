@@ -66,7 +66,7 @@ export const ARTISTS = [
   { id: 'sunny', name: 'Sunny', img: sunnyImg, w: 832, h: 1216, links: [] },
   { id: 'daisy', name: 'Daisy', img: daisyImg, w: 1024, h: 1487, links: [] },
   { id: 'torri', name: 'torri_mo', img: torriImg, w: 1024, h: 1487, links: [] },
-  { id: 'pixie', name: 'zappi', img: pixieImg, w: 832, h: 1216, links: [] },
+  { id: 'pixie', name: 'vixxin', img: pixieImg, w: 832, h: 1216, links: [] },
   { id: 'cozy', name: 'Cozy', img: cozyImg, w: 832, h: 1216, links: [] },
   { id: 'maple', name: 'Maple', img: mapleImg, w: 832, h: 1216, links: [] },
 ]
