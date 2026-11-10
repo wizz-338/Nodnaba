@@ -25,16 +25,31 @@ function Links({ links }) {
   )
 }
 
+// an artist with no picture (yet): a dark card with the name's first letter
+function Blank({ a }) {
+  return (
+    <span className="artist-blank" aria-hidden="true">
+      <span className="artist-blank__mark">{a.name.charAt(0)}</span>
+    </span>
+  )
+}
+
 // one artist in the grid: the picture and its name; opens the large view
 function Tile({ a, i, onOpen }) {
   return (
     <li className={`artist-tile artist-tile--${a.id}`} style={{ '--i': Math.min(i, 12) }}>
       <button type="button" className="artist-tile__btn" onClick={() => onOpen(i)} aria-label={`${a.name} 크게 보기`}>
         <span className="artist-tile__frame">
-          <img className="artist-tile__img" src={a.img} alt="" width={a.w} height={a.h} loading={i < 4 ? 'eager' : 'lazy'} decoding="async" />
-          {/* RGB-split copies that only show during the hover glitch */}
-          <span className="artist-tile__ghost artist-tile__ghost--c" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
-          <span className="artist-tile__ghost artist-tile__ghost--m" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
+          {a.img ? (
+            <>
+              <img className="artist-tile__img" src={a.img} alt="" width={a.w} height={a.h} loading={i < 4 ? 'eager' : 'lazy'} decoding="async" />
+              {/* RGB-split copies that only show during the hover glitch */}
+              <span className="artist-tile__ghost artist-tile__ghost--c" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
+              <span className="artist-tile__ghost artist-tile__ghost--m" style={{ backgroundImage: `url(${a.img})` }} aria-hidden="true" />
+            </>
+          ) : (
+            <Blank a={a} />
+          )}
           <span className="artist-tile__crt" aria-hidden="true" />
         </span>
         {a.links.length > 0 && (
@@ -90,8 +105,8 @@ function Viewer({ i, onClose, onStep }) {
       }}
     >
       <div className="artist-view__box" ref={box} tabIndex={-1} key={a.id}>
-        <div className="artist-view__frame">
-          <img className="artist-view__img" src={a.img} alt={`${a.name} 대표 이미지`} width={a.w} height={a.h} />
+        <div className={`artist-view__frame${a.img ? '' : ' artist-view__frame--blank'}`}>
+          {a.img ? <img className="artist-view__img" src={a.img} alt={`${a.name} 대표 이미지`} width={a.w} height={a.h} /> : <Blank a={a} />}
           <span className="artist-tile__crt" aria-hidden="true" />
         </div>
         <div className="artist-view__body">
