@@ -120,6 +120,32 @@
 .artist-tile__ghost--c { filter: sepia(1) hue-rotate(140deg) saturate(4); }
 .artist-tile__ghost--m { filter: sepia(1) hue-rotate(290deg) saturate(5); }
 
+/* no picture: a dark card with the name's first letter */
+.artist-blank {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(80% 60% at 50% 35%, rgba(255, 51, 85, 0.14), transparent 70%),
+    radial-gradient(70% 50% at 50% 80%, rgba(79, 227, 224, 0.1), transparent 70%),
+    #0c080e;
+}
+
+.artist-blank__mark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(40px, 14vw, 120px);
+  line-height: 1;
+  color: rgba(247, 238, 236, 0.16);
+  text-transform: none;
+}
+
+.artist-view__frame .artist-blank { position: relative; display: grid; width: 100%; height: 100%; }
+.artist-view__frame .artist-blank__mark { font-size: clamp(80px, 24vw, 220px); }
+/* no picture to give the frame its size: as tall as a picture would be */
+.artist-view__frame--blank { height: min(calc(100svh - 220px), 140vw); }
+
 /* CRT: fine scanlines + soft vignette, always on */
 .artist-tile__crt {
   position: absolute;

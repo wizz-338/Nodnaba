@@ -1,7 +1,6 @@
 import { ARTIST_HASH, MANO_COLONY_HASH, MANO_RUN_HASH, VISITOR_HASH } from '../route'
 import { GAMES } from './games'
 import tizzzzImg from '../assets/artist/tizzzz.webp'
-import vixxinImg from '../assets/artist/pixie.webp'
 import peachyYoutubeImg from '../assets/news/peachy-youtube.webp'
 import { PEACHY_YOUTUBE_URL } from '../components/Footer'
 import bannerImg from '../assets/banner.webp'
@@ -39,9 +38,6 @@ export const NEWS = [
     description: 'vixxin의 신곡 《snap》이 338_orbitty 채널에 공개되었습니다.',
     link: 'https://youtu.be/c4ODqoHL-jA',
     linkText: 'LISTEN',
-    img: vixxinImg,
-    imgW: 832,
-    imgH: 1216,
   },
   {
     date: '2026-11-09',
