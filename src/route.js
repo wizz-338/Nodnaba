@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react'
 //   '#/game/mano-colony'  MANO COLONY (DEMO) village game
 //   '#/game/mano-survivor'  MANO SURVIVOR (DEMO) action game, the phone version (9:16)
 //   '#/game/mano-survivor-pc'  the same game, the PC version (16:9, keyboard)
+//   '#/project-zero'   PROJECT ZERO (admin-only test, in no menu; its own sub-addresses
+//       under it, see src/project-zero/routes.js)
 //   '#/game/mano-survivor-test', '#/game/mano-survivor-pc-test'  the special-boss
 //       tester (tester.js; in no menu, its own save in memory only)
 // Anything else is the main page, so in-page anchors like '#vision' keep working.
@@ -22,6 +24,7 @@ export const MANO_SURVIVOR_TEST_HASH = '#/game/mano-survivor-test'
 export const MANO_SURVIVOR_PC_TEST_HASH = '#/game/mano-survivor-pc-test'
 export const ARTIST_HASH = '#/artist'
 export const NEWS_HASH = '#/news'
+export const PROJECT_ZERO_HASH = '#/project-zero'
 
 export function parseRoute(hash = location.hash) {
   if (hash.startsWith('#/game')) {
@@ -40,6 +43,7 @@ export function parseRoute(hash = location.hash) {
               : 'run'
     return { page: 'game', admin: false, game }
   }
+  if (hash === PROJECT_ZERO_HASH || hash.startsWith(`${PROJECT_ZERO_HASH}/`)) return { page: 'project-zero', admin: false }
   if (hash.startsWith(NEWS_HASH)) return { page: 'news', admin: false }
   if (hash.startsWith(ARTIST_HASH)) return { page: 'artist', admin: false }
   if (hash.startsWith(VISITOR_HASH)) return { page: 'visitor', admin: hash.startsWith('#/visitor/admin') }

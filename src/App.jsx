@@ -17,6 +17,8 @@ const GamePage = lazy(() => import('./game/GamePage'))
 const ArtistPage = lazy(() => import('./artist/ArtistPage'))
 const ColonyPage = lazy(() => import('./colony/ColonyPage'))
 const SurvivorPage = lazy(() => import('./survivor/SurvivorPage'))
+// PROJECT ZERO: admin-only, in no menu (its content comes from Supabase after the admin check)
+const ProjectZeroPage = lazy(() => import('./project-zero/ProjectZeroPage'))
 
 const SWAP_MS = 420
 const END_MS = 900
@@ -75,9 +77,9 @@ export default function App() {
 
   return (
     <>
-      {shown.page !== 'game' && <div className="fx" aria-hidden="true" />}
+      {shown.page !== 'game' && shown.page !== 'project-zero' && <div className="fx" aria-hidden="true" />}
       {!booted && <Boot onDone={done} />}
-      {shown.page !== 'game' && <Header page={shown.page} />}
+      {shown.page !== 'game' && shown.page !== 'project-zero' && <Header page={shown.page} />}
       {shown.page === 'main' ? (
         <MainPage ready={booted} />
       ) : shown.page === 'news' ? (
@@ -99,6 +101,8 @@ export default function App() {
             ))
           ) : shown.page === 'artist' ? (
             <ArtistPage />
+          ) : shown.page === 'project-zero' ? (
+            <ProjectZeroPage />
           ) : (
             <VisitorPage admin={shown.admin} />
           )}

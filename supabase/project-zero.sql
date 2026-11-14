@@ -4,7 +4,7 @@
 -- This file holds NO case content and NO answers (this repository is public).
 -- The content is loaded separately with the private seed file, which is never committed.
 --
--- Security model
+-- Security model (reviewed: see the notes at the end of this file)
 --   * Only accounts listed in public.guestbook_admins (the existing site admins) can use PROJECT ZERO.
 --   * pz_cases: admins read the case text (briefing, evidence, puzzles, hints). The epilogue column
 --     is not granted: it is returned by pz_case_state() only once every puzzle is solved.
@@ -57,6 +57,8 @@ alter table public.pz_attempts    enable row level security;
 revoke all on public.pz_cases       from anon, authenticated;
 revoke all on public.pz_answer_keys from anon, authenticated;
 revoke all on public.pz_attempts    from anon, authenticated;
+-- Supabase's default privileges also grant new sequences to the API roles: take that back too
+revoke all on sequence public.pz_attempts_id_seq from anon, authenticated;
 
 -- cases: admins may read (not the epilogue column); nobody writes through the API
 grant select (id, code, title, sort, content, updated_at) on public.pz_cases to authenticated;
@@ -75,7 +77,7 @@ returns uuid
 language plpgsql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid uuid := auth.uid();
@@ -92,7 +94,7 @@ create or replace function public.pz_normalize(p_kind text, p_input text)
 returns jsonb
 language plpgsql
 stable
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v text := btrim(normalize(coalesce(p_input, ''), NFKC));
@@ -135,7 +137,7 @@ create or replace function public.pz_verify_answer(p_case text, p_puzzle text, p
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid  uuid := public.pz_require_admin();
@@ -174,7 +176,7 @@ returns jsonb
 language plpgsql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid    uuid := public.pz_require_admin();
@@ -202,7 +204,7 @@ create or replace function public.pz_reset_case(p_case text)
 returns void
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_uid uuid := public.pz_require_admin();
@@ -220,6 +222,21 @@ revoke all on function public.pz_reset_case(text)                    from public
 grant execute on function public.pz_verify_answer(text, text, text) to authenticated;
 grant execute on function public.pz_case_state(text)                to authenticated;
 grant execute on function public.pz_reset_case(text)                to authenticated;
+
+-- ── review notes ──────────────────────────────────────────────────────────
+-- * Supabase's default privileges grant every new public table, sequence and function to
+--   anon/authenticated. Each pz_ object is therefore revoked from them explicitly above;
+--   "revoke … from public" alone would not be enough.
+-- * SECURITY DEFINER functions run with search_path = '' and name every table schema-first
+--   (public.…, auth.uid()), so a caller cannot redirect them to look-alike objects.
+-- * Admin = a row in public.guestbook_admins for auth.uid() (taken from the signed JWT).
+--   Nobody can add themselves: the API roles have no INSERT on guestbook_admins.
+-- * pz_answer_keys and pz_attempts have RLS on and no policy on purpose (only the functions
+--   read them); Supabase's advisor lists that as "RLS enabled, no policy" — expected.
+-- * Answers never leave the database. A clue is returned only for a puzzle this admin has
+--   answered correctly; the epilogue only once every puzzle is solved. Graded answers are
+--   limited to 30 a minute per account.
+-- * The case text itself (evidence, hints) is readable by admins only, after sign-in.
 
 -- ── removal (only if PROJECT ZERO should go; touches nothing else) ───────
 -- drop function if exists public.pz_reset_case(text), public.pz_case_state(text),
