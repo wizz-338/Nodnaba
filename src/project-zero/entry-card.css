@@ -1,0 +1,139 @@
+/* PROJECT ZERO entry card (ARTIST → Tizzzz's large view). Every rule is under .pz-entry. */
+
+.pz-entry {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  width: min(100%, 340px);
+  padding: 14px 16px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(79, 227, 224, 0.45);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(0deg, rgba(79, 227, 224, 0.035) 0 1px, transparent 1px 4px),
+    linear-gradient(160deg, #0b1426, #05070d 70%);
+  color: var(--white);
+  text-align: left;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 28px rgba(79, 227, 224, 0.08);
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* a folded corner, like a file in a drawer */
+.pz-entry::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(225deg, rgba(6, 4, 8, 0.95) 50%, rgba(79, 227, 224, 0.35) 50%);
+}
+
+.pz-entry:hover,
+.pz-entry:focus-visible {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 36px rgba(79, 227, 224, 0.22);
+}
+
+.pz-entry:active {
+  transform: scale(0.99);
+}
+
+.pz-entry:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.pz-entry__top,
+.pz-entry__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--cyan);
+}
+
+.pz-entry__lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 14px; /* clear of the folded corner */
+  color: var(--dim);
+}
+
+.pz-entry__lock svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.pz-entry__title {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+.pz-entry__zero {
+  position: relative;
+  display: inline-block;
+  color: var(--cyan);
+  text-shadow: 0 0 14px rgba(79, 227, 224, 0.5);
+}
+
+.pz-entry__zero::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120%;
+  height: 2px;
+  background: var(--hot);
+  transform: translate(-50%, -50%) rotate(-60deg);
+}
+
+.pz-entry__sub {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.pz-entry__redact {
+  display: grid;
+  gap: 5px;
+  margin: 4px 0 2px;
+}
+
+.pz-entry__redact i {
+  display: block;
+  height: 7px;
+  background: rgba(247, 238, 236, 0.14);
+}
+
+.pz-entry__stamp {
+  padding: 2px 6px;
+  border: 1px solid var(--hot);
+  color: var(--hot);
+  transform: rotate(-3deg);
+}
+
+.pz-entry__go {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pz-entry {
+    transition: none;
+  }
+}

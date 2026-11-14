@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ARTISTS } from '../data/artists'
+import ProjectZeroCard from '../project-zero/EntryCard'
 import './artist.css'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -104,7 +105,7 @@ function Viewer({ i, onClose, onStep }) {
         if (Math.abs(dx) > 50) onStep(dx < 0 ? 1 : -1)
       }}
     >
-      <div className="artist-view__box" ref={box} tabIndex={-1} key={a.id}>
+      <div className={`artist-view__box${a.card ? ' artist-view__box--card' : ''}`} ref={box} tabIndex={-1} key={a.id}>
         <div className={`artist-view__frame${a.img ? '' : ' artist-view__frame--blank'}`}>
           {a.img ? <img className="artist-view__img" src={a.img} alt={`${a.name} 대표 이미지`} width={a.w} height={a.h} /> : <Blank a={a} />}
           <span className="artist-tile__crt" aria-hidden="true" />
@@ -117,6 +118,7 @@ function Viewer({ i, onClose, onStep }) {
             {a.name}
           </h2>
           <Links links={a.links} />
+          {a.card === 'project-zero' && <ProjectZeroCard />}
         </div>
       </div>
       {ARTISTS.length > 1 && (

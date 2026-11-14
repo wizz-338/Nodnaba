@@ -1,5 +1,5 @@
 import { useGame } from '../ProjectZeroPage'
-import { pz } from '../routes'
+import { PZ_EXIT, pz } from '../routes'
 import { LinkBtn } from '../ui'
 
 // Title screen (shown only after the admin check; its lines come from the database)
@@ -13,7 +13,7 @@ export function Intro() {
   return (
     <main className="pz-screen pz-grid" data-testid="pz-intro">
       <div className="pz-wrap pz-topline">
-        <a href="#/">← NODNABA</a>
+        <a href={PZ_EXIT}>← ARTIST</a>
         <button type="button" className="pz-btn pz-btn--subtle pz-small" onClick={g.signOut} data-testid="pz-signout">
           로그아웃
         </button>

@@ -380,6 +380,12 @@
 .artist-view__step--next { right: 12px; }
 .artist-view__close { top: calc(12px + env(safe-area-inset-top)); right: 12px; font-size: 16px; }
 
+/* phones: an artist with a card (Tizzzz → PROJECT ZERO) keeps the picture shorter, so the
+   card fits under the name without scrolling */
+@media (max-width: 819px) {
+  .artist-view__box--card .artist-view__frame { max-height: calc(100svh - 400px); }
+}
+
 /* phones: the arrows under the picture's sides, out of its way */
 @media (max-width: 819px) {
   .artist-view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }

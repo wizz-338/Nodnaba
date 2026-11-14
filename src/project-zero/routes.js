@@ -1,19 +1,30 @@
 import { useEffect, useState } from 'react'
+import { PROJECT_ZERO_HASH, PROJECT_ZERO_OLD_HASH } from '../route'
 
-// Addresses inside PROJECT ZERO (the site's hash routing, under #/project-zero):
-//   #/project-zero                         title
-//   #/project-zero/access                  investigator sign-on
-//   #/project-zero/cases                   case list
-//   #/project-zero/case/001[/evidence|/puzzles|/notes]
-//   #/project-zero/case/001/evidence/E02   one document
-//   #/project-zero/case/001/puzzle/P01     one puzzle
-//   #/project-zero/case/001/complete       closing report
-export const PZ_HASH = '#/project-zero'
+// Addresses inside PROJECT ZERO (the site's hash routing; base #/artist/tizzzz/project-zero,
+// entered from the card in Tizzzz's large view on ARTIST):
+//   <base>                         title
+//   <base>/access                  investigator sign-on
+//   <base>/cases                   case list
+//   <base>/case/001[/evidence|/puzzles|/notes]
+//   <base>/case/001/evidence/E02   one document
+//   <base>/case/001/puzzle/P01     one puzzle
+//   <base>/case/001/complete       closing report
+// The first base, #/project-zero/…, is moved to the same place under the new one.
+export const PZ_HASH = PROJECT_ZERO_HASH
+// where the page's own "back to the site" links go: the ARTIST page (Tizzzz is in its grid)
+export const PZ_EXIT = '#/artist'
 
 const ID = /^[A-Za-z0-9-]{1,16}$/
 
+/** The old #/project-zero/… address → the same place under the new base (else null). */
+export function moved(hash) {
+  if (hash !== PROJECT_ZERO_OLD_HASH && !hash.startsWith(`${PROJECT_ZERO_OLD_HASH}/`)) return null
+  return PZ_HASH + hash.slice(PROJECT_ZERO_OLD_HASH.length)
+}
+
 export function parsePz(hash = location.hash) {
-  if (!hash.startsWith(PZ_HASH)) return { name: 'notfound' }
+  if (hash !== PZ_HASH && !hash.startsWith(`${PZ_HASH}/`)) return { name: 'notfound' }
   const rest = hash.slice(PZ_HASH.length).replace(/^\/+|\/+$/g, '')
   if (!rest) return { name: 'home' }
   const parts = rest.split('/')
@@ -43,9 +54,17 @@ export const pz = {
 }
 
 export function usePzRoute() {
-  const [hash, setHash] = useState(() => location.hash)
+  const [hash, setHash] = useState(() => {
+    const to = moved(location.hash)
+    if (to) history.replaceState(history.state, '', to) // old link: same place, new address, no extra back step
+    return location.hash
+  })
   useEffect(() => {
-    const on = () => setHash(location.hash)
+    const on = () => {
+      const to = moved(location.hash)
+      if (to) history.replaceState(history.state, '', to)
+      setHash(location.hash)
+    }
     addEventListener('hashchange', on)
     return () => removeEventListener('hashchange', on)
   }, [])

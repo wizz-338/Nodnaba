@@ -1,6 +1,6 @@
 import { useGame } from '../ProjectZeroPage'
 import { stats } from '../progress'
-import { pz } from '../routes'
+import { PZ_EXIT, pz } from '../routes'
 import { Bar, Icon, Tag } from '../ui'
 
 // CASE 001 is the only playable case in v0.1.0; 002–010 are shown locked.
@@ -67,7 +67,7 @@ export function Cases() {
       </ul>
       <p className="pz-xs pz-mute pz-center" style={{ marginTop: 24 }}>잠긴 사건은 이후 업데이트에서 순차 공개됩니다.</p>
       <div className="pz-center" style={{ marginTop: 8 }}>
-        <a href="#/" className="pz-btn pz-btn--subtle pz-small">NODNABA 홈으로</a>
+        <a href={PZ_EXIT} className="pz-btn pz-btn--subtle pz-small">ARTIST로 돌아가기</a>
       </div>
     </main>
   )

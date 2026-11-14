@@ -1,6 +1,8 @@
-# PROJECT ZERO (`#/project-zero`)
+# PROJECT ZERO (`#/artist/tizzzz/project-zero`)
 
-Admin-only test page for PROJECT ZERO v0.1.0 (CASE 001 "최후의 거래"). Not in any menu.
+Admin-only test page for PROJECT ZERO v0.1.0 (CASE 001 "최후의 거래"), entered from the card in
+Tizzzz's large view on ARTIST (`EntryCard.jsx`, `entry-card.css`). The first address `#/project-zero`
+still works: it is moved to the same place under the new one. Not in the site menu.
 
 - **No case content in this repository.** The briefing, evidence, puzzles, hints, answers,
   clues and epilogue live only in Supabase. The schema is `supabase/project-zero.sql`;

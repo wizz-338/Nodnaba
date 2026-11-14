@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as api from '../api'
+import { PZ_EXIT } from '../routes'
 import { Btn, LinkBtn, Panel } from '../ui'
 
 // Everything shown before an admin is confirmed. No case text lives in this file.
@@ -8,7 +9,7 @@ function Shell({ children, testId }) {
   return (
     <main className="pz-screen pz-grid" data-testid={testId}>
       <div className="pz-wrap pz-topline">
-        <a href="#/">← NODNABA</a>
+        <a href={PZ_EXIT}>← ARTIST</a>
         <span className="pz-mono pz-xs pz-mute">PROJECT ZERO</span>
       </div>
       <div className="pz-wrap pz-screen__body">{children}</div>
@@ -38,7 +39,7 @@ export function Gate({ phase, user, onRetry, onSignedIn }) {
           </p>
           <div className="pz-stack-s" style={{ marginTop: 16 }}>
             <Btn className="pz-btn--block" onClick={onRetry}>다시 확인</Btn>
-            <LinkBtn href="#/" kind="subtle" className="pz-btn--block">홈페이지로</LinkBtn>
+            <LinkBtn href={PZ_EXIT} kind="subtle" className="pz-btn--block">ARTIST로 돌아가기</LinkBtn>
           </div>
         </Panel>
       </Shell>
@@ -64,7 +65,7 @@ export function Gate({ phase, user, onRetry, onSignedIn }) {
             >
               로그아웃
             </Btn>
-            <LinkBtn href="#/" kind="subtle" className="pz-btn--block">홈페이지로</LinkBtn>
+            <LinkBtn href={PZ_EXIT} kind="subtle" className="pz-btn--block">ARTIST로 돌아가기</LinkBtn>
           </div>
         </Panel>
       </Shell>
@@ -114,8 +115,10 @@ function Login({ note, onSignedIn }) {
     <Shell testId="pz-login">
       <Panel className="pz-rise">
         <p className="pz-eyebrow">RESTRICTED ARCHIVE</p>
-        <h1 className="pz-h1" style={{ marginTop: 4 }}>관리자 로그인</h1>
-        <p className="pz-soft pz-small" style={{ marginTop: 8 }}>비공개 테스트 중입니다. NODNABA 관리자 계정으로 로그인하세요.</p>
+        <h1 className="pz-h1" style={{ marginTop: 4 }}>관리자 인증이 필요합니다</h1>
+        <p className="pz-soft pz-small" style={{ marginTop: 8 }}>
+          PROJECT ZERO는 비공개 테스트 중입니다. NODNABA 관리자 계정으로 인증한 사람만 플레이할 수 있습니다.
+        </p>
         {note && <p className="pz-msg pz-msg--warn">{note}</p>}
         <form onSubmit={submit} className="pz-stack-s" style={{ marginTop: 16 }}>
           <label>
@@ -127,10 +130,11 @@ function Login({ note, onSignedIn }) {
             <input className="pz-input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" enterKeyHint="go" data-testid="pz-password" required />
           </label>
           <Btn type="submit" kind="primary" className="pz-btn--block pz-btn--tall" disabled={busy} data-testid="pz-login-btn">
-            {busy ? '확인 중…' : '로그인'}
+            {busy ? '확인 중…' : '관리자 로그인'}
           </Btn>
           {err && <p className="pz-msg pz-msg--bad" data-testid="pz-login-err">{err}</p>}
         </form>
+        <LinkBtn href={PZ_EXIT} kind="subtle" className="pz-btn--block">ARTIST로 돌아가기</LinkBtn>
       </Panel>
     </Shell>
   )

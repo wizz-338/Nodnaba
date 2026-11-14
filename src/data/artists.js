@@ -24,6 +24,7 @@ const external = { target: '_blank', rel: 'noopener noreferrer' }
 // spelling, shown as is (never upper-cased: "zyo_" keeps its underscore).
 // w, h: the picture's size. links: { label, href } buttons in its large view
 // (external ones with ...external; small: a quiet text link; icon: YouTube).
+// card: an extra card under the links ('project-zero': the PROJECT ZERO entry, Tizzzz only).
 export const ARTISTS = [
   {
     id: 'mano',
@@ -52,7 +53,7 @@ export const ARTISTS = [
       { label: '다락 (Attic) ↗', href: 'https://youtu.be/Yoepw1Lgt4Y', ...external, small: true },
     ],
   },
-  { id: 'tizzzz', name: 'Tizzzz', img: tizzzzImg, w: 1024, h: 1536, links: [] },
+  { id: 'tizzzz', name: 'Tizzzz', img: tizzzzImg, w: 1024, h: 1536, links: [], card: 'project-zero' },
   {
     id: 'peachy',
     name: 'PEACHY',
